@@ -185,16 +185,6 @@ curl -X POST http://localhost:8080/api/v1/files/upload \
 2. 在 `eino/prompt.go` 中创建对应的模板实现
 3. 在编排图中使用新模板
 
-## 部署
-
-### Docker部署
-```bash
-# 构建镜像
-docker build -t study-coach .
-
-# 运行容器
-docker run -p 8080:8080 --env-file .env study-coach
-```
 
 ### 生产环境配置
 - 配置反向代理（Nginx）
@@ -206,11 +196,6 @@ docker run -p 8080:8080 --env-file .env study-coach
 
 欢迎提交Issue和Pull Request！
 
-1. Fork项目
-2. 创建特性分支
-3. 提交更改
-4. 推送到分支
-5. 创建Pull Request
 
 ## 许可证
 
