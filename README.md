@@ -1,237 +1,245 @@
-# StudyCoach - AI学习教练Agent 🎓
+# StudyCoach - AI学习助手
 
-<div align="center">
-  <img src="https://img.shields.io/badge/AI-Learning%20Coach-blue?style=for-the-badge&logo=openai" alt="AI Learning Coach">
-  <img src="https://img.shields.io/badge/React-18.x-61DAFB?style=for-the-badge&logo=react" alt="React">
-  <img src="https://img.shields.io/badge/Go-1.24-00ADD8?style=for-the-badge&logo=go" alt="Go">
-  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript">
-</div>
+一个基于AI的智能学习助手系统，集成了知识库检索、网络搜索和智能对话功能。
 
-## 📖 项目简介
+## 项目特性
 
-StudyCoach 是一个基于AI的智能学习教练Agent，旨在为用户提供个性化、智能化的学习体验。通过先进的AI技术，StudyCoach能够理解用户的学习需求，制定个性化学习计划，推荐优质学习资源，并提供全程学习陪伴。
+- **AI智能对话** ✅ - 基于OpenAI GPT模型的智能对话系统
+- **知识库检索** 🔄 - 支持文档上传、解析和向量检索（开发中）
+- **智能搜索** 🔄 - 集成DuckDuckGo搜索引擎，提供实时网络信息（开发中）
+- **数据存储** ✅ - 使用Elasticsearch进行向量存储和检索
+- **现代化前端** 🔄 - React + TypeScript构建的响应式界面（部分完成，Redux Toolkit未实现，当前使用localStorage进行会话管理）
 
-## ✨ 核心功能
+## 项目结构
 
-### 🤖 智能对话系统
-- **自然语言交互**：支持用户直接描述学习需求和问题
-- **多模态输入**：支持文字、语音等多种输入方式
-- **实时响应**：展示AI分析过程和思考步骤，增强用户信任感
-- **上下文理解**：记忆对话历史，提供连贯的学习指导
+```
+studyCoach/
+├── backend/                 # 后端Go服务
+│   ├── api/                # API接口层
+│   │   ├── ai_chat.go     # AI对话接口
+│   │   ├── chat_sessions.go # 会话管理接口
+│   │   ├── check_jwt.go   # JWT验证接口
+│   │   └── login.go       # 登录接口
+│   ├── internal/           # 内部逻辑
+│   ├── main.go            # 程序入口
+│   ├── go.mod             # Go依赖管理
+│   └── ...
+├── general-template/        # 前端React应用
+│   ├── src/
+│   │   ├── pages/         # 页面组件
+│   │   │   ├── AiChat/    # AI对话页面
+│   │   │   ├── Activities/ # 活动页面
+│   │   │   ├── Auth/      # 认证页面
+│   │   │   ├── Login/     # 登录页面
+│   │   │   └── Register/  # 注册页面
+│   │   ├── components/    # 通用组件
+│   │   └── ...
+│   ├── package.json       # 前端依赖
+│   └── ...
+├── studyCoach/             # 核心业务逻辑
+│   ├── api/               # API处理
+│   ├── eino/              # AI引擎集成
+│   ├── indexer/           # 索引管理
+│   ├── mcp/               # MCP协议支持
+│   └── ...
+├── go.mod                  # 根目录Go模块
+└── README.md              # 项目说明
+```
 
-### 📅 学习计划管理
-- **个性化计划生成**：基于用户目标和能力水平制定学习路径
-- **可视化展示**：时间轴、甘特图等多种形式展示学习计划
-- **进度跟踪**：实时监控学习进度，支持任务完成状态管理
-- **智能调整**：根据学习情况动态调整计划安排
-- **里程碑提醒**：重要节点的可视化提醒和成就庆祝
+## 技术栈
 
-### 📚 资源管理中心
-- **智能推荐**：基于学习内容和用户偏好推荐相关资源
-- **分类浏览**：按类型、难度、评分等维度组织学习资源
-- **个人资源库**：用户收藏和上传的学习资料统一管理
-- **评价系统**：用户可对资源进行评分和评论
-- **资源搜索**：强大的搜索功能快速定位所需资源
+### 后端
+- **Go** - 主要编程语言
+- **GoFrame (GF)** - Web框架
+- **Elasticsearch** - 搜索引擎和向量数据库
+- **MySQL** - 关系型数据库
+- **Redis** - 缓存数据库
+- **MinIO** - 对象存储
 
-### 🤝 学习陪伴功能
-- **情感状态监测**：通过交互分析识别用户学习情绪
-- **智能鼓励系统**：根据学习状态提供个性化鼓励和建议
-- **学习伙伴匹配**：连接有相似学习目标的用户
-- **专注模式**：番茄钟、白噪音等专注学习工具
-- **学习提醒**：智能提醒系统帮助养成学习习惯
+### AI技术
+- **OpenAI GPT** - 大语言模型
+- **Eino** - AI工作流引擎
+- **向量检索** - 文档相似度搜索
+- **DuckDuckGo API** - 网络搜索
 
-### 📊 数据分析仪表板
-- **学习统计**：学习时长、完成率、知识点掌握情况可视化
-- **能力雷达图**：多维度展示用户在不同领域的能力水平
-- **效率分析**：最佳学习时间段、效率趋势分析
-- **目标预测**：基于当前进度预测目标完成时间
-- **学习报告**：定期生成详细的学习分析报告
+### 前端
+- **React 18** - 用户界面库
+- **TypeScript** - 类型安全的JavaScript
+- **Vite** - 构建工具
+- **Tailwind CSS** - 样式框架
 
-### ⚙️ 个性化设置
-- **学习偏好配置**：学习时间、难度偏好、提醒频率等设置
-- **界面主题定制**：多种主题和布局选择
-- **通知管理**：灵活的提醒和通知设置
-- **隐私控制**：学习数据的隐私级别设置
-
-### 📱 移动端适配
-- **响应式设计**：适配不同屏幕尺寸的设备
-- **离线学习支持**：关键功能的离线使用能力
-- **手势操作**：针对移动设备优化的交互方式
-- **推送通知**：学习提醒和重要消息的及时推送
-
-## 🛠️ 技术栈
-
-### 前端技术
-- **框架**：React 18.x + TypeScript
-- **构建工具**：Bun (高性能JavaScript运行时)
-- **状态管理**：Redux Toolkit / Zustand
-- **UI组件库**：Ant Design / Material-UI
-- **样式方案**：Tailwind CSS / Styled Components
-- **图表库**：ECharts / Chart.js
-
-### 后端技术
-- **语言**：Go 1.24
-- **框架**：GoFrame v2.9
-- **AI引擎**：CloudWeGo Eino
-- **数据库**：MySQL + MongoDB + Redis
-- **搜索引擎**：Elasticsearch
-- **消息队列**：Redis Streams
-- **文件存储**：MinIO
-
-### AI & 机器学习
-- **大语言模型**：OpenAI GPT / 本地部署模型
-- **向量数据库**：用于语义搜索和知识检索
-- **自然语言处理**：文本分析、情感识别
-- **推荐算法**：协同过滤、内容推荐
-
-### 基础设施
-- **容器化**：Docker + Docker Compose
-- **CI/CD**：GitHub Actions
-- **监控**：Prometheus + Grafana
-- **日志**：ELK Stack
-- **安全**：JWT认证、HTTPS、权限控制
-
-## 🚀 快速开始
+## 快速开始
 
 ### 环境要求
+- Go 1.21+
 - Node.js 18+
-- Go 1.24+
-- Docker & Docker Compose
+- Elasticsearch 8.x
 - MySQL 8.0+
 - Redis 6.0+
-- Elasticsearch 8.0+
 
-### 安装步骤
+### 后端部署
 
-1. **克隆项目**
+1. 克隆项目
 ```bash
 git clone https://github.com/VH992098059/StudyCoach.git
 cd StudyCoach
 ```
 
-2. **启动基础服务**
+2. 配置环境变量
 ```bash
-# 启动数据库和中间件
-docker-compose up -d mysql redis elasticsearch
+cp studyCoach/.env.example studyCoach/.env
+# 编辑.env文件，配置数据库连接、API密钥等
 ```
 
-3. **配置环境变量**
+3. 安装依赖并运行
 ```bash
-# 复制配置文件
-cp .env.example .env
-cp backend/.env.example backend/.env
-
-# 编辑配置文件，填入必要的配置信息
-```
-
-4. **启动后端服务**
-```bash
-cd backend
 go mod tidy
+cd backend
 go run main.go
 ```
 
-5. **启动前端服务**
+### 前端部署
+
+1. 进入前端目录
 ```bash
 cd general-template
-bun install
-bun dev
 ```
 
-6. **访问应用**
-- 前端地址：http://localhost:3000
-- 后端API：http://localhost:8000
-- API文档：http://localhost:8000/swagger
-
-## 📁 项目结构
-
-```
-StudyCoach/
-├── backend/                 # Go后端服务
-│   ├── api/                # API接口定义
-│   ├── internal/           # 内部业务逻辑
-│   │   ├── controller/     # 控制器层
-│   │   ├── service/        # 服务层
-│   │   ├── dao/           # 数据访问层
-│   │   └── model/         # 数据模型
-│   ├── manifest/          # 配置文件
-│   └── utility/           # 工具函数
-├── general-template/       # React前端应用
-│   ├── src/
-│   │   ├── components/    # 通用组件
-│   │   ├── pages/         # 页面组件
-│   │   ├── hooks/         # 自定义Hooks
-│   │   ├── utils/         # 工具函数
-│   │   └── router/        # 路由配置
-│   └── public/            # 静态资源
-├── studyCoach/            # AI核心模块
-│   ├── eino/              # AI编排引擎
-│   ├── indexer/           # 索引服务
-│   ├── mcp/               # MCP协议适配
-│   └── configTool/        # 配置工具
-├── docker-compose.yml     # Docker编排文件
-├── README.md             # 项目说明
-└── .env.example          # 环境变量模板
-```
-
-## 🔧 开发指南
-
-### 代码规范
-- 前端：遵循 ESLint + Prettier 规范
-- 后端：遵循 Go 官方代码规范
-- 提交：使用 Conventional Commits 规范
-
-### 测试
+2. 安装依赖
 ```bash
-# 前端测试
-cd general-template
-bun test
-
-# 后端测试
-cd backend
-go test ./...
+npm install
+# 或使用 bun install
 ```
 
-### 构建部署
+3. 启动开发服务器
 ```bash
-# 构建Docker镜像
-docker-compose build
-
-# 生产环境部署
-docker-compose -f docker-compose.prod.yml up -d
+npm run dev
+# 或使用 bun dev
 ```
 
-## 🤝 贡献指南
+## 使用指南
 
-我们欢迎所有形式的贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详细信息。
+### AI对话功能 ✅
+- 支持多轮对话
+- 上下文记忆
+- 流式响应
+- 会话管理
 
-### 贡献方式
+### 知识库检索 🔄
+- 文档上传和解析
+- 向量化存储
+- 语义搜索
+- 相关性排序
+
+### 网络搜索 🔄
+- 实时搜索结果
+- 多源信息整合
+- 智能摘要
+
+### 用户认证 ✅
+- JWT令牌认证
+- 用户注册登录
+- 会话管理
+
+## 项目状态
+
+### 已完成功能
+- ✅ AI对话功能 - 基础对话、流式响应、上下文管理
+- ✅ 用户认证 - 注册、登录、JWT验证
+- ✅ 数据库设计 - MySQL表结构、Redis缓存
+- ✅ 前端界面 - React组件、路由配置、基础样式
+
+### 开发中功能
+- 🔄 知识库检索 - 文档解析、向量存储、检索优化
+- 🔄 网络搜索 - DuckDuckGo集成、结果处理
+- 🔄 文档处理 - 多格式支持、内容提取
+- 🔄 对象存储 - MinIO集成、文件管理
+- 🔄 会话管理 - 持久化存储、历史记录
+
+### 部分完成功能
+- 🔄 前端状态管理 - 当前使用localStorage，Redux Toolkit待实现
+- 🔄 知识库管理界面 - 基础框架已搭建，功能待完善
+- 🔄 用户设置 - 界面已创建，后端逻辑待开发
+
+### 待开发功能
+- ⏳ Redux状态管理 - 统一状态管理方案
+- ⏳ 知识库上传界面 - 文件上传、进度显示
+- ⏳ 用户个人中心 - 个人信息、使用统计
+- ⏳ 系统监控 - 性能监控、日志管理
+- ⏳ API文档 - Swagger文档生成
+
+## 配置说明
+
+### 环境变量
+```env
+# 数据库配置
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASS=password
+DB_NAME=studycoach
+
+# Redis配置
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASS=
+
+# Elasticsearch配置
+ES_HOST=localhost
+ES_PORT=9200
+ES_USER=elastic
+ES_PASS=password
+
+# OpenAI配置
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_BASE_URL=https://api.openai.com/v1
+
+# MinIO配置
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+```
+
+## 部署指南
+
+### 开发环境
+
+**后端部署：**
+1. 确保Go 1.21+已安装
+2. 配置环境变量文件
+3. 启动依赖服务（MySQL、Redis、Elasticsearch）
+4. 运行 `go run main.go`
+
+**前端部署：**
+1. 确保Node.js 18+已安装
+2. 安装依赖：`npm install`
+3. 启动开发服务器：`npm run dev`
+
+### 生产环境
+生产环境部署指南待完善，包括：
+- 服务器配置
+- 负载均衡
+- 数据库优化
+- 安全配置
+
+### Docker部署
+Docker容器化部署为待开发功能，将包括：
+- 多服务容器编排
+- 环境隔离
+- 自动化部署
+
+## 贡献指南
+
 1. Fork 项目
 2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+5. 打开 Pull Request
 
-## 📄 许可证
+## 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
-## 🙏 致谢
+## 联系方式
 
-- [CloudWeGo Eino](https://github.com/cloudwego/eino) - AI编排引擎
-- [GoFrame](https://github.com/gogf/gf) - Go开发框架
-- [React](https://reactjs.org/) - 前端框架
-- [OpenAI](https://openai.com/) - AI模型支持
-
-## 📞 联系我们
-
-- 项目主页：https://github.com/VH992098059/StudyCoach
-- 问题反馈：https://github.com/VH992098059/StudyCoach/issues
-- 邮箱：[your-email@example.com]
-
----
-
-<div align="center">
-  <p>如果这个项目对你有帮助，请给我们一个 ⭐️</p>
-  <p>Made with ❤️ by StudyCoach Team</p>
-</div>
+项目链接: [https://github.com/VH992098059/StudyCoach](https://github.com/VH992098059/StudyCoach)
