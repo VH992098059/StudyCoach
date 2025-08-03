@@ -1,0 +1,224 @@
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f0f2f5;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.content-wrapper {
+  flex: 1;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background: #fff;
+}
+
+.loading-container .ant-spin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-container .ant-spin-text {
+  color: #666;
+  font-size: 14px;
+}
+
+/* 错误边界 */
+.error-boundary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  padding: 24px;
+  background: #fff;
+}
+
+.error-boundary .ant-alert {
+  max-width: 600px;
+  width: 100%;
+}
+
+.error-retry-btn {
+  background: #1890ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s;
+}
+
+.error-retry-btn:hover {
+  background: #40a9ff;
+}
+
+/* 全屏布局模式 */
+.main-layout.fullscreen .content-wrapper {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.main-layout.fullscreen .main-content {
+  margin-top: 0;
+}
+
+/* 无边距模式 */
+.main-layout.no-padding .content-wrapper {
+  padding: 0;
+}
+
+/* 紧凑模式 */
+.main-layout.compact .content-wrapper {
+  margin-top: 12px;
+  margin-bottom: 12px;
+  padding: 16px;
+}
+
+
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .content-wrapper {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-top: 56px !important;
+  }
+  
+  .content-wrapper {
+    border-radius: 6px;
+  }
+  
+  .loading-container {
+    min-height: 300px;
+  }
+  
+  .error-boundary {
+    min-height: 300px;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .main-content {
+    margin-top: 52px !important;
+  }
+  
+  .content-wrapper {
+    border-radius: 4px;
+  }
+  
+  .loading-container {
+    min-height: 200px;
+  }
+  
+  .loading-container .ant-spin-text {
+    font-size: 12px;
+  }
+  
+  .error-boundary {
+    min-height: 200px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    margin-top: 50px !important;
+  }
+  
+}
+
+@media (max-width: 360px) {
+  .content-wrapper {
+    margin: 0 4px;
+    padding: 6px;
+  }
+}
+
+/* 深色主题支持 */
+.main-layout.dark {
+  background: #141414;
+}
+
+.main-layout.dark .content-wrapper {
+  background: #1f1f1f;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.main-layout.dark .loading-container {
+  background: #1f1f1f;
+}
+
+.main-layout.dark .loading-container .ant-spin-text {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.main-layout.dark .error-boundary {
+  background: #1f1f1f;
+}
+
+/* 动画效果 */
+.content-wrapper {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 滚动条样式 */
+.main-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

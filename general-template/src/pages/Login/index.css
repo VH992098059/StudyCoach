@@ -1,0 +1,195 @@
+.login-form {
+  width: 100%;
+}
+
+.login-form .ant-form-item {
+  margin-bottom: 20px;
+}
+
+.login-form .ant-input-affix-wrapper,
+.login-form .ant-input {
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  transition: all 0.3s;
+}
+
+.login-form .ant-input-affix-wrapper:hover,
+.login-form .ant-input:hover {
+  border-color: #40a9ff;
+}
+
+.login-form .ant-input-affix-wrapper:focus,
+.login-form .ant-input-affix-wrapper-focused,
+.login-form .ant-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.site-form-item-icon {
+  color: #8c8c8c;
+  font-size: 16px;
+}
+
+.login-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.forgot-password-link {
+  padding: 0;
+  height: auto;
+  color: #1890ff;
+  font-size: 14px;
+}
+
+.forgot-password-link:hover {
+  color: #40a9ff;
+}
+
+.login-submit-btn {
+  height: 48px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  transition: all 0.3s;
+}
+
+.login-submit-btn:hover {
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+  box-shadow: 0 6px 16px rgba(24, 144, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.login-submit-btn:active {
+  transform: translateY(0);
+}
+
+.quick-login-buttons {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.quick-login-buttons .ant-btn {
+  flex: 1;
+  height: 40px;
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  color: #595959;
+  background: #fafafa;
+  transition: all 0.3s;
+}
+
+.quick-login-buttons .ant-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+  background: #f0f8ff;
+}
+
+.register-link {
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.register-btn {
+  color: #1890ff;
+  text-decoration: none;
+  margin-left: 8px;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.register-btn:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+/* 分割线样式 */
+.login-form .ant-divider {
+  margin: 24px 0 16px 0;
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.login-form .ant-divider-inner-text {
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* 复选框样式 */
+.login-form .ant-checkbox-wrapper {
+  color: #595959;
+  font-size: 14px;
+}
+
+.login-form .ant-checkbox-wrapper:hover .ant-checkbox-inner {
+  border-color: #1890ff;
+}
+
+.login-form .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .login-form .ant-input-affix-wrapper,
+
+  
+  .login-submit-btn {
+    height: 44px;
+    font-size: 15px;
+  }
+  
+  .quick-login-buttons {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .quick-login-buttons .ant-btn {
+    flex: none;
+  }
+  
+  .login-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .forgot-password-link {
+    align-self: flex-end;
+  }
+}
+
+/* 加载状态样式 */
+.login-form .ant-btn-loading {
+  pointer-events: none;
+}
+
+.login-form .ant-btn-loading .ant-btn-loading-icon {
+  margin-right: 8px;
+}
+
+/* 错误状态样式 */
+.login-form .ant-form-item-has-error .ant-input-affix-wrapper,
+.login-form .ant-form-item-has-error .ant-input {
+  border-color: #ff4d4f;
+}
+
+.login-form .ant-form-item-has-error .ant-input-affix-wrapper:hover,
+.login-form .ant-form-item-has-error .ant-input:hover {
+  border-color: #ff7875;
+}
+
+.login-form .ant-form-item-explain-error {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}

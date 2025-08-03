@@ -1,0 +1,66 @@
+/* 自定义滚动条样式 */
+.custom-scrollbar {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: #d4d4d4 transparent;
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #b8b8b8;
+}
+
+/* 滚动时显示滚动条 */
+.custom-scrollbar.scrolling::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+}
+
+.custom-scrollbar.scrolling {
+  scrollbar-color: #d4d4d4 transparent;
+}
+
+/* 平滑过渡效果 */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
+/* 更细致的滚动条样式 */
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 响应式设计 - 移动端隐藏滚动条 */
+@media (max-width: 768px) {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+  
+  .custom-scrollbar {
+    scrollbar-width: none;
+  }
+}

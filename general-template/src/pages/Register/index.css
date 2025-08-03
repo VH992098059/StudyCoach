@@ -1,0 +1,214 @@
+.register-form {
+  width: 100%;
+}
+
+.register-form .ant-form-item {
+  margin-bottom: 18px;
+}
+
+.register-form .ant-input-affix-wrapper,
+.register-form .ant-input {
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  transition: all 0.3s;
+}
+
+.register-form .ant-input-affix-wrapper:hover,
+.register-form .ant-input:hover {
+  border-color: #40a9ff;
+}
+
+.register-form .ant-input-affix-wrapper:focus,
+.register-form .ant-input-affix-wrapper-focused,
+.register-form .ant-input:focus {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.site-form-item-icon {
+  color: #8c8c8c;
+  font-size: 16px;
+}
+
+.register-submit-btn {
+  height: 48px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+  transition: all 0.3s;
+}
+
+.register-submit-btn:hover {
+  background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%);
+  box-shadow: 0 6px 16px rgba(82, 196, 26, 0.4);
+  transform: translateY(-1px);
+}
+
+.register-submit-btn:active {
+  transform: translateY(0);
+}
+
+.login-link {
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.login-btn {
+  color: #1890ff;
+  text-decoration: none;
+  margin-left: 8px;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.login-btn:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+.agreement-link {
+  color: #1890ff;
+  text-decoration: none;
+  margin: 0 4px;
+  transition: color 0.3s;
+}
+
+.agreement-link:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
+/* 分割线样式 */
+.register-form .ant-divider {
+  margin: 20px 0 16px 0;
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.register-form .ant-divider-inner-text {
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+/* 复选框样式 */
+.register-form .ant-checkbox-wrapper {
+  color: #595959;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.register-form .ant-checkbox-wrapper:hover .ant-checkbox-inner {
+  border-color: #1890ff;
+}
+
+.register-form .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #1890ff;
+  border-color: #1890ff;
+}
+
+/* 密码强度提示 */
+.password-strength {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.password-strength-weak {
+  color: #ff4d4f;
+}
+
+.password-strength-medium {
+  color: #faad14;
+}
+
+.password-strength-strong {
+  color: #52c41a;
+}
+
+/* 表单验证样式 */
+.register-form .ant-form-item-has-error .ant-input-affix-wrapper,
+.register-form .ant-form-item-has-error .ant-input {
+  border-color: #ff4d4f;
+}
+
+.register-form .ant-form-item-has-error .ant-input-affix-wrapper:hover,
+.register-form .ant-form-item-has-error .ant-input:hover {
+  border-color: #ff7875;
+}
+
+.register-form .ant-form-item-explain-error {
+  color: #ff4d4f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.register-form .ant-form-item-has-success .ant-input-affix-wrapper,
+.register-form .ant-form-item-has-success .ant-input {
+  border-color: #52c41a;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .register-form .ant-input-affix-wrapper,
+  
+  .register-submit-btn {
+    height: 44px;
+    font-size: 15px;
+  }
+  
+  .register-form .ant-form-item {
+    margin-bottom: 16px;
+  }
+  
+  .register-form .ant-checkbox-wrapper {
+    font-size: 13px;
+  }
+  
+  .agreement-link {
+    display: inline-block;
+    margin: 2px 4px;
+  }
+}
+
+/* 加载状态样式 */
+.register-form .ant-btn-loading {
+  pointer-events: none;
+}
+
+.register-form .ant-btn-loading .ant-btn-loading-icon {
+  margin-right: 8px;
+}
+
+/* 输入框焦点动画 */
+.register-form .ant-input-affix-wrapper-focused {
+  animation: inputFocus 0.3s ease-out;
+}
+
+@keyframes inputFocus {
+  0% {
+    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  }
+}
+
+/* 表单项标签样式 */
+.register-form .ant-form-item-label > label {
+  color: #262626;
+  font-weight: 500;
+}
+
+.register-form .ant-form-item-required:not(.ant-form-item-required-mark-optional)::before {
+  color: #ff4d4f;
+}
+
+/* 提示文本样式 */
+.register-form .ant-form-item-extra {
+  color: #8c8c8c;
+  font-size: 12px;
+  margin-top: 4px;
+}

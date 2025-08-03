@@ -1,0 +1,78 @@
+/* 响应式容器基础样式 */
+.responsive-container {
+  box-sizing: border-box;
+  transition: padding 0.3s ease;
+}
+
+
+.responsive-container[data-device="mobile"] {
+  /* 移动端特定样式 */
+  overflow-x: hidden;
+}
+
+/* 响应式断点 */
+@media (max-width: 1200px) {
+  .responsive-container {
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .responsive-container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .responsive-container {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .responsive-container {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .responsive-container {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
+}
+
+/* 防止水平滚动 */
+.responsive-container * {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 图片响应式 */
+.responsive-container img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 表格响应式 */
+.responsive-container table {
+  width: 100%;
+  overflow-x: auto;
+  display: block;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .responsive-container table {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 576px) {
+  .responsive-container table {
+    font-size: 12px;
+  }
+}

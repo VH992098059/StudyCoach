@@ -1,0 +1,551 @@
+/* Header主容器 */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #001529;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  position: relative;
+}
+
+/* Logo区域 */
+.header-logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 180px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.header-logo:hover {
+  transform: scale(1.02);
+}
+
+.logo-image {
+  height: 36px;
+  width: auto;
+  margin-right: 12px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.logo-title {
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 导航菜单 */
+.header-nav {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  margin: 0 24px;
+}
+
+.nav-menu {
+  background: transparent;
+  border-bottom: none;
+  line-height: 64px;
+  min-width: 400px;
+  justify-content: center;
+}
+
+.nav-menu .ant-menu-item {
+  color: rgba(255, 255, 255, 0.85);
+  border-bottom: 2px solid transparent;
+  margin: 0 8px;
+  padding: 0 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-menu .ant-menu-item::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #1890ff, #40a9ff);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-menu .ant-menu-item:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.nav-menu .ant-menu-item:hover::before {
+  width: 80%;
+}
+
+.nav-menu .ant-menu-item-selected {
+  color: #fff;
+  background: rgba(24, 144, 255, 0.15);
+  border-radius: 6px;
+  border-bottom-color: transparent;
+}
+
+.nav-menu .ant-menu-item-selected::before {
+  width: 80%;
+}
+
+/* 用户操作区 */
+.header-user {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  min-width: 180px;
+}
+
+.header-user .ant-btn {
+  height: 36px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-user .ant-btn-default {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.header-user .ant-btn-default:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.header-user .ant-btn-primary {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  color: #fff;
+}
+
+.header-user .ant-btn-primary:hover {
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+}
+
+.user-info {
+  color: #fff;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.user-info:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+ 
+}
+
+.user-name {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 移动端菜单按钮 */
+.mobile-menu-btn {
+  display: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.mobile-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+/* 移动端抽屉菜单样式 */
+.mobile-drawer .ant-drawer-header {
+  background: #001529;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-drawer .ant-drawer-title {
+  color: #fff;
+  font-weight: 600;
+}
+
+.mobile-drawer .ant-drawer-close {
+  color: #fff;
+}
+
+.mobile-drawer .ant-drawer-body {
+  background: #001529;
+  padding: 0;
+}
+
+.mobile-nav-menu {
+  background: transparent;
+  border: none;
+}
+
+.mobile-nav-menu .ant-menu-item {
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.mobile-nav-menu .ant-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.mobile-nav-menu .ant-menu-item-selected {
+  background: rgba(24, 144, 255, 0.2);
+  color: #fff;
+}
+
+.mobile-user-actions {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 16px;
+}
+
+.mobile-user-actions .ant-btn {
+  width: 100%;
+  margin-bottom: 8px;
+  height: 40px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .header-content {
+    max-width: 100%;
+    padding: 0 16px;
+  }
+  
+  .nav-menu {
+    min-width: 300px;
+  }
+  
+  .header-logo {
+    min-width: 160px;
+  }
+  
+  .header-user {
+    min-width: 160px;
+  }
+}
+
+@media (max-width: 992px) {
+  .header-content {
+    padding: 0 12px;
+  }
+  
+  .header-nav {
+    margin: 0 16px;
+  }
+  
+  .nav-menu {
+    min-width: 250px;
+  }
+  
+  .logo-title {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .header-content {
+    padding: 0 16px;
+    height: 56px;
+  }
+  
+  .header-logo {
+    min-width: auto;
+    flex: 1;
+    max-width: calc(100% - 80px);
+  }
+  
+  .logo-image {
+    height: 28px;
+  }
+  
+  .logo-title {
+    font-size: 16px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .header-nav {
+    display: none;
+  }
+  
+  /* 移动端用户区域优化 */
+  .header-user {
+    min-width: auto;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  
+  /* 移动端隐藏登录注册按钮，只保留用户信息 */
+  .header-user .ant-btn {
+    display: none;
+  }
+  
+  /* 已登录用户信息在移动端保持显示 */
+  .header-user .user-info {
+    display: flex;
+    padding: 4px 8px;
+    border-radius: 16px;
+  }
+  
+  .header-user .user-name {
+    display: none; /* 移动端隐藏用户名，只显示头像 */
+  }
+  
+  .mobile-menu-btn {
+    display: flex !important;
+    margin-left: 8px;
+  }
+  
+  .user-info {
+    padding: 6px 8px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .header-content {
+    padding: 0 12px;
+    height: 52px;
+  }
+  
+  .header-logo {
+    max-width: calc(100% - 160px);
+  }
+  
+  .logo-image {
+    height: 24px;
+    margin-right: 8px;
+  }
+  
+  .logo-title {
+    font-size: 14px;
+  }
+  
+  .header-user {
+    gap: 6px;
+  }
+  
+  .header-user .ant-btn {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 12px;
+    min-width: 50px;
+  }
+  
+  .mobile-menu-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .mobile-drawer {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    padding: 0 8px;
+  }
+  
+  .header-logo {
+    max-width: calc(100% - 120px);
+  }
+  
+  .logo-title {
+    display: none;
+  }
+  
+  .header-user {
+    gap: 4px;
+  }
+  
+  .header-user .ant-btn {
+    height: 28px;
+    padding: 0 6px;
+    font-size: 11px;
+    min-width: 40px;
+  }
+  
+  .mobile-user-actions {
+    padding: 12px;
+  }
+  
+  .mobile-user-actions .ant-btn {
+    height: 36px;
+    font-size: 14px;
+  }
+}
+
+/* 动画效果 */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.mobile-drawer .ant-drawer-content {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.header {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* 高分辨率屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .logo-image {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* 深色模式支持 */
+/* @media (prefers-color-scheme: dark) {
+  .header {
+    background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+  }
+  
+  .mobile-drawer .ant-drawer-header,
+  .mobile-drawer .ant-drawer-body {
+    background: #000000;
+  }
+} */
+
+/* 减少动画效果（用户偏好） */
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .header-logo,
+  .nav-menu .ant-menu-item,
+  .user-info,
+  .header-user .ant-btn,
+  .mobile-menu-btn {
+    transition: none;
+  }
+  
+  .mobile-drawer .ant-drawer-content {
+    animation: none;
+  }
+  
+  .header {
+    animation: none;
+  }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 360px) {
+  .header-content {
+    padding: 0 6px;
+    height: 50px;
+  }
+  
+  .header-logo {
+    max-width: calc(100% - 100px);
+  }
+  
+  .logo-image {
+    height: 20px;
+    margin-right: 6px;
+  }
+  
+  .header-user {
+    gap: 2px;
+  }
+  
+  .header-user .ant-btn {
+    height: 26px;
+    padding: 0 4px;
+    font-size: 10px;
+    min-width: 35px;
+  }
+  
+  .mobile-menu-btn {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* 横屏模式优化 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .header-content {
+    height: 48px;
+  }
+  
+  .logo-image {
+    height: 24px;
+  }
+  
+  .header-user .ant-btn {
+    height: 28px;
+  }
+  
+  .mobile-menu-btn {
+    width: 32px;
+    height: 32px;
+  }
+}
