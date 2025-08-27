@@ -6,7 +6,7 @@
  */
 
 import React, { Suspense } from 'react';
-import { Layout as AntLayout, Spin, Alert } from 'antd';
+import { Layout as AntLayout, Spin, Alert, Button } from 'antd';
 import { ErrorBoundary } from 'react-error-boundary';
 import './index.css';
 
@@ -114,6 +114,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
       }}
     >
       <AntLayout className="auth-layout" style={layoutStyle}>
+        
         <Content className="auth-content">
           <div className="auth-container">
             {/* Logo区域 */}

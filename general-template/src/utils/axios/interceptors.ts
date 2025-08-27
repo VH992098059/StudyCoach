@@ -48,8 +48,8 @@ export const responseInterceptor = {
       console.log('Request completed:', config.url);
     }
 
-    // 检查业务状态码
-    if (data.success) {
+    // 检查业务状态码 (GoFrame使用code=0表示成功)
+    if (data.code === 0) {
       return data.data;
     } else {
       const error: ApiError = {

@@ -11,6 +11,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-7.0.0-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
 [![Ant Design](https://img.shields.io/badge/Ant%20Design-5.26.2-0170FE?style=flat-square&logo=ant-design)](https://ant.design/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
 
 </div>
 
@@ -18,17 +19,19 @@
 
 ### 🤖 AI智能对话 ✅
 
-- **多模型支持**: 支持OpenAI GPT系列模型
-- **流式响应**: 实时流式对话体验（基于SSE实现）
+- **多模型支持**: 支持OpenAI GPT系列模型和DeepSeek V3等多种模型
+- **流式响应**: 实时流式对话体验（基于SSE实现，优化了连接稳定性）
 - **会话管理**: 本地存储的多会话管理（localStorage）
 - **消息历史**: 完整的对话历史记录
+- **连接稳定性**: 优化HTTP客户端超时配置，提高长时间对话的稳定性
 
-### 📚 知识库检索 🔄
+### 📚 知识库检索 ✅
 
 - **文档解析**: 支持PDF、HTML等多种文档格式
 - **向量检索**: 基于Elasticsearch的语义搜索
 - **RAG增强**: 结合检索增强生成，提供更准确的答案
 - **MinIO存储**: 文档对象存储和管理
+- **智能缓存**: 内容抓取缓存机制，提升响应速度
 
 ### 🔍 智能搜索 ✅
 
@@ -36,6 +39,7 @@
 - **实时信息**: 获取最新的网络信息
 - **搜索结果整合**: 智能整合搜索结果并生成回答
 - **代理支持**: 支持代理访问外部搜索服务
+- **并发抓取**: 支持并发抓取多个URL内容，提升搜索效率
 
 ### 💾 数据存储 ✅
 
@@ -44,13 +48,22 @@
 - **MinIO对象存储**: 文档和媒体文件存储
 - **Elasticsearch**: 全文搜索和向量检索
 
-### 🎨 现代化前端 ⚠️ 部分完成
+### 🎨 现代化前端 ✅
 
 - **响应式设计**: 支持桌面端和移动端
 - **组件化架构**: 基于React 18和TypeScript
 - **UI组件库**: Ant Design企业级组件
 - **路由管理**: React Router DOM路由系统
-- **状态管理**: ❌ Redux Toolkit未实现（当前使用localStorage）
+- **状态管理**: 基于localStorage的会话状态管理
+- **SSE客户端**: 优化的服务器推送事件客户端，支持自动重连
+
+### 🐳 Docker部署 ✅
+
+- **容器化**: 完整的Docker和Docker Compose配置
+- **一键部署**: 简化的部署脚本
+- **数据持久化**: 容器卷管理确保数据安全
+- **环境隔离**: 开发和生产环境分离
+- **服务编排**: 多容器协调运行
 
 ## 📁 项目结构
 
@@ -87,6 +100,13 @@ studyCoach/
 │   │       └── sse/          # 服务端推送 ✅
 │   ├── database.sql         # 数据库结构
 │   └── package.json         # 前端依赖
+├── docker/                   # Docker配置目录
+│   ├── mysql/               # MySQL配置
+│   └── redis/               # Redis配置
+├── docker-compose.yml       # Docker Compose配置
+├── build.bat                # Windows构建脚本
+├── build.sh                 # Linux/Mac构建脚本
+├── DEPLOYMENT.md            # 部署指南
 └── studyCoach/               # 核心AI模块 ✅
     ├── api/                 # AI接口实现
     ├── eino/                # AI模型集成
@@ -101,6 +121,7 @@ studyCoach/
 
 - **Go 1.24**: 高性能后端语言
 - **GoFrame v2**: 企业级Go开发框架
+- **Eino**: 字节跳动AI框架，支持多种模型集成
 - **MySQL 8.0+**: 关系型数据库
 - **Redis**: 内存缓存数据库
 - **Elasticsearch 8**: 搜索引擎和向量数据库
@@ -108,10 +129,11 @@ studyCoach/
 
 ### AI技术栈
 
-- **Eino**: 字节跳动AI框架
-- **OpenAI API**: GPT模型接口
-- **Embedding**: 文本向量化
-- **RAG**: 检索增强生成
+- **多模型支持**: OpenAI GPT、DeepSeek V3等
+- **向量化**: 文本embedding和语义检索
+- **RAG**: 检索增强生成技术
+- **流式处理**: SSE流式响应，支持长文本生成
+- **智能搜索**: 集成网络搜索和内容抓取
 
 ### 前端技术
 
@@ -119,199 +141,113 @@ studyCoach/
 - **TypeScript**: 类型安全的JavaScript
 - **Vite**: 快速构建工具
 - **Ant Design**: 企业级UI组件库
-- **Redux Toolkit**: 状态管理
 - **React Router**: 路由管理
+- **SSE Client**: 自定义服务器推送事件客户端
+
+### 部署技术
+
+- **Docker**: 容器化技术
+- **Docker Compose**: 多容器编排
+- **Nginx**: 反向代理（推荐用于生产环境）
 
 ## 🚀 快速开始
 
-### 环境要求
+### 本地开发
 
-- Go 1.24+
-- Node.js 18+
-- MySQL 8.0+
-- Redis 6.0+
-- Elasticsearch 8.0+
-- MinIO (可选)
-
-### 安装步骤
-
-1. **克隆项目**
-
+1. 克隆仓库
 ```bash
 git clone <repository-url>
 cd studyCoach
 ```
 
-2. **配置环境变量**
-
+2. 配置环境变量
 ```bash
-# 复制环境配置文件
+# 复制示例环境变量文件
 cp studyCoach/.env.example studyCoach/.env
-
-# 编辑配置文件，填入你的API密钥
-vim studyCoach/.env
+# 编辑环境变量
 ```
 
-环境变量配置示例：
-
-```bash
-export Model_Type="Pro/deepseek-ai/DeepSeek-V3"
-export Openai_API_Key="your-api-key-here"
-export Base_url="https://api.siliconflow.cn/v1"
-export ES_ENABLED=false
-```
-
-3. **数据库初始化**
-
-```bash
-# 创建数据库
-mysql -u root -p < general-template/database.sql
-```
-
-4. **启动后端服务**
-
+3. 启动后端服务
 ```bash
 cd backend
-go mod tidy
 go run main.go
 ```
 
-5. **启动前端服务**
-
+4. 启动前端服务
 ```bash
 cd general-template
 npm install
 npm run dev
 ```
 
-6. **访问应用**
+### Docker部署
 
-- 前端地址: http://localhost:5173
-- 后端API: http://localhost:8000
+我们提供了完整的Docker部署方案，详细步骤请参考 [部署指南](DEPLOYMENT.md)。
 
-## 📖 使用指南
-
-### AI对话功能 ✅
-
-1. 打开AI聊天页面（`/aichat`）
-2. 输入您的问题或需求
-3. 系统通过SSE流式返回AI回答
-4. 支持创建、切换和删除多个会话
-5. 会话数据存储在浏览器本地存储中
-
-### 知识库检索 🔄
-
-1. 系统支持PDF、HTML等文档格式解析
-2. 文档存储在MinIO对象存储中
-3. 基于Elasticsearch进行向量检索
-4. 通过RAG技术增强AI回答准确性
-
-### 网络搜索 ✅
-
-1. 询问实时信息或最新资讯
-2. 系统集成DuckDuckGo搜索引擎
-3. 支持代理访问（配置在代码中）
-4. 自动整合搜索结果并生成综合回答
-
-### 用户认证 ✅
-
-1. 支持用户注册和登录功能
-2. JWT令牌验证机制
-3. 用户信息存储在MySQL数据库中
-
-## 📋 项目状态
-
-### ✅ 已完成功能
-
-- **AI聊天系统**: 基于OpenAI API的智能对话，支持流式响应
-- **用户认证**: JWT基础认证系统
-- **数据库设计**: MySQL数据库结构完整
-- **前端界面**: React + TypeScript + Ant Design基础界面
-
-### 🚧 开发中功能
-
-- **会话管理**: 本地存储的多会话管理系统
-- **知识库检索**: 基于Elasticsearch的RAG检索系统
-- **网络搜索**: 集成DuckDuckGo的实时信息搜索
-- **文档处理**: 支持PDF、HTML等格式的文档解析
-- **对象存储**: MinIO文件存储系统
-
-### ⚠️ 部分完成功能
-
-- **前端状态管理**: 当前使用localStorage，Redux Toolkit未实现
-- **知识库管理界面**: 后端支持完整，前端管理界面待开发
-- **用户设置**: 数据库表已创建，前端界面待开发
-
-### ❌ 待开发功能
-
-- **Redux状态管理**: 全局状态管理系统
-- **知识库上传界面**: 文档上传和管理的前端界面
-- **用户个人中心**: 用户信息管理页面
-- **系统设置**: 模型配置、参数调整等设置界面
-- **移动端适配**: 响应式设计优化
-- **Docker部署**: 容器化部署配置
-
-## 🔧 配置说明
-
-### AI模型配置
-
-- 支持多种大语言模型切换
-- 可配置API密钥和基础URL
-- 支持自定义模型参数
-
-### 数据库配置
-
-- MySQL: 用户数据、会话管理
-- Redis: 缓存和会话存储
-- Elasticsearch: 文档检索和向量搜索
-
-### 存储配置
-
-- 本地存储: 开发环境
-- MinIO: 生产环境对象存储
-- 支持多种存储后端
-
-## 🚀 部署指南
-
-### 开发环境部署
-
-#### 后端部署
-
+1. 构建应用
 ```bash
-# 进入后端目录
-cd backend
+# Windows
+build.bat
 
-# 安装依赖
-go mod tidy
-
-# 启动后端服务
-go run main.go
+# Linux/Mac
+chmod +x build.sh
+./build.sh
 ```
 
-#### 前端部署
-
+2. 启动Docker容器
 ```bash
-# 进入前端目录
-cd general-template
-
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm run dev
+docker-compose up -d
 ```
 
-### 生产环境部署 ⚠️ 待完善
+3. 访问应用
+```
+http://localhost
+```
 
-1. 配置反向代理（Nginx）
-2. 设置HTTPS证书
-3. 配置数据库连接池
-4. 启用Redis集群
-5. 配置Elasticsearch集群
-6. Docker容器化部署（待开发）
+## 🔧 性能优化配置
+
+### HTTP客户端超时设置
+
+为了确保流式响应的稳定性，我们对HTTP客户端进行了以下优化：
+
+- 全局HTTP客户端超时: 300秒
+- 网络搜索超时: 30秒
+- 内容抓取超时: 30秒
+
+这些设置可以在 `studyCoach/api/openai.go` 和 `studyCoach/configTool/maincontent.go` 文件中进行调整。
+
+### 前端SSE客户端配置
+
+前端SSE客户端配置了以下参数：
+
+- 连接超时: 60秒
+- 自动重连: 禁用（由应用层控制）
+- 最大重连尝试次数: 3次
+
+## 🔍 故障排除
+
+### SSE连接断开
+
+如果遇到SSE连接断开问题，请检查：
+
+1. 后端HTTP客户端超时设置
+2. 网络搜索超时设置
+3. Nginx配置（如果使用）
+
+### 数据库连接问题
+
+如果遇到数据库连接问题，请检查：
+
+1. 环境变量配置
+2. Docker网络设置
+3. 数据库服务状态
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+[MIT License](LICENSE)
+
+## 🤝 贡献
+
+欢迎贡献代码、报告问题或提出新功能建议！
 
 

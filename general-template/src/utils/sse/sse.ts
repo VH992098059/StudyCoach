@@ -47,15 +47,31 @@ export interface SSEOptions {
 export type SSEEventListener = (data: SSEEventData) => void;
 
 /**
- * SSE连接状态枚举
+ * 内部使用的完整SSE选项类型
  */
-export enum SSEConnectionState {
-  CONNECTING = 'connecting',
-  CONNECTED = 'connected',
-  DISCONNECTED = 'disconnected',
-  ERROR = 'error',
-  RECONNECTING = 'reconnecting'
+interface InternalSSEOptions {
+  autoReconnect: boolean;
+  reconnectInterval: number;
+  maxReconnectAttempts: number;
+  headers: Record<string, string>;
+  timeout: number;
+  method: 'GET' | 'POST';
+  body: FormData | string | Record<string, any> | undefined;
+  baseURL: string;
 }
+
+/**
+ * SSE连接状态常量
+ */
+export const SSEConnectionState = {
+  CONNECTING: 'connecting',
+  CONNECTED: 'connected',
+  DISCONNECTED: 'disconnected',
+  ERROR: 'error',
+  RECONNECTING: 'reconnecting'
+} as const;
+
+export type SSEConnectionState = typeof SSEConnectionState[keyof typeof SSEConnectionState];
 
 /**
  * SSE封装类
@@ -79,10 +95,10 @@ export class SSEClient {
   private eventSource: EventSource | null = null;
   private abortController: AbortController | null = null;
   private url: string;
-  private options: Required<SSEOptions>;
+  private options: InternalSSEOptions;
   private eventListeners: Map<string, Set<SSEEventListener>> = new Map();
   private reconnectAttempts = 0;
-  private reconnectTimer: number | null = null;
+  private reconnectTimer: NodeJS.Timeout | null = null;
   private connectionState: SSEConnectionState = SSEConnectionState.DISCONNECTED;
 
   /**
@@ -188,7 +204,7 @@ export class SSEClient {
       // 处理流数据
       await this.processStream(response);
 
-    } catch (error) {
+    } catch (error:any) {
       if (error.name === 'AbortError') {
         console.log('SSE连接被中止');
         return;
@@ -216,12 +232,33 @@ export class SSEClient {
 
     const decoder = new TextDecoder();
     let buffer = '';
+    let pendingLines: string[] = [];
+    let batchTimer: NodeJS.Timeout | null = null;
+
+    // 批量处理函数
+    const processBatch = () => {
+      if (pendingLines.length > 0) {
+        const linesToProcess = [...pendingLines];
+        pendingLines = [];
+        
+        // 批量处理所有待处理的行
+        for (const line of linesToProcess) {
+          this.processSSELine(line);
+        }
+      }
+      batchTimer = null;
+    };
 
     try {
       while (true) {
         const { done, value } = await reader.read();
 
         if (done) {
+          // 处理剩余的批量数据
+          if (batchTimer) {
+            clearTimeout(batchTimer);
+            processBatch();
+          }
           this.emitEvent('message', { type: 'message', data: '[DONE]' });
           break;
         }
@@ -233,15 +270,23 @@ export class SSEClient {
         const lines = buffer.split('\n');
         buffer = lines.pop() || ''; // 保留最后一个可能不完整的行
 
-        for (const line of lines) {
-          this.processSSELine(line);
+        // 将新行添加到待处理队列
+        pendingLines.push(...lines.filter(line => line.trim()));
+
+        // 如果没有批量处理定时器，设置一个
+        if (!batchTimer && pendingLines.length > 0) {
+          batchTimer = setTimeout(processBatch, 16); // 约60fps的更新频率
         }
       }
-    } catch (error) {
+    } catch (error:any) {
       if (error.name !== 'AbortError') {
         throw error;
       }
     } finally {
+      if (batchTimer) {
+        clearTimeout(batchTimer);
+        processBatch();
+      }
       reader.releaseLock();
     }
   }

@@ -66,20 +66,7 @@ const About: React.FC = () => {
       
       <Divider />
       
-      <Row>
-        <Col span={24}>
-          <Title level={2}>公司简介</Title>
-          <Paragraph style={{ fontSize: '16px', lineHeight: '1.8' }}>
-            我们是一家专注于前端技术的创新公司，致力于为客户提供现代化的Web解决方案。
-            通过使用最新的技术栈和最佳实践，我们帮助企业构建高性能、可维护的Web应用程序。
-          </Paragraph>
-          <Paragraph style={{ fontSize: '16px', lineHeight: '1.8' }}>
-            自成立以来，我们已经为众多客户提供了优质的服务，涵盖电商平台、企业官网、
-            管理系统等多个领域。我们的团队拥有丰富的项目经验和深厚的技术功底，
-            能够为客户提供从需求分析到项目交付的全流程服务。
-          </Paragraph>
-        </Col>
-      </Row>
+      
     </div>
   );
 };

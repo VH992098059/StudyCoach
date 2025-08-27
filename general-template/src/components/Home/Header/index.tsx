@@ -107,8 +107,16 @@ const Header: React.FC<HeaderProps> = ({
     switch (pathname) {
       case '/':
         return ['aichat'];
-      case '/activities':
-        return ['activities'];
+      case '/knowledgebase':
+        return ['knowledgebase'];
+      case '/indexer':
+        return ['indexer'];
+      case '/documents':
+        return ['documents'];
+      case '/chunks':
+        return ['chunks'];
+      case '/retriever':
+        return ['retriever'];
       case '/about':
         return ['about'];
       default:
@@ -127,8 +135,20 @@ const Header: React.FC<HeaderProps> = ({
       case 'aichat':
         navigate('/');
         break;
-      case 'activities':
-        navigate('/activities');
+      case 'knowledgebase':
+        navigate('/knowledgebase');
+        break;
+      case 'indexer':
+        navigate('/indexer');
+        break;
+      case 'documents':
+        navigate('/documents');
+        break;
+      case 'chunks':
+        navigate('/chunks');
+        break;
+      case 'retriever':
+        navigate('/retriever');
         break;
       case 'about':
         navigate('/about');

@@ -5,10 +5,10 @@
  * @version 1.0.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Checkbox, message, Divider } from 'antd';
-import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone, ArrowLeftOutlined } from '@ant-design/icons';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthLayout from '../../components/AuthLayout';
 import './index.css';
 
@@ -38,8 +38,32 @@ const Login: React.FC = ()=> {
   const [form] = Form.useForm();
   /** 登录加载状态 */
   const [loading, setLoading] = useState(false);
+  /** 是否有上一页可以返回 */
+  const [canGoBack, setCanGoBack] = useState(false);
   /** 路由导航钩子 */
   const navigate = useNavigate();
+  /** 当前路由位置 */
+  const location = useLocation();
+
+  /**
+   * 检查是否有上一页可以返回
+   * @description 通过检查location.state或document.referrer来判断
+   */
+  useEffect(() => {
+    // 方法1: 检查是否通过路由导航进入（有state信息）
+    const hasNavigationState = location.state && location.state.from;
+    
+    // 方法2: 检查document.referrer（上一页的URL）
+    const hasReferrer = document.referrer && 
+                       document.referrer !== window.location.href &&
+                       !document.referrer.includes('/login'); // 避免从登录页跳转到登录页的情况
+    
+    // 方法3: 检查sessionStorage中是否有导航历史
+    const navigationHistory = sessionStorage.getItem('navigationHistory');
+    const hasHistory = navigationHistory && JSON.parse(navigationHistory).length > 1;
+    
+    setCanGoBack(hasNavigationState || hasReferrer || hasHistory);
+  }, [location]);
 
   /**
    * 处理登录表单提交
@@ -100,12 +124,38 @@ const Login: React.FC = ()=> {
     navigate('/reset-password');
   };
 
+  /**
+   * 处理返回按钮点击事件
+   * @description 返回上一个页面，如果没有上一页则返回主页
+   */
+  const handleGoBack = (): void => {
+    if (canGoBack) {
+      // 有上一页，返回上一页
+      navigate(-1);
+    } else {
+      // 没有上一页，返回主页
+      navigate('/');
+    }
+  };
+
   return (
     <AuthLayout
       title="用户登录"
       subtitle="欢迎回来，请输入您的账号信息"
       loading={loading}
     >
+      {/* 返回按钮 */}
+      <div className="auth-back-button">
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={handleGoBack}
+          className="back-btn"
+        >
+          返回
+        </Button>
+      </div>
+      
       <Form
         form={form}
         name="login"

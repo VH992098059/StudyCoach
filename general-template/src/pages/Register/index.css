@@ -196,6 +196,38 @@
   }
 }
 
+/* 返回按钮样式 */
+.back-button {
+  position: relative;
+  color: #595959;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.back-button:hover {
+  color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.06);
+}
+
+.back-button:focus {
+  color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.1);
+}
+
+.back-button .anticon {
+  font-size: 14px;
+  transition: transform 0.3s ease;
+}
+
+.back-button:hover .anticon {
+  transform: translateX(-2px);
+}
+
 /* 表单项标签样式 */
 .register-form .ant-form-item-label > label {
   color: #262626;

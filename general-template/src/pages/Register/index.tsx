@@ -5,10 +5,10 @@
  * @version 1.0.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, message, Divider, Checkbox } from 'antd';
-import { UserOutlined, LockOutlined, MailOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { UserOutlined, LockOutlined, MailOutlined, EyeInvisibleOutlined, EyeTwoTone, ArrowLeftOutlined } from '@ant-design/icons';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthLayout from '../../components/AuthLayout';
 import './index.css';
 
@@ -42,8 +42,44 @@ const Register: React.FC = ()=> {
   const [form] = Form.useForm();
   /** 注册加载状态 */
   const [loading, setLoading] = useState(false);
+  /** 是否可以返回上一页 */
+  const [canGoBack, setCanGoBack] = useState(false);
   /** 路由导航钩子 */
   const navigate = useNavigate();
+  /** 当前路由位置信息 */
+  const location = useLocation();
+
+  /**
+   * 判断是否可以返回上一页
+   * @description 通过多种方式检测是否有可返回的上一页
+   */
+  useEffect(() => {
+    // 方法1: 检查路由状态中是否有来源页面信息
+    const hasFromState = location.state?.from;
+    
+    // 方法2: 检查 document.referrer 是否存在且不为空
+    const hasReferrer = document.referrer && 
+                       document.referrer !== window.location.href &&
+                       !document.referrer.includes('/register');
+    
+    // 方法3: 检查 sessionStorage 中的导航历史
+    const navigationHistory = sessionStorage.getItem('navigationHistory');
+    const hasNavigationHistory = navigationHistory && 
+                                JSON.parse(navigationHistory).length > 1;
+    
+    // 如果任一条件满足，则认为可以返回上一页
+    const canReturn = hasFromState || hasReferrer || hasNavigationHistory;
+    setCanGoBack(canReturn);
+    
+    // 记录当前页面到导航历史
+    const currentHistory = navigationHistory ? JSON.parse(navigationHistory) : [];
+    currentHistory.push('/register');
+    // 限制历史记录长度，避免内存占用过多
+    if (currentHistory.length > 10) {
+      currentHistory.shift();
+    }
+    sessionStorage.setItem('navigationHistory', JSON.stringify(currentHistory));
+  }, [location]);
 
   /**
    * 处理注册表单提交
@@ -86,6 +122,20 @@ const Register: React.FC = ()=> {
       message.error('网络错误，请检查网络连接后重试！');
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * 处理返回按钮点击
+   * @description 根据是否有上一页来决定返回行为
+   */
+  const handleGoBack = (): void => {
+    if (canGoBack) {
+      // 有上一页，返回上一页
+      navigate(-1);
+    } else {
+      // 没有上一页，返回主页
+      navigate('/');
     }
   };
 
@@ -152,6 +202,17 @@ const Register: React.FC = ()=> {
       subtitle="创建您的账号，开始使用我们的服务"
       loading={loading}
     >
+      {/* 返回按钮 */}
+      <Button
+        type="text"
+        icon={<ArrowLeftOutlined />}
+        onClick={handleGoBack}
+        className="back-button"
+        style={{ marginBottom: '16px' }}
+      >
+        {canGoBack ? '返回上一页' : '返回主页'}
+      </Button>
+      
       <Form
         form={form}
         name="register"

@@ -2,10 +2,11 @@ package ai_chat
 
 import (
 	"context"
+	"log"
+
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 	"github.com/wangle201210/chat-history/eino"
-	"log"
 )
 
 type ChatBase struct {

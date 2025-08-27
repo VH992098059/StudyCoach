@@ -6,8 +6,9 @@ import (
 	"backend/utility/consts"
 	"context"
 	"fmt"
-	"github.com/golang-jwt/jwt/v5"
 	"log"
+
+	"github.com/golang-jwt/jwt/v5"
 
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"

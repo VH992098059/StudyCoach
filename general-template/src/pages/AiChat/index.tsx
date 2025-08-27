@@ -1,14 +1,49 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Typography, Input, Button, Card, Avatar, Space, Divider, List, message, Drawer, Alert, Popconfirm } from 'antd';
-import { SendOutlined, StopOutlined, RobotOutlined, UserOutlined, DeleteOutlined, PlusOutlined, MenuOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Typography, Input, Button, Card, Avatar, Space, Divider, List, message, Drawer, Alert, Popconfirm, Row, Col, Collapse, Form, InputNumber, Slider, Tag, Empty, Tooltip } from 'antd';
+import { SendOutlined, StopOutlined, RobotOutlined, UserOutlined, DeleteOutlined, PlusOutlined, MenuOutlined, ExclamationCircleOutlined, PaperClipOutlined, SettingOutlined, FileTextOutlined, CopyOutlined, GlobalOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useBreakpoints } from '../../hooks/useMediaQuery';
 import './scrollbar.css';
 import { SSEClient, SSEConnectionState } from '../../utils/sse/sse';
-import ReactMarkdown from 'react-markdown';
-
+import MDEditor from '@uiw/react-md-editor';
+import '@uiw/react-md-editor/markdown-editor.css';
+import '@uiw/react-markdown-preview/markdown.css';
+import KnowledgeSelector, { type KnowledgeSelectorRef } from '../../components/KnowledgeSelector';
 
 const { Title } = Typography;
 const { TextArea } = Input;
+const { Panel } = Collapse;
+
+/**
+ * 聊天消息接口
+ */
+interface ChatMessage {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+  files?: File[];
+  references?: ReferenceDocument[];
+}
+
+/**
+ * 参考文档接口
+ */
+interface ReferenceDocument {
+  id: string;
+  title: string;
+  content: string;
+  similarity: number;
+  source: string;
+  url?: string;
+}
+
+/**
+ * 高级设置接口
+ */
+interface AdvancedSettings {
+  topK: number;
+  score: number;
+}
 
 interface Message {
   id: number;
@@ -43,7 +78,24 @@ const AIChat: React.FC = () => {
   const [isScrolling, setIsScrolling] = useState(false);
   const [isMessageScrolling, setIsMessageScrolling] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [sessionInfoDrawerVisible, setSessionInfoDrawerVisible] = useState(false);
   const [selectedMsgId, setSelectedMsgId] = useState<string | null>(null);
+  
+  // 新增状态
+  const [selectedKnowledge, setSelectedKnowledge] = useState<string>('none');
+  const [advancedSettings, setAdvancedSettings] = useState<AdvancedSettings>({
+    topK: 5,
+    score: 0.7
+  });
+  const [referenceDocuments, setReferenceDocuments] = useState<ReferenceDocument[]>([]);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [showReferences, setShowReferences] = useState(false);
+  const [isReferenceScrolling, setIsReferenceScrolling] = useState(false);
+  const knowledgeSelectorRef = useRef<KnowledgeSelectorRef>(null);
+  const referenceScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // 联网功能状态
+  const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);
   
   // SSE 连接相关状态
   const [sseClient, setSseClient] = useState<SSEClient | null>(null);
@@ -51,6 +103,7 @@ const AIChat: React.FC = () => {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [currentAiMessage, setCurrentAiMessage] = useState<string>('');
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   
   // 响应式断点
   const { isMobile, isTablet } = useBreakpoints();
@@ -58,13 +111,15 @@ const AIChat: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messageScrollContainerRef = useRef<HTMLDivElement>(null);
-  const scrollTimeoutRef = useRef<number | null>(null);
-  const messageScrollTimeoutRef = useRef<number | null>(null);
-  const connectionTimeoutRef = useRef<number | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const messageScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const accumulatedMessageRef = useRef<string>('');
+  const updateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 常量配置
   const MAX_RECONNECT_ATTEMPTS = 3;
-  const CONNECTION_TIMEOUT = 30000; // 30秒
+  const CONNECTION_TIMEOUT = 60000; // 60秒
   const STORAGE_KEY = 'ai_chat_sessions';
 
   // 生成唯一的消息ID
@@ -81,6 +136,10 @@ const AIChat: React.FC = () => {
     if (connectionTimeoutRef.current) {
       clearTimeout(connectionTimeoutRef.current);
       connectionTimeoutRef.current = null;
+    }
+    if (updateTimerRef.current) {
+      clearTimeout(updateTimerRef.current);
+      updateTimerRef.current = null;
     }
     setConnectionState(SSEConnectionState.DISCONNECTED);
   };
@@ -104,9 +163,10 @@ const AIChat: React.FC = () => {
       body: JSON.stringify({
         id: sessionId,
         question: question,
-        knowledge_name: 'default',
-        top_k: 5,
-        score: 0.2
+        knowledge_name: selectedKnowledge === 'none' ? '' : selectedKnowledge,
+        top_k: advancedSettings.topK,
+        score: advancedSettings.score,
+        is_network: isNetworkEnabled
       }),
       headers: {
         'Content-Type': 'application/json'
@@ -128,36 +188,55 @@ const AIChat: React.FC = () => {
       }
     });
 
+    // 重置累积消息内容
+    accumulatedMessageRef.current = '';
+    
+    // 清理之前的更新定时器
+    if (updateTimerRef.current) {
+      clearTimeout(updateTimerRef.current);
+      updateTimerRef.current = null;
+    }
+
     client.addEventListener('message', (data) => {
-      console.log('收到SSE消息:', data.data);
-      
       if (data.data === '[DONE]') {
+        // 清理更新定时器
+        if (updateTimerRef.current) {
+          clearTimeout(updateTimerRef.current);
+          updateTimerRef.current = null;
+        }
+        
         // 流结束，完成AI消息
-        setCurrentAiMessage(prev => {
-          if (prev.trim()) {
-            const aiMessage: Message = {
-              id: Date.now(),
-              msg_id: generateMsgId(),
-              content: prev.trim(),
-              isUser: false,
-              timestamp: new Date(),
-            };
-            
-            setMessages(prevMessages => [...prevMessages, aiMessage]);
-          }
-          return '';
-        });
+        if (accumulatedMessageRef.current.trim()) {
+          const aiMessage: Message = {
+            id: Date.now(),
+            msg_id: generateMsgId(),
+            content: accumulatedMessageRef.current.trim(),
+            isUser: false,
+            timestamp: new Date(),
+          };
+          
+          setMessages(prevMessages => [...prevMessages, aiMessage]);
+          accumulatedMessageRef.current = '';
+          setCurrentAiMessage('');
+        }
         
         // 清理连接
         cleanupSSEConnection();
         setLoading(false);
       } else {
-        // 累积AI回复内容 - 使用 += 操作符进行增量累积
-        setCurrentAiMessage(prev => {
-          const newContent = prev + data.data;
-          console.log('累积AI消息:', newContent);
-          return newContent;
-        });
+        // 累积AI回复内容到ref中
+        accumulatedMessageRef.current += data.data;
+        
+        // 使用requestAnimationFrame优化渲染性能
+        if (updateTimerRef.current) {
+          clearTimeout(updateTimerRef.current);
+        }
+        
+        updateTimerRef.current = setTimeout(() => {
+          requestAnimationFrame(() => {
+            setCurrentAiMessage(accumulatedMessageRef.current);
+          });
+        }, 32); // 约30fps的更新频率，平衡响应性和性能
       }
     });
 
@@ -337,12 +416,14 @@ const AIChat: React.FC = () => {
         const title = firstUserMessage ? 
           firstUserMessage.content.slice(0, 20) + (firstUserMessage.content.length > 20 ? '...' : '') : 
           '新对话';
+        const lastMessageTs = newMessages.length > 0 ? newMessages[newMessages.length - 1].timestamp : session.updatedAt;
         
         return {
           ...session,
           title,
           messages: newMessages,
-          updatedAt: new Date(),
+          // 仅以最后一条消息时间作为会话更新时间，避免点击切换导致时间变化
+          updatedAt: lastMessageTs,
         };
       }
       return session;
@@ -396,13 +477,21 @@ const AIChat: React.FC = () => {
   // 消息区域滚动事件处理
   const handleMessageScroll = () => {
     setIsMessageScrolling(true);
-    
     if (messageScrollTimeoutRef.current) {
       clearTimeout(messageScrollTimeoutRef.current);
     }
-    
     messageScrollTimeoutRef.current = setTimeout(() => {
       setIsMessageScrolling(false);
+    }, 1000);
+  };
+
+  const handleReferenceScroll = () => {
+    setIsReferenceScrolling(true);
+    if (referenceScrollTimeoutRef.current) {
+      clearTimeout(referenceScrollTimeoutRef.current);
+    }
+    referenceScrollTimeoutRef.current = setTimeout(() => {
+      setIsReferenceScrolling(false);
     }, 1000);
   };
 
@@ -431,10 +520,28 @@ const AIChat: React.FC = () => {
   const handleSend = async () => {
     if (!inputValue.trim() || loading) return;
 
+    // 获取参考文档（仅在选择了知识库时）
+    let references: ReferenceDocument[] = [];
+    if (selectedKnowledge !== 'none') {
+      try {
+        references = await fetchReferenceDocuments(inputValue);
+        setReferenceDocuments(references);
+        if (references.length > 0) {
+          setShowReferences(true);
+        }
+      } catch (error) {
+        console.error('获取参考文档失败:', error);
+      }
+    } else {
+      // 如果选择"无"知识库，清空参考文档
+      setReferenceDocuments([]);
+      setShowReferences(false);
+    }
+
     const userMessage: Message = {
       id: Date.now(),
       msg_id: generateMsgId(),
-      content: inputValue,
+      content: formatUserInput(inputValue),
       isUser: true,
       timestamp: new Date(),
     };
@@ -454,10 +561,129 @@ const AIChat: React.FC = () => {
     setSelectedMsgId(null);
   };
 
+  // 去除后端返回的 ```markdown 语言标识，避免渲染出文字
+  const sanitizeMarkdown = (text: string) => {
+    return text ? text.replace(/```markdown/g, '```').replace(/^[\s\n]+/, '') : '';
+  };
+
+  // 处理用户输入文本，针对Tauri环境优化换行处理
+  const formatUserInput = (text: string) => {
+    // 移除首尾空白字符
+    const trimmedText = text.trim();
+    
+    // 如果文本为空，直接返回
+    if (!trimmedText) return trimmedText;
+    
+    // 处理连续的换行符，避免产生过多空行
+    let processedText = trimmedText
+      // 将多个连续换行符替换为最多两个换行符
+      .replace(/\n{3,}/g, '\n\n')
+      // 移除行首行尾的空格
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n[ \t]+/g, '\n');
+    
+    // 检测是否在Tauri环境中
+    const isTauri = typeof window !== 'undefined' && window.__TAURI__;
+    
+    if (isTauri) {
+      // Tauri环境：使用HTML换行标签，避免Markdown换行问题
+      processedText = processedText.replace(/\n/g, '<br/>');
+    } else {
+      // Web环境：使用Markdown换行格式
+      processedText = processedText.replace(/\n/g, '  \n');
+    }
+    
+    return processedText;
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  // 处理文件上传
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+      message.success(`已选择 ${newFiles.length} 个文件`);
+    }
+  };
+
+  // 移除已上传的文件
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  /**
+   * 处理知识库选择变化
+   */
+  const handleKnowledgeChange = (knowledgeId: string) => {
+    setSelectedKnowledge(knowledgeId);
+    console.log('选择的知识库:', knowledgeId);
+  };
+
+  /**
+   * 处理高级设置变化
+   */
+  const handleAdvancedSettingsChange = (field: keyof AdvancedSettings, value: number) => {
+    setAdvancedSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  /**
+   * 模拟获取参考文档
+   */
+  const fetchReferenceDocuments = async (query: string): Promise<ReferenceDocument[]> => {
+    // 模拟 API 调用
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const mockReferences: ReferenceDocument[] = [
+      {
+        id: '1',
+        title: '相关文档片段 1',
+        content: `这是与查询"${query}"相关的文档内容。包含了详细的技术说明和实现方案。`,
+        similarity: 0.95,
+        source: '技术文档.pdf',
+        url: '/docs/tech-doc.pdf'
+      },
+      {
+        id: '2',
+        title: '相关文档片段 2',
+        content: `另一个相关的文档片段，提供了补充信息和最佳实践建议。`,
+        similarity: 0.87,
+        source: '最佳实践.md',
+        url: '/docs/best-practices.md'
+      },
+      {
+        id: '3',
+        title: '相关文档片段 3',
+        content: `第三个相关文档，包含了具体的代码示例和配置说明。`,
+        similarity: 0.82,
+        source: '配置指南.txt',
+        url: '/docs/config-guide.txt'
+      }
+    ];
+
+    return mockReferences.filter(ref => ref.similarity >= advancedSettings.score)
+                         .slice(0, advancedSettings.topK);
+  };
+
+  /**
+   * 复制文档内容到剪贴板
+   */
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      message.success('已复制到剪贴板');
+    } catch (error) {
+      console.error('复制失败:', error);
+      message.error('复制失败');
     }
   };
 
@@ -611,7 +837,7 @@ const AIChat: React.FC = () => {
                 <List.Item.Meta
                   title={
                     <div style={{ 
-                      fontSize: '14px', 
+                      
                       fontWeight: session.id === currentSessionId ? 600 : 400,
                       color: session.id === currentSessionId ? '#1890ff' : '#333'
                     }}>
@@ -711,7 +937,7 @@ const AIChat: React.FC = () => {
                 <List.Item.Meta
                   title={
                     <div style={{ 
-                      fontSize: '14px', 
+                      fontSize: isMobile ? '12px' : '13px', 
                       fontWeight: session.id === currentSessionId ? 600 : 400,
                       color: session.id === currentSessionId ? '#1890ff' : '#333'
                     }}>
@@ -732,13 +958,19 @@ const AIChat: React.FC = () => {
         </div>
       </Drawer>
 
-      {/* 聊天区域 */}
+      {/* 主内容区域 */}
       <div style={{
         flex: 1,
-        padding: isMobile ? '12px' : isTablet ? '16px' : '20px',
         display: 'flex',
-        flexDirection: 'column'
+        gap: '16px',
+        padding: isMobile ? '12px' : isTablet ? '16px' : '20px'
       }}>
+        {/* 聊天区域 */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
         <div style={{ 
           marginBottom: isMobile ? '16px' : '24px',
           display: 'flex',
@@ -757,7 +989,20 @@ const AIChat: React.FC = () => {
           <Title level={isMobile ? 3 : 2} style={{ margin: 0, flex: 1 }}>
             AI 聊天助手
           </Title>
+          {isMobile && (
+            <Button
+              icon={<InfoCircleOutlined />}
+              onClick={() => setSessionInfoDrawerVisible(true)}
+              type="text"
+              size="large"
+              style={{ padding: '4px 8px' }}
+            />
+          )}
         </div>
+
+
+
+
 
         {/* 连接错误提示 */}
         {connectionError && (
@@ -808,12 +1053,12 @@ const AIChat: React.FC = () => {
           {renderConnectionStatus()}
           
           {messages.map((message) => (
-            <div key={message.id} style={{ marginBottom: '16px' }}>
+            <div key={message.id} style={{ marginBottom: '12px' }}>
               <div style={{
                 display: 'flex',
                 justifyContent: message.isUser ? 'flex-end' : 'flex-start',
                 alignItems: 'flex-start',
-                gap: '8px'
+                gap: isMobile ? '6px' : '8px'
               }}>
                 {!message.isUser && (
                   <Avatar 
@@ -825,42 +1070,28 @@ const AIChat: React.FC = () => {
                   onClick={() => handleMessageClick(message.msg_id)}
                   style={{
                     maxWidth: isMobile ? '85%' : '70%',
-                    padding: isMobile ? '10px 12px' : '12px 16px',
+                    padding: isMobile ? '10px 12px' : '12px 14px',
                     borderRadius: isMobile ? '8px' : '12px',
-                    backgroundColor: selectedMsgId === message.msg_id 
-                      ? (message.isUser ? '#0050b3' : '#e6f7ff') 
-                      : (message.isUser ? '#1890ff' : '#ffffff'),
-                    color: message.isUser ? 'white' : 'black',
+                    backgroundColor: message.isUser ? '#1890ff' : '#e6f7ff',
                     wordBreak: 'break-word',
-                    whiteSpace: 'pre-wrap',
-                    fontSize: isMobile ? '14px' : '16px',
+                    overflowX: 'auto',
+                    fontSize: isMobile ? '12px' : '13px',
                     cursor: 'pointer',
                     border: '2px solid transparent',
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <ReactMarkdown
-                     
-                      components={{
-                        h1: ({node, ...props}) => <h1 style={{fontSize: isMobile ? '16px' : '20px', fontWeight: 600, margin: '6px 0'}} {...props} />,
-                        h2: ({node, ...props}) => <h2 style={{fontSize: isMobile ? '15px' : '18px', fontWeight: 600, margin: '6px 0'}} {...props} />,
-                        h3: ({node, ...props}) => <h3 style={{fontSize: isMobile ? '14px' : '17px', fontWeight: 600, margin: '6px 0'}} {...props} />,
-                        p:  ({node, ...props}) => <p style={{fontSize: isMobile ? '13px' : '15px', margin: '4px 0'}} {...props} />,
-                        ul: ({node, ...props}) => <ul style={{paddingLeft: isMobile ? '20px' : '24px', margin: '4px 0'}} {...props} />,
-                        ol: ({node, ...props}) => <ol style={{paddingLeft: isMobile ? '20px' : '24px', margin: '4px 0'}} {...props} />,
-                        li: ({node, ...props}) => <li style={{marginBottom: '4px'}} {...props} />,
-                        blockquote: ({node, ...props}) => <blockquote style={{borderLeft:'4px solid #d9d9d9', padding:'4px 8px', color:'#555', backgroundColor:'#fafafa', margin:'6px 0'}} {...props} />,
-                        a: ({node, ...props}) => <a style={{color:'#1890ff'}} target="_blank" rel="noopener noreferrer" {...props} />,
-                        code: ({node, inline, className, children, ...props}) => inline ? (
-                          <code style={{backgroundColor:'#ffffff', padding:'2px 4px', borderRadius:'4px', fontFamily:'monospace', fontSize: isMobile ? '12px':'14px'}} {...props}>{children}</code>
-                        ) : (
-                          <pre style={{backgroundColor:'#ffffff', padding: isMobile ? '8px':'12px', borderRadius:'6px', overflowX:'auto', maxWidth:'100%'}} {...props}>
-                            <code style={{fontFamily:'monospace', whiteSpace:'pre', wordWrap:'break-word'}}>{children}</code>
-                          </pre>
-                        )
-                      }}
-                    >{message.content}</ReactMarkdown>
-
+                  <MDEditor.Markdown
+                    className={message.isUser ? 'user-markdown' : 'ai-markdown'}
+                    source={sanitizeMarkdown(message.content)}
+                    style={{ backgroundColor: 'transparent', color: message.isUser ? '#fff' : '#000', margin: 0 }}
+                    rehypePlugins={[]}
+                    remarkPlugins={[]}
+                    components={{
+                      // 允许HTML标签渲染
+                      br: ({ ...props }) => <br {...props} />,
+                    }}
+                  />
                 </div>
                 {message.isUser && (
                   <Avatar 
@@ -884,12 +1115,13 @@ const AIChat: React.FC = () => {
           
           {/* 实时显示AI回复 */}
           {loading && currentAiMessage && (
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '12px' }}>
               <div style={{
                 display: 'flex',
                 justifyContent: 'flex-start',
                 alignItems: 'flex-start',
-                gap: '8px'
+                gap: isMobile ? '6px' : '8px',
+              
               }}>
                 <Avatar 
                   icon={<RobotOutlined />} 
@@ -900,34 +1132,22 @@ const AIChat: React.FC = () => {
                   padding: isMobile ? '10px 12px' : '12px 16px',
                   borderRadius: isMobile ? '8px' : '12px',
                   backgroundColor: '#ffffff',
-                  color: 'black',
                   wordBreak: 'break-word',
-                  whiteSpace: 'pre-wrap',
-                  fontSize: isMobile ? '14px' : '16px',
-                  border: '2px solid #1890ff',
+                  overflowX: 'auto',
+                  fontSize: isMobile ? '12px' : '13px',
+                  border: '2px solidrgb(6, 6, 7)',
                   position: 'relative'
                 }}>
-                  <ReactMarkdown
-               
-                  components={{
-                    h1: ({node, ...props}) => <h1 style={{fontSize: isMobile ? '16px' : '20px', fontWeight: 600, margin: '6px 0'}} {...props} />, 
-                    h2: ({node, ...props}) => <h2 style={{fontSize: isMobile ? '15px' : '18px', fontWeight: 600, margin: '6px 0'}} {...props} />,
-                    h3: ({node, ...props}) => <h3 style={{fontSize: isMobile ? '14px' : '17px', fontWeight: 600, margin: '6px 0'}} {...props} />,
-                    p:  ({node, ...props}) => <p style={{fontSize: isMobile ? '13px' : '15px', margin: '4px 0'}} {...props} />,
-                    ul: ({node, ...props}) => <ul style={{paddingLeft: isMobile ? '20px' : '24px', margin: '4px 0'}} {...props} />,
-                    ol: ({node, ...props}) => <ol style={{paddingLeft: isMobile ? '20px' : '24px', margin: '4px 0'}} {...props} />,
-                    li: ({node, ...props}) => <li style={{marginBottom: '4px'}} {...props} />,
-                    blockquote: ({node, ...props}) => <blockquote style={{borderLeft:'4px solid #d9d9d9', padding:'4px 8px', color:'#555', backgroundColor:'#fafafa', margin:'6px 0'}} {...props} />,
-                    a: ({node, ...props}) => <a style={{color:'#1890ff'}} target="_blank" rel="noopener noreferrer" {...props} />,
-                    code: ({node, inline, className, children, ...props}) => inline ? (
-                      <code style={{backgroundColor:'#f5f5f5', padding:'2px 4px', borderRadius:'4px', fontFamily:'monospace', fontSize: isMobile ? '12px':'14px'}} {...props}>{children}</code>
-                    ) : (
-                      <pre style={{backgroundColor:'#f5f5f5', padding: isMobile ? '8px':'12px', borderRadius:'6px', overflowX:'auto', maxWidth:'100%'}} {...props}>
-                        <code style={{fontFamily:'monospace', whiteSpace:'pre', wordWrap:'break-word'}}>{children}</code>
-                      </pre>
-                    )
-                  }}
-                >{currentAiMessage}</ReactMarkdown>
+                  <MDEditor.Markdown
+                    className="ai-markdown"
+                    source={sanitizeMarkdown(currentAiMessage)}
+                    rehypePlugins={[]}
+                    remarkPlugins={[]}
+                    components={{
+                      // 允许HTML标签渲染
+                      br: ({ ...props }) => <br {...props} />,
+                    }}
+                  />
                   <div style={{
                     display: 'inline-block',
                     width: '8px',
@@ -942,7 +1162,7 @@ const AIChat: React.FC = () => {
           )}
           
           {loading && !currentAiMessage && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '6px' : '8px' }}>
               <Avatar 
                 icon={<RobotOutlined />} 
                 style={{ backgroundColor: '#1890ff' }}
@@ -950,7 +1170,7 @@ const AIChat: React.FC = () => {
               <div style={{
                 padding: '12px 16px',
                 borderRadius: '12px',
-                backgroundColor: '#ffffff',
+            
                 color: '#999'
               }}>
                 正在连接AI服务...
@@ -963,61 +1183,505 @@ const AIChat: React.FC = () => {
 
       {/* 输入区域 */}
       <div style={{ 
-        display: 'flex', 
-        gap: isMobile ? '6px' : '8px', 
-        alignItems: 'flex-end',
-        padding: isMobile ? '8px 0 0' : '0'
+        border: '1px solid #d9d9d9',
+        borderRadius: '8px',
+        padding: '12px',
+        backgroundColor: '#fafafa'
       }}>
+        {/* 已上传文件显示 */}
+        {uploadedFiles.length > 0 && (
+          <div style={{ marginBottom: '8px' }}>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+              已选择文件:
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {uploadedFiles.map((file, index) => (
+                <div
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: '#e6f7ff',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    gap: '4px'
+                  }}
+                >
+                  <span>{file.name}</span>
+                  <span
+                    onClick={() => removeFile(index)}
+                    style={{
+                      cursor: 'pointer',
+                      color: '#ff4d4f',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    ×
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* 输入框 */}
         <TextArea
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
           placeholder="输入你的消息... (按 Enter 发送，Shift+Enter 换行)"
-          autoSize={{ minRows: 1, maxRows: 4 }}
+          autoSize={{ minRows: 2, maxRows: 4 }}
+          className="custom-scrollbar"
           style={{ 
-            flex: 1,
-            fontSize: isMobile ? '14px' : '16px'
+            fontSize: isMobile ? '14px' : '16px',
+            border: 'none',
+            backgroundColor: 'transparent',
+            resize: 'none'
           }}
           disabled={loading}
         />
-        {loading ? (
-          <Button
-            type="default"
-            danger
-            icon={<StopOutlined />}
-            onClick={handleStop}
-            style={{ 
-              height: 'auto', 
-              minHeight: isMobile ? '36px' : '32px',
-              fontSize: isMobile ? '14px' : '16px'
-            }}
-          >
-            停止
-          </Button>
-        ) : (
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={handleSend}
-            disabled={!inputValue.trim()}
-            style={{ 
-              height: 'auto', 
-              minHeight: isMobile ? '36px' : '32px',
-              fontSize: isMobile ? '14px' : '16px'
-            }}
-          >
-            发送
-          </Button>
+        
+        {/* 按钮区域 */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '8px',
+          gap: '8px'
+        }}>
+          {/* 左侧控制区域 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* 文件上传按钮 */}
+            <input
+              type="file"
+              multiple
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+              id="file-upload"
+              accept=".txt,.pdf,.doc,.docx,.jpg,.jpeg,.png"
+            />
+            <Button
+              type="text"
+              icon={<PaperClipOutlined />}
+              onClick={() => document.getElementById('file-upload')?.click()}
+              style={{
+                border: 'none',
+                boxShadow: 'none',
+                color: '#666',
+                fontSize: '16px'
+              }}
+              title="上传文件"
+            />
+
+            {/* 知识库选择 */}
+            <KnowledgeSelector
+              ref={knowledgeSelectorRef}
+              value={selectedKnowledge}
+              onChange={handleKnowledgeChange}
+              style={{ width: '120px' }}
+              size="small"
+            />
+
+            {/* 联网按钮 */}
+            <Tooltip title={isNetworkEnabled ? "关闭联网" : "开启联网"}>
+              <Button
+                type="text"
+                icon={<GlobalOutlined />}
+                onClick={() => setIsNetworkEnabled(!isNetworkEnabled)}
+                style={{
+                  border: 'none',
+                  boxShadow: 'none',
+                  color: isNetworkEnabled ? '#1890ff' : '#666',
+                  fontSize: '16px'
+                }}
+              />
+            </Tooltip>
+
+            {/* 高级设置按钮 */}
+            <Tooltip title="高级设置">
+              <Button
+                type="text"
+                icon={<SettingOutlined />}
+                onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                style={{
+                  border: 'none',
+                  boxShadow: 'none',
+                  color: showAdvancedSettings ? '#1890ff' : '#666',
+                  fontSize: '16px'
+                }}
+              />
+            </Tooltip>
+          </div>
+          
+          {/* 发送/停止按钮 */}
+          <div>
+            {loading ? (
+              <Button
+                type="text"
+                danger
+                icon={<StopOutlined />}
+                onClick={handleStop}
+                style={{
+                  border: 'none',
+                  boxShadow: 'none',
+                  color: '#ff4d4f',
+                  fontSize: '16px'
+                }}
+                title="停止"
+              />
+            ) : (
+              <Button
+                type="text"
+                icon={<SendOutlined />}
+                onClick={handleSend}
+                disabled={!inputValue.trim()}
+                style={{
+                  border: 'none',
+                  boxShadow: 'none',
+                  color: inputValue.trim() ? '#1890ff' : '#d9d9d9',
+                  fontSize: '16px'
+                }}
+                title="发送"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* 高级设置面板 */}
+        {showAdvancedSettings && (
+          <div style={{
+            marginTop: '8px',
+            padding: '12px',
+            backgroundColor: '#f5f5f5',
+            borderRadius: '6px',
+            border: '1px solid #d9d9d9'
+          }}>
+            <Form layout="horizontal" size="small">
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label={`返回数量: ${advancedSettings.topK}`} style={{ marginBottom: '8px' }}>
+                    <Slider
+                      min={1}
+                      max={10}
+                      value={advancedSettings.topK}
+                      onChange={(value) => handleAdvancedSettingsChange('topK', value)}
+                      marks={{ 1: '1', 5: '5', 10: '10' }}
+                      style={{ margin: '0 8px' }}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label={`相似度: ${advancedSettings.score}`} style={{ marginBottom: '8px' }}>
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      value={advancedSettings.score}
+                      onChange={(value) => handleAdvancedSettingsChange('score', value)}
+                      marks={{ 0: '0', 0.5: '0.5', 1: '1' }}
+                      style={{ margin: '0 8px' }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Form>
+          </div>
         )}
       </div>
 
+        </div>
+
+        {/* 右侧会话信息面板 - 桌面端和平板端 */}
+        {!isMobile && (
+          <div style={{
+            width: isTablet ? '240px' : '280px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <Card 
+              size="small" 
+              title="会话信息"
+              extra={
+                <Button
+                  type="text"
+                  icon={<FileTextOutlined />}
+                  onClick={() => setShowReferences(!showReferences)}
+                  size="small"
+                />
+              }
+            >
+              <div style={{ fontSize: isTablet ? '11px' : '12px', color: '#666' }}>
+                <div>会话ID: {currentSessionId || '未开始'}</div>
+                <div>消息数: {messages.length}</div>
+                <div>知识库: {selectedKnowledge === 'none' ? '无' : selectedKnowledge}</div>
+                <div>联网: {isNetworkEnabled ? '已开启' : '已关闭'}</div>
+                <div>参考文档: {referenceDocuments.length} 条</div>
+              </div>
+            </Card>
+
+            {/* 参考文档面板 - 右侧版本 */}
+            {showReferences && (
+              <Card 
+                size="small" 
+                title="参考文档" 
+                extra={
+                  <Button
+                    type="text"
+                    size="small"
+                    onClick={() => setShowReferences(false)}
+                  >
+                    收起
+                  </Button>
+                }
+              >
+                <div 
+                  style={{ 
+                    maxHeight: isTablet ? '300px' : '400px', 
+                    overflowY: 'auto',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: isReferenceScrolling ? '#d4d4d4 transparent' : 'transparent transparent'
+                  }}
+                  className={`custom-scrollbar ${isReferenceScrolling ? 'scrolling' : ''}`}
+                  onScroll={handleReferenceScroll}
+                >
+                  {referenceDocuments.length > 0 ? (
+                    referenceDocuments.map((doc, index) => (
+                      <Card
+                        key={doc.id}
+                        size="small"
+                        style={{ marginBottom: '8px'}}
+                      
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 'bold', fontSize: isTablet ? '11px' : '12px', marginBottom: '2px' }}>
+                              {doc.title}
+                            </div>
+                            <div style={{ fontSize: isTablet ? '10px' : '11px', color: '#666', marginBottom: '4px' }}>
+                              <Tag color="blue" >相似度: {(doc.similarity * 100).toFixed(1)}%</Tag>
+                              <Tag color="green" >来源: {doc.source}</Tag>
+                            </div>
+                          </div>
+                          <Tooltip title="复制内容">
+                            <Button
+                              type="text"
+                              icon={<CopyOutlined />}
+                              size="small"
+                              onClick={() => copyToClipboard(doc.content)}
+                            />
+                          </Tooltip>
+                        </div>
+                        <div style={{ fontSize: isTablet ? '10px' : '11px', color: '#333', lineHeight: '1.4' }}>
+                          <MDEditor.Markdown
+                            source={doc.content.length > (isTablet ? 60 : 80) ? doc.content.substring(0, isTablet ? 60 : 80) + '...' : doc.content}
+                            style={{ backgroundColor: 'transparent', fontSize: isTablet ? '10px' : '11px' }}
+                          />
+                        </div>
+                      </Card>
+                    ))
+                  ) : (
+                    <Empty 
+                      description="暂无参考文档"
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      style={{ margin: '20px 0' }}
+                    />
+                  )}
+                </div>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* 移动端会话信息抽屉 */}
+      <Drawer
+        title="会话信息"
+        placement="right"
+        onClose={() => setSessionInfoDrawerVisible(false)}
+        open={sessionInfoDrawerVisible}
+        width={300}
+        extra={
+          <Button
+            type="text"
+            icon={<FileTextOutlined />}
+            onClick={() => setShowReferences(!showReferences)}
+            size="small"
+          />
+        }
+      >
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.6' }}>
+            <div>会话ID: {currentSessionId || '未开始'}</div>
+            <div>消息数: {messages.length}</div>
+            <div>知识库: {selectedKnowledge === 'none' ? '无' : selectedKnowledge}</div>
+            <div>联网: {isNetworkEnabled ? '已开启' : '已关闭'}</div>
+            <div>参考文档: {referenceDocuments.length} 条</div>
+          </div>
+        </div>
+
+        {/* 参考文档面板 - 移动端版本 */}
+        {showReferences && (
+          <div>
+            <Divider style={{ margin: '12px 0' }}>参考文档</Divider>
+            <div 
+              style={{ 
+                maxHeight: '400px', 
+                overflowY: 'auto',
+                scrollbarWidth: 'thin',
+                scrollbarColor: isReferenceScrolling ? '#d4d4d4 transparent' : 'transparent transparent'
+              }}
+              className={`custom-scrollbar ${isReferenceScrolling ? 'scrolling' : ''}`}
+              onScroll={handleReferenceScroll}
+            >
+              {referenceDocuments.length > 0 ? (
+                referenceDocuments.map((doc, index) => (
+                  <Card
+                    key={doc.id}
+                    size="small"
+                    style={{ marginBottom: '8px' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '2px' }}>
+                          {doc.title}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>
+                          <Tag color="blue">相似度: {(doc.similarity * 100).toFixed(1)}%</Tag>
+                          <Tag color="green">来源: {doc.source}</Tag>
+                        </div>
+                      </div>
+                      <Tooltip title="复制内容">
+                        <Button
+                          type="text"
+                          icon={<CopyOutlined />}
+                          size="small"
+                          onClick={() => copyToClipboard(doc.content)}
+                        />
+                      </Tooltip>
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#333', lineHeight: '1.4' }}>
+                      <MDEditor.Markdown
+                        source={doc.content.length > 60 ? doc.content.substring(0, 60) + '...' : doc.content}
+                        style={{ backgroundColor: 'transparent', fontSize: '10px' }}
+                      />
+                    </div>
+                  </Card>
+                ))
+              ) : (
+                <Empty 
+                  description="暂无参考文档"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  style={{ margin: '20px 0' }}
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </Drawer>
       
       <style>
         {`
           @keyframes blink {
             0%, 50% { opacity: 1; }
             51%, 100% { opacity: 0; }
+          }
+          .user-markdown table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+          }
+          .user-markdown th, .user-markdown td {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            text-align: left;
+          }
+          .user-markdown th {
+            background-color: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+          }
+          .ai-markdown table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+            max-width: 600px;
+            table-layout: fixed;
+          }
+          .ai-markdown th, .ai-markdown td {
+            border: 1px solid #d9d9d9;
+            color: #333333;
+            background-color: #fafafa;
+            padding: 8px 12px;
+            text-align: left;
+            word-break: break-word;
+            white-space: normal;
+            font-size: 13px;
+          }
+          .ai-markdown th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+          }
+          .user-markdown, .ai-markdown {
+            display: block;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            font-size: 13px;
+          }
+          .wmde-markdown.wmde-markdown-color.ai-markdown {
+            font-size: 13px;
+          }
+          .wmde-markdown.wmde-markdown-color.user-markdown {
+            font-size: 13px;
+          }
+          .wmde-markdown pre {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100%;
+            white-space: pre;
+            margin: 8px 0;
+            width: 100%;
+          }
+          .wmde-markdown pre > code {
+            font-size: 11px;
+            color:#ffffff;
+          }
+          @media screen and (max-width: 1125px) {
+            .user-markdown, .ai-markdown {
+              font-size: 12px;
+            }
+            .wmde-markdown.wmde-markdown-color.ai-markdown {
+              font-size: 12px;
+            }
+            .wmde-markdown.wmde-markdown-color.user-markdown {
+              font-size: 12px;
+            }
+            .wmde-markdown pre {
+              overflow-x: auto;
+              -webkit-overflow-scrolling: touch;
+              max-width: 100%;
+              white-space: pre;
+              width: 300px;
+            }
+            .wmde-markdown pre > code {
+              font-size: 11px !important;
+              line-height: 1.4;
+              white-space: pre;
+              word-break: normal;
+              overflow-wrap: normal;
+              display: block;
+              padding: 8px 12px;
+              border-radius: 6px;
+              max-width: none;
+            }
+          }
+          .user-markdown table, .ai-markdown table {
+            margin-top: 0;
+            width: max-content;
+            width: 100%;
+          }
           }
         `}
       </style>

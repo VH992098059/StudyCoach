@@ -6,14 +6,15 @@ import (
 	"backend/utility"
 	"backend/utility/consts"
 	"context"
-	"github.com/gogf/gf/v2/errors/gcode"
-	"github.com/gogf/gf/v2/errors/gerror"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gogf/gf/v2/errors/gcode"
+	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 func LoginUser(ctx context.Context, username, password string) (id, uuid, token string, err error) {

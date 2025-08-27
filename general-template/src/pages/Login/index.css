@@ -1,3 +1,36 @@
+/* 返回按钮样式 */
+.auth-back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #595959;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.06);
+}
+
+.back-btn:focus {
+  color: #1890ff;
+  background-color: rgba(24, 144, 255, 0.06);
+}
+
+.back-btn .anticon {
+  font-size: 14px;
+}
+
 .login-form {
   width: 100%;
 }

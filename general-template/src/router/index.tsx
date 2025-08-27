@@ -17,7 +17,11 @@ import type { MenuProps } from 'antd';
  */
 const About = React.lazy(() => import('../pages/About'));
 const AiChat = React.lazy(() => import('../pages/AiChat'));
-const Activities = React.lazy(() => import('../pages/Activities'));
+const KnowledgeBase = React.lazy(() => import('../pages/KnowledgeBase'));
+const Indexer = React.lazy(() => import('../pages/KnowledgeBase/Indexer'));
+const Documents = React.lazy(() => import('../pages/KnowledgeBase/Documents'));
+const Chunks = React.lazy(() => import('../pages/KnowledgeBase/Chunks'));
+const Retriever = React.lazy(() => import('../pages/KnowledgeBase/Retriever'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 const Login = React.lazy(() => import('../pages/Login'));
 const Register = React.lazy(() => import('../pages/Register'));
@@ -101,8 +105,24 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
       label: 'AI聊天',
     },
     {
-      key: 'activities',
-      label: '活动',
+      key: 'knowledgebase',
+      label: '知识库管理',
+    },
+    {
+      key: 'indexer',
+      label: '索引管理',
+    },
+    {
+      key: 'documents',
+      label: '文档管理',
+    },
+    {
+      key: 'chunks',
+      label: '知识块管理',
+    },
+    {
+      key: 'retriever',
+      label: '文档检索',
     },
     {
       key: 'about',
@@ -253,12 +273,60 @@ export const router = createBrowserRouter([
     element: <Navigate to="/" replace />,
   },
   {
-    path: '/activities',
+    path: '/knowledgebase',
     element: (
       <LayoutWrapper>
         <Suspense fallback={<LoadingComponent />}>
           <RouteGuard>
-            <Activities />
+            <KnowledgeBase />
+          </RouteGuard>
+        </Suspense>
+      </LayoutWrapper>
+    ),
+  },
+  {
+    path: '/indexer',
+    element: (
+      <LayoutWrapper>
+        <Suspense fallback={<LoadingComponent />}>
+          <RouteGuard>
+            <Indexer />
+          </RouteGuard>
+        </Suspense>
+      </LayoutWrapper>
+    ),
+  },
+  {
+    path: '/documents',
+    element: (
+      <LayoutWrapper>
+        <Suspense fallback={<LoadingComponent />}>
+          <RouteGuard>
+            <Documents />
+          </RouteGuard>
+        </Suspense>
+      </LayoutWrapper>
+    ),
+  },
+  {
+    path: '/chunks',
+    element: (
+      <LayoutWrapper>
+        <Suspense fallback={<LoadingComponent />}>
+          <RouteGuard>
+            <Chunks />
+          </RouteGuard>
+        </Suspense>
+      </LayoutWrapper>
+    ),
+  },
+  {
+    path: '/retriever',
+    element: (
+      <LayoutWrapper>
+        <Suspense fallback={<LoadingComponent />}>
+          <RouteGuard>
+            <Retriever />
           </RouteGuard>
         </Suspense>
       </LayoutWrapper>

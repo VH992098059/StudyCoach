@@ -1,0 +1,38 @@
+package v1
+
+import (
+	"backend/internal/model/entity"
+
+	"github.com/gogf/gf/v2/frame/g"
+)
+
+const (
+	StatusPending  Status = 0
+	StatusIndexing Status = 1
+	StatusActive   Status = 2
+	StatusFailed   Status = 3
+)
+
+type DocumentsListReq struct {
+	g.Meta        `path:"/v1/documents" method:"get" tags:"rag"`
+	KnowledgeName string `p:"knowledge_name" dc:"knowledge_name" v:"required|length:3,50"`
+	Page          int    `p:"page" dc:"page" v:"required|min:1" d:"1"`
+	Size          int    `p:"size" dc:"size" v:"required|min:1|max:100" d:"10"`
+}
+
+type DocumentsListRes struct {
+	g.Meta `mime:"application/json"`
+	Data   []entity.KnowledgeDocuments `json:"data"`
+	Total  int                         `json:"total"`
+	Page   int                         `json:"page"`
+	Size   int                         `json:"size"`
+}
+
+type DocumentsDeleteReq struct {
+	g.Meta     `path:"/v1/documentsDelete" method:"delete" tags:"rag" summary:"Delete a document and its chunks"`
+	DocumentId int64 `p:"document_id" dc:"document_id" v:"required"`
+}
+
+type DocumentsDeleteRes struct {
+	g.Meta `mime:"application/json"`
+}

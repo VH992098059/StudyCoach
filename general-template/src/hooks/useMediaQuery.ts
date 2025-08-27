@@ -57,10 +57,10 @@ export const useMediaQuery = (query: string): boolean => {
  * 预定义的断点Hook
  */
 export const useBreakpoints = () => {
-  const isMobile = useMediaQuery('(max-width: 767px)');
-  const isTablet = useMediaQuery('(min-width: 768px) and (max-width: 1023px)');
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const isLargeDesktop = useMediaQuery('(min-width: 1200px)');
+  const isMobile = useMediaQuery('(max-width: 1023px)');
+  const isTablet = useMediaQuery('(min-width: 1024px) and (max-width: 1199px)');
+  const isDesktop = useMediaQuery('(min-width: 1200px)');
+  const isLargeDesktop = useMediaQuery('(min-width: 1400px)');
   
   // 更细粒度的断点
   const isXs = useMediaQuery('(max-width: 575px)');

@@ -2,12 +2,13 @@ package utility
 
 import (
 	"context"
+	"log"
+	"time"
+
 	"github.com/gogf/gf/contrib/nosql/redis/v2"
 	"github.com/gogf/gf/v2/database/gredis"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gctx"
-	"log"
-	"time"
 )
 
 var (
@@ -21,6 +22,7 @@ var (
 )
 
 func init() {
+
 	adapter := redis.New(&config)         // 从配置加载客户端
 	operation := adapter.AdapterOperation // 全局注册适配器
 	_, err := operation.Conn(ctxRedis)

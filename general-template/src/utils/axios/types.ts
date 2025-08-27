@@ -1,12 +1,11 @@
 /**
  * 通用 API 响应接口
+ * 对应 GoFrame 的 DefaultHandlerResponse 结构
  */
 export interface ApiResponse<T = any> {
   code: number;
   message: string;
   data: T;
-  success: boolean;
-  timestamp: number;
 }
 
 /**

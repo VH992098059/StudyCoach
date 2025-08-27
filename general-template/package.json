@@ -7,13 +7,19 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tauri:dev": "bun run build && tauri dev",
+    "tauri:build": "bun run build && tauri build"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
+    "@tauri-apps/plugin-http": "^2.5.1",
     "@types/node": "^24.1.0",
+    "@uiw/react-markdown-preview": "^5.1.5",
+    "@uiw/react-md-editor": "^4.0.8",
     "antd": "^5.26.2",
     "axios": "^1.10.0",
+    "electron": "^37.2.6",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-error-boundary": "^6.0.0",
@@ -25,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "@tauri-apps/cli": "^2.7.1",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.2",

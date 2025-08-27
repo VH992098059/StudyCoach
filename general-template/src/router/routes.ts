@@ -11,7 +11,7 @@
  */
 export const ROUTES = {
   AICHAT: '/',
-  ACTIVITIES: '/activities',
+  KNOWLEDGEBASE: '/knowledgebase',
   ABOUT: '/about',
   LOGIN: '/login',
   REGISTER: '/register',
@@ -59,13 +59,13 @@ export const routeConfigs: RouteConfig[] = [
     },
   },
   {
-    path: ROUTES.ACTIVITIES,
-    name: 'activities',
-    component: 'Activities',
+    path: ROUTES.KNOWLEDGEBASE,
+    name: 'knowledgebase',
+    component: 'KnowledgeBase',
     meta: {
-      title: '活动中心 - 通用模板',
-      description: '参与我们的技术活动和交流',
-      keywords: ['活动', '技术分享', '交流'],
+      title: '知识库 - 通用模板',
+      description: 'RAG知识库管理和文档检索',
+      keywords: ['知识库', 'RAG', '文档检索', 'AI'],
     },
   },
   {
