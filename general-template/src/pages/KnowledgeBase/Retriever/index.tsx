@@ -29,6 +29,7 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../../services/knowledgeBase';
+import { RetrieverService, type RetrievalDocument } from '../../../services/retriever';
 import './index.css';
 
 const { Panel } = Collapse;
@@ -44,18 +45,8 @@ interface SearchForm {
   knowledge_name: string;
 }
 
-/**
- * 检索结果接口
- */
-interface SearchResult {
-  content: string;
-  meta_data: {
-    _score: number;
-    ext: {
-      _file_name: string;
-    };
-  };
-}
+// 使用从服务中导入的接口类型
+type SearchResult = RetrievalDocument;
 
 /**
  * 文档检索页面组件
@@ -63,7 +54,7 @@ interface SearchResult {
 const Retriever: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<RetrievalDocument[]>([]);
   const [activeKeys, setActiveKeys] = useState<string[]>(['0']);
   const [searched, setSearched] = useState(false);
   const [knowledgeOptions, setKnowledgeOptions] = useState<Array<{id: string; name: string}>>([]);
@@ -97,88 +88,7 @@ const Retriever: React.FC = () => {
     fetchKnowledgeList();
   }, []);
 
-  // 模拟检索结果
-  const mockResults: SearchResult[] = [
-    {
-      content: `# React 组件开发最佳实践
 
-React 是一个用于构建用户界面的 JavaScript 库。在开发 React 组件时，我们需要遵循一些最佳实践：
-
-## 1. 组件设计原则
-- **单一职责原则**：每个组件应该只负责一个功能
-- **可复用性**：设计组件时要考虑复用性
-- **可维护性**：代码要清晰易懂，便于维护
-
-## 2. 状态管理
-使用 useState 和 useEffect 钩子来管理组件状态和副作用。
-
-\`\`\`javascript
-const [count, setCount] = useState(0);
-
-useEffect(() => {
-  document.title = \`Count: \${count}\`;
-}, [count]);
-\`\`\``,
-      meta_data: {
-        _score: 0.95,
-        ext: {
-          _file_name: 'React开发指南.pdf'
-        }
-      }
-    },
-    {
-      content: `## 组件生命周期
-
-React 函数组件通过 useEffect 钩子来处理生命周期：
-
-### 组件挂载
-\`\`\`javascript
-useEffect(() => {
-  // 组件挂载后执行
-  console.log('Component mounted');
-  
-  return () => {
-    // 组件卸载前执行
-    console.log('Component will unmount');
-  };
-}, []); // 空依赖数组表示只在挂载和卸载时执行
-\`\`\`
-
-### 状态更新
-当依赖项发生变化时，useEffect 会重新执行。`,
-      meta_data: {
-        _score: 0.87,
-        ext: {
-          _file_name: 'React开发指南.pdf'
-        }
-      }
-    },
-    {
-      content: `# 项目架构设计
-
-在大型 React 项目中，良好的架构设计至关重要：
-
-## 目录结构
-\`\`\`
-src/
-  components/     # 通用组件
-  pages/         # 页面组件
-  hooks/         # 自定义钩子
-  utils/         # 工具函数
-  services/      # API 服务
-  types/         # TypeScript 类型定义
-\`\`\`
-
-## 状态管理
-对于复杂的状态管理，推荐使用 Redux Toolkit 或 Zustand。`,
-      meta_data: {
-        _score: 0.72,
-        ext: {
-          _file_name: '项目架构文档.md'
-        }
-      }
-    }
-  ];
 
   /**
    * 渲染 Markdown 内容
@@ -208,26 +118,30 @@ src/
         return;
       }
 
+      if (!values.knowledge_name) {
+        message.warning('请选择知识库');
+        return;
+      }
+
       setLoading(true);
       setSearched(true);
 
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 调用真实API
+      const response = await RetrieverService.retrieve({
+        question: values.question,
+        top_k: values.top_k || 5,
+        score: values.score || 0.2,
+        knowledge_name: values.knowledge_name
+      });
 
-      // 根据搜索内容过滤结果
-      const filteredResults = mockResults.filter(result => 
-        result.content.toLowerCase().includes(values.question.toLowerCase()) ||
-        values.question.toLowerCase().includes('react') ||
-        values.question.toLowerCase().includes('组件')
-      );
+      const results = response.document || [];
+      setSearchResults(results);
+      setActiveKeys(results.length > 0 ? ['0'] : []);
 
-      setSearchResults(filteredResults);
-      setActiveKeys(filteredResults.length > 0 ? ['0'] : []);
-
-      if (filteredResults.length === 0) {
+      if (results.length === 0) {
         message.info('未找到相关文档');
       } else {
-        message.success(`找到 ${filteredResults.length} 个相关结果`);
+        message.success(`找到 ${results.length} 个相关结果`);
       }
 
     } catch (error) {
@@ -262,23 +176,7 @@ src/
             <SearchOutlined className="header-icon" />
             <span className="header-title">文档检索</span>
           </Space>
-          <div className="header-actions">
-            <Space>
-              <span>选择知识库:</span>
-              <Select
-                defaultValue=""
-                style={{ width: 200 }}
-                placeholder="请选择知识库"
-                loading={knowledgeLoading}
-              >
-                {knowledgeOptions.map(option => (
-                  <Option key={option.id} value={option.id}>
-                    {option.name}
-                  </Option>
-                ))}
-              </Select>
-            </Space>
-          </div>
+
         </div>
 
         <Divider />
@@ -294,20 +192,42 @@ src/
               knowledge_name: ''
             }}
           >
-            <Form.Item name="question">
-              <Input.Search
-                placeholder="请输入您想要检索的问题"
-                size="large"
-                enterButton={
-                  <Button type="primary" icon={<SearchOutlined />}>
-                    检索
-                  </Button>
-                }
-                onSearch={handleSearch}
-                onKeyDown={handleKeyPress}
-                loading={loading}
-              />
-            </Form.Item>
+            <Row gutter={16}>
+              <Col xs={24} sm={16}>
+                <Form.Item name="question">
+                  <Input.Search
+                    placeholder="请输入您想要检索的问题"
+                    size="large"
+                    enterButton={
+                      <Button type="primary" icon={<SearchOutlined />}>
+                        检索
+                      </Button>
+                    }
+                    onSearch={handleSearch}
+                    onKeyDown={handleKeyPress}
+                    loading={loading}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Form.Item name="knowledge_name" label="选择知识库">
+                  <Select
+                    placeholder="请选择知识库"
+                    loading={knowledgeLoading}
+                    allowClear
+                  >
+                    {knowledgeOptions
+                      .filter(option => option.id !== '') // 过滤掉"全部知识库"选项
+                      .map(option => (
+                        <Option key={option.id} value={option.id}>
+                          {option.name}
+                        </Option>
+                      ))
+                    }
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
 
             <Row gutter={24}>
               <Col xs={24} sm={12}>

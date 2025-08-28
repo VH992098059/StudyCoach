@@ -6,6 +6,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/goccy/go-json"
 	"github.com/gogf/gf/v2/frame/g"
 
@@ -27,7 +28,7 @@ func (c *ControllerV1) Retriever(ctx context.Context, req *v1.RetrieverReq) (res
 		KnowledgeName: req.KnowledgeName,
 	}
 	g.Log().Infof(ctx, "ragReq: %v", ragReq)
-	msg, err := ragSvr.Retrieve(ctx, ragReq)
+	msg, err := ragSvr.Retriever(ctx, ragReq)
 	if err != nil {
 		return
 	}
@@ -45,6 +46,10 @@ func (c *ControllerV1) Retriever(ctx context.Context, req *v1.RetrieverReq) (res
 	sort.Slice(msg, func(i, j int) bool {
 		return msg[i].Score() > msg[j].Score()
 	})
+	// 确保空切片被序列化为空数组而不是null
+	if msg == nil {
+		msg = make([]*schema.Document, 0)
+	}
 	res = &v1.RetrieverRes{
 		Document: msg,
 	}

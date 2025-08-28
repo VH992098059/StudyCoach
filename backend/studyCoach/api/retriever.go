@@ -7,6 +7,7 @@ import (
 	"context"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/cloudwego/eino-ext/components/retriever/es8"
 	er "github.com/cloudwego/eino/components/retriever"
@@ -38,8 +39,8 @@ func (x *RetrieveReq) copy() *RetrieveReq {
 	}
 }
 
-// Retrieve 检索
-func (x *Rag) Retrieve(ctx context.Context, req *RetrieveReq) (msg []*schema.Document, err error) {
+// Retriever 检索
+func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Document, err error) {
 	var (
 		used        = ""          // 记录已经使用过的关键词
 		relatedDocs = &sync.Map{} // 记录相关docs
@@ -65,7 +66,10 @@ func (x *Rag) Retrieve(ctx context.Context, req *RetrieveReq) (msg []*schema.Doc
 		if err != nil {
 			return
 		}
-		rewriteMessage, err = rewriteModel.Generate(ctx, optMessages)
+		// 为rewrite模型调用设置30秒超时
+		rewriteCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		rewriteMessage, err = rewriteModel.Generate(rewriteCtx, optMessages)
 		if err != nil {
 			return
 		}

@@ -82,3 +82,20 @@ func TestWaitingUserInput(t *testing.T) {
 
 	fmt.Println(api.ChatAiModel(ctx, true, "现在我要学习vue，帮我整理核心内容，规划学习路线并说出这些核心组件的详情作用", "12313", "test"))
 }
+func TestRetriever(t *testing.T) {
+	_init()
+	ctx := context.Background()
+	req := &api.RetrieveReq{
+		Query:         "合金装备",
+		TopK:          5,
+		Score:         1.2,
+		KnowledgeName: "niumahhh",
+	}
+	msg, err := ragNew.Retriever(ctx, req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range msg {
+		t.Logf("content: %v, score: %v", m.Content, m.Score())
+	}
+}

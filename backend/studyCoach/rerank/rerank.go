@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/bytedance/sonic"
 	"github.com/cloudwego/eino/schema"
@@ -106,13 +107,18 @@ func rerankDoHttp(ctx context.Context, data *Data) ([]*Result, error) {
 		return nil, err
 	}
 	payload := bytes.NewReader(marshal)
-	request, err := http.NewRequest("POST", cfg.url, payload)
+	request, err := http.NewRequestWithContext(ctx, "POST", cfg.url, payload)
 	if err != nil {
 		return nil, err
 	}
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Authorization", fmt.Sprintf("Bearer %s", cfg.apiKey))
-	do, err := g.Client().Do(request)
+
+	// 创建带超时的HTTP客户端
+	client := &http.Client{
+		Timeout: 30 * time.Second, // 设置30秒超时
+	}
+	do, err := client.Do(request)
 	if err != nil {
 		return nil, err
 	}
