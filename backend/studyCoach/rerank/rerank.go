@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/bytedance/sonic"
@@ -117,7 +117,7 @@ func rerankDoHttp(ctx context.Context, data *Data) ([]*Result, error) {
 		return nil, err
 	}
 	defer do.Body.Close()
-	body, err := ioutil.ReadAll(do.Body)
+	body, err := io.ReadAll(do.Body)
 	if err != nil {
 		return nil, err
 	}

@@ -33,6 +33,8 @@
 - **MinIO存储**: 文档对象存储和管理
 - **智能缓存**: 内容抓取缓存机制，提升响应速度
 
+> **致谢**: RAG相关功能大量参考与使用了 [wangle201210/go-rag](https://github.com/wangle201210/go-rag) 项目的优秀实现
+
 ### 🔍 智能搜索 ✅
 
 - **网络搜索**: 集成DuckDuckGo搜索引擎
@@ -155,12 +157,14 @@ studyCoach/
 ### 本地开发
 
 1. 克隆仓库
+
 ```bash
 git clone <repository-url>
 cd studyCoach
 ```
 
 2. 配置环境变量
+
 ```bash
 # 复制示例环境变量文件
 cp studyCoach/.env.example studyCoach/.env
@@ -168,12 +172,14 @@ cp studyCoach/.env.example studyCoach/.env
 ```
 
 3. 启动后端服务
+
 ```bash
 cd backend
 go run main.go
 ```
 
 4. 启动前端服务
+
 ```bash
 cd general-template
 npm install
@@ -185,6 +191,7 @@ npm run dev
 我们提供了完整的Docker部署方案，详细步骤请参考 [部署指南](DEPLOYMENT.md)。
 
 1. 构建应用
+
 ```bash
 # Windows
 build.bat
@@ -195,11 +202,13 @@ chmod +x build.sh
 ```
 
 2. 启动Docker容器
+
 ```bash
 docker-compose up -d
 ```
 
 3. 访问应用
+
 ```
 http://localhost
 ```
@@ -249,5 +258,3 @@ http://localhost
 ## 🤝 贡献
 
 欢迎贡献代码、报告问题或提出新功能建议！
-
-
