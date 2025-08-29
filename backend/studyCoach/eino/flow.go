@@ -1,6 +1,7 @@
 package eino
 
 import (
+	"backend/studyCoach/configTool"
 	"context"
 	"log"
 
@@ -9,9 +10,9 @@ import (
 	"github.com/cloudwego/eino/flow/agent/react"
 )
 
-// newLambda1 component initialization function of node 'ReActLambda' in graph 'studyCoachFor'
+// newLambda4 component initialization function of node 'ReActLambda' in graph 'StudyCoachFor'
 // 根据上下文中的isNetwork参数决定是否包含搜索工具
-func newLambda1(ctx context.Context) (lba *compose.Lambda, err error) {
+func newLambda4(ctx context.Context, conf *configTool.Config) (lba *compose.Lambda, err error) {
 	// 从上下文中获取isNetwork参数
 	isNetwork := false
 	if val := ctx.Value("isNetwork"); val != nil {
@@ -23,7 +24,7 @@ func newLambda1(ctx context.Context) (lba *compose.Lambda, err error) {
 	log.Printf("[ReActLambda] 配置工具 - 网络搜索: %v", isNetwork)
 
 	config := &react.AgentConfig{}
-	chatModelIns11, err := newChatModel1(ctx)
+	chatModelIns11, err := newChatModel1(ctx, conf)
 	if err != nil {
 		return nil, err
 	}

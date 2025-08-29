@@ -3,7 +3,7 @@ package api
 import (
 	"backend/internal/model/entity"
 	"backend/studyCoach/common"
-	"backend/studyCoach/eino"
+	"backend/studyCoach/eino/retriever"
 
 	"context"
 	"time"
@@ -116,7 +116,7 @@ func (x *Rag) indexAsyncByDocsID(ctx context.Context, req *IndexAsyncByDocsIDReq
 	}
 	for _, hit := range resp.Hits.Hits {
 		doc := &schema.Document{}
-		doc, err = eino.EsHit2Document(ctx, hit)
+		doc, err = retriever.EsHit2Document(ctx, hit)
 		if err != nil {
 			g.Log().Errorf(ctx, "EsHit2Document failed, err=%v", err)
 			return

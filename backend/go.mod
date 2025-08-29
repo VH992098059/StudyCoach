@@ -8,7 +8,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/bytedance/sonic v1.14.0
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cloudwego/eino v0.4.4
+	github.com/cloudwego/eino v0.4.7
 	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/document/transformer/reranker/score v0.0.0-20250801075622-6721dae36fe9
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20250822083409-f8d432eea60f
@@ -30,12 +30,13 @@ require (
 
 require (
 	github.com/VH992098059/chat-history v0.0.0-20250822090229-bff17e0a58c2
-	github.com/cloudwego/eino-ext/components/model/ollama v0.1.1
 	github.com/goccy/go-json v0.10.5
-	github.com/ollama/ollama v0.11.7
 )
 
 require (
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
+	github.com/eino-contrib/jsonschema v1.0.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
@@ -47,6 +48,8 @@ require (
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.3.0 // indirect
+	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 )
 
 replace studyCoach => ../
@@ -65,10 +68,10 @@ require (
 	github.com/cloudwego/eino-ext/components/document/parser/pdf v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20250801075622-6721dae36fe9
 	github.com/cloudwego/eino-ext/components/indexer/es8 v0.0.0-20250818090953-a59b1be0df04
-	github.com/cloudwego/eino-ext/components/model/ark v0.1.19
-	github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250801075622-6721dae36fe9
-	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20250801075622-6721dae36fe9
-	github.com/cloudwego/eino-ext/libs/acl/openai v0.0.0-20250731095750-3c46632681ba // indirect
+	github.com/cloudwego/eino-ext/components/model/ark v0.1.23
+	github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250828061307-a19adf5c9b50
+	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20250828061307-a19adf5c9b50
+	github.com/cloudwego/eino-ext/libs/acl/openai v0.0.0-20250826113018-8c6f6358d4bb // indirect
 	github.com/dgraph-io/ristretto v0.2.0
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dslipak/pdf v0.0.2 // indirect
@@ -104,7 +107,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
-	github.com/meguminnnnnnnnn/go-openai v0.0.0-20250723112853-3bce976e5ccc // indirect
+	github.com/meguminnnnnnnnn/go-openai v0.0.0-20250821095446-07791bea23a0 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect

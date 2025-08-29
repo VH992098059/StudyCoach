@@ -133,42 +133,6 @@ func (impl *BranchChatTemplateImpl) Format(ctx context.Context, vs map[string]an
 	return format, nil
 }
 
-type EmotionAndCompanionShipChatTemplateImpl struct {
-	config *EmotionAndCompanionShipChatTemplateConfig
-}
-
-type EmotionAndCompanionShipChatTemplateConfig struct {
-	//Role       schema.RoleType
-	//System     schema.RoleType
-	FormatType schema.FormatType
-	Templates  []schema.MessagesTemplate
-}
-
-// 情感判断模版
-func EmotionAndCompanionShipTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
-	config := &EmotionAndCompanionShipChatTemplateConfig{
-		FormatType: schema.FString,
-		Templates: []schema.MessagesTemplate{
-			schema.SystemMessage(common.EmotionAndCompanionShipTemplate),
-			schema.UserMessage(common.UserTemplate),
-		},
-	}
-	ctp = &EmotionAndCompanionShipChatTemplateImpl{config: config}
-	return ctp, nil
-}
-func (impl *EmotionAndCompanionShipChatTemplateImpl) Format(ctx context.Context, vs map[string]any, opts ...prompt.Option) ([]*schema.Message, error) {
-	template := prompt.FromMessages(impl.config.FormatType, impl.config.Templates...)
-	format, err := template.Format(ctx, vs)
-	if err != nil {
-		return nil, fmt.Errorf("提示工程构建失败: %w", err)
-	}
-	if len(format) == 0 {
-		return nil, fmt.Errorf("EmotionAndCompanionShip消息格式化结果为空")
-	}
-	log.Println("EmotionAndCompanionShip初始化模版输出")
-	return format, nil
-}
-
 type ChatTemplate2Impl struct {
 	config *ChatTemplate2Config
 }
@@ -185,6 +149,7 @@ func newChatTemplate2(ctx context.Context) (ctp prompt.ChatTemplate, err error) 
 		FormatType: schema.FString,
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.SystemCoachTemplate),
+			schema.MessagesPlaceholder("chat_history", true),
 			schema.UserMessage(common.UserTemplate),
 		},
 	}
@@ -217,7 +182,14 @@ type ChatTemplate3Config struct {
 // newChatTemplate3 component initialization function of node 'NormalChatTemplate' in graph 'studyCoachFor'
 func newChatTemplate3(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	// TODO Modify component configuration here.
-	config := &ChatTemplate3Config{}
+	config := &ChatTemplate3Config{
+		FormatType: schema.FString,
+		Templates: []schema.MessagesTemplate{
+			schema.SystemMessage(common.NormalSystemTemplate),
+			schema.MessagesPlaceholder("chat_history", true),
+			schema.UserMessage(common.UserTemplate),
+		},
+	}
 	ctp = &ChatTemplate3Impl{config: config}
 	return ctp, nil
 }
@@ -232,6 +204,43 @@ func (impl *ChatTemplate3Impl) Format(ctx context.Context, vs map[string]any, op
 		return nil, fmt.Errorf("NormalChatTemplate消息格式化结果为空")
 	}
 	log.Println("NormalChatTemplate初始化模版输出")
+	return format, nil
+}
+
+type ChatTemplate4Impl struct {
+	config *ChatTemplate4Config
+}
+
+type ChatTemplate4Config struct {
+	FormatType schema.FormatType
+	Templates  []schema.MessagesTemplate
+}
+
+// newChatTemplate4 component initialization function of node 'EmotionAndCompanionShipTemplate' in graph 'StudyCoachFor'
+func newChatTemplate4(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+	// TODO Modify component configuration here.
+	config := &ChatTemplate4Config{
+		FormatType: schema.FString,
+		Templates: []schema.MessagesTemplate{
+			schema.SystemMessage(common.EmotionAndCompanionShipTemplate),
+			schema.MessagesPlaceholder("chat_history", true),
+			schema.UserMessage(common.UserTemplate),
+		},
+	}
+	ctp = &ChatTemplate4Impl{config: config}
+	return ctp, nil
+}
+
+func (impl *ChatTemplate4Impl) Format(ctx context.Context, vs map[string]any, opts ...prompt.Option) ([]*schema.Message, error) {
+	template := prompt.FromMessages(impl.config.FormatType, impl.config.Templates...)
+	format, err := template.Format(ctx, vs)
+	if err != nil {
+		return nil, fmt.Errorf("提示工程构建失败: %w", err)
+	}
+	if len(format) == 0 {
+		return nil, fmt.Errorf("EmotionAndCompanionShipTemplate消息格式化结果为空")
+	}
+	log.Println("EmotionAndCompanionShipTemplate初始化模版输出")
 	return format, nil
 }
 

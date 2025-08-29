@@ -42,7 +42,7 @@ func getQAContent(ctx context.Context, doc *schema.Document, knowledgeName strin
 	if s, ok := doc.MetaData[common.FieldQAContent].(string); ok && len(s) > 0 {
 		return s, nil
 	}
-	cm, err := eino.NewChatModel4(ctx)
+	cm, err := eino.QaModel(ctx)
 	if err != nil {
 		return
 	}

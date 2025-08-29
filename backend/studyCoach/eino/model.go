@@ -62,12 +62,12 @@ func newChatModel(ctx context.Context, conf *configTool.Config) (cm model.ToolCa
 	return cm, nil
 }
 
-func newChatModel1(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+func newChatModel2(ctx context.Context, conf *configTool.Config) (cm model.ToolCallingChatModel, err error) {
 	// TODO Modify component configuration here.
 	config := &openai.ChatModelConfig{
-		Model:   os.Getenv("Model_Type"),
-		APIKey:  os.Getenv("Openai_API_Key"),
-		BaseURL: os.Getenv("Base_URL"),
+		Model:   conf.Model,
+		APIKey:  conf.ApiKey,
+		BaseURL: conf.BaseURL,
 	}
 	cm, err = openai.NewChatModel(ctx, config)
 	log.Println("ReAct模型分析")
@@ -77,20 +77,7 @@ func newChatModel1(ctx context.Context) (cm model.ToolCallingChatModel, err erro
 	return cm, nil
 }
 
-func EmotionChatModel(ctx context.Context) (cm model.BaseChatModel, err error) {
-	// TODO Modify component configuration here.
-	config := &openai.ChatModelConfig{
-		Model:   os.Getenv("Model_Type"),
-		APIKey:  os.Getenv("Openai_API_Key"),
-		BaseURL: os.Getenv("Base_URL"),
-	}
-	cm, err = openai.NewChatModel(ctx, config)
-	if err != nil {
-		return nil, err
-	}
-	return cm, nil
-}
-func BranchNewChatModel(ctx context.Context) (cm model.BaseChatModel, err error) {
+func BranchNewChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 	// TODO Modify component configuration here.
 	config := &openai.ChatModelConfig{
 		Model:   "deepseek-ai/DeepSeek-V3",
@@ -105,12 +92,12 @@ func BranchNewChatModel(ctx context.Context) (cm model.BaseChatModel, err error)
 }
 
 // newChatModel2 component initialization function of node 'ToStudyChatModel' in graph 'studyCoachFor'
-func newChatModel2(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+func newChatModel3(ctx context.Context, conf *configTool.Config) (cm model.ToolCallingChatModel, err error) {
 	// TODO Modify component configuration here.
 	config := &ark.ChatModelConfig{
-		Model:   os.Getenv("ARK_MODEL_TYPE"),
-		APIKey:  os.Getenv("ARK_API_KEY"),
-		BaseURL: os.Getenv("ARK_MODEL_URL"),
+		Model:   conf.Model,
+		APIKey:  conf.ApiKey,
+		BaseURL: conf.BaseURL,
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	if err != nil {
@@ -120,12 +107,12 @@ func newChatModel2(ctx context.Context) (cm model.ToolCallingChatModel, err erro
 }
 
 // newChatModel3 component initialization function of node 'NormalChatModel' in graph 'studyCoachFor'
-func newChatModel3(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+func newChatModel4(ctx context.Context, conf *configTool.Config) (cm model.ToolCallingChatModel, err error) {
 	// TODO Modify component configuration here.
 	config := &openai.ChatModelConfig{
-		Model:   os.Getenv("Base_URL"),
-		APIKey:  os.Getenv("Openai_API_Key"),
-		BaseURL: os.Getenv("Model_Type"),
+		Model:   conf.Model,
+		APIKey:  conf.ApiKey,
+		BaseURL: conf.BaseURL,
 	}
 	cm, err = openai.NewChatModel(ctx, config)
 	if err != nil {
@@ -134,9 +121,22 @@ func newChatModel3(ctx context.Context) (cm model.ToolCallingChatModel, err erro
 	return cm, nil
 }
 
-// NewChatModel4 component initialization function of node 'ChatModel8' in graph 'studyCoachFor'
-func NewChatModel4(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+// NewChatModel4 component initialization function of node 'EmotionAndCompanionChatModel' in graph 'studyCoachFor'
+func newChatModel1(ctx context.Context, conf *configTool.Config) (cm model.ToolCallingChatModel, err error) {
 	// TODO Modify component configuration here.
+	config := &ark.ChatModelConfig{
+		Model:   conf.Model,
+		APIKey:  conf.ApiKey,
+		BaseURL: conf.BaseURL,
+	}
+	cm, err = ark.NewChatModel(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+	return cm, nil
+}
+
+func RewriteModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 	config := &ark.ChatModelConfig{
 		Model:   os.Getenv("ARK_MODEL_TYPE"),
 		APIKey:  os.Getenv("ARK_API_KEY"),
@@ -148,7 +148,9 @@ func NewChatModel4(ctx context.Context) (cm model.ToolCallingChatModel, err erro
 	}
 	return cm, nil
 }
-func RewriteModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+
+func QaModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+	// TODO Modify component configuration here.
 	config := &ark.ChatModelConfig{
 		Model:   os.Getenv("ARK_MODEL_TYPE"),
 		APIKey:  os.Getenv("ARK_API_KEY"),

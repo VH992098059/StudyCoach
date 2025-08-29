@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -42,12 +41,4 @@ func newBranch(ctx context.Context, input *schema.Message) (endNode string, err 
 	log.Printf("[newBranch] 分支判断完成 - 结果: %s", generate.Content)
 	log.Println("Branch结果分析为：", generate.Content)
 	return generate.Content, nil
-}
-
-// newBranch1 branch initialization method of node 'studyLambda' in graph 'studyCoachFor'
-func newBranch1(ctx context.Context, input any) (endNode string, err error) {
-	if os.Getenv("ES_ENABLED") == "true" {
-		return "StudyRetriever", nil
-	}
-	return "NoEsLambda", nil
 }
