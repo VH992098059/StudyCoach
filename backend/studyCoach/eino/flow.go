@@ -20,7 +20,6 @@ func newLambda4(ctx context.Context, conf *configTool.Config) (lba *compose.Lamb
 			isNetwork = networkFlag
 		}
 	}
-
 	log.Printf("[ReActLambda] 配置工具 - 网络搜索: %v", isNetwork)
 
 	config := &react.AgentConfig{}

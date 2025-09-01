@@ -10,7 +10,6 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cloudwego/eino v0.4.7
 	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20250710065240-482d48888f25
-	github.com/cloudwego/eino-ext/components/document/transformer/reranker/score v0.0.0-20250801075622-6721dae36fe9
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20250822083409-f8d432eea60f
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/recursive v0.0.0-20250822083409-f8d432eea60f
 	github.com/cloudwego/eino-ext/components/retriever/es8 v0.0.0-20250801075622-6721dae36fe9
@@ -31,6 +30,7 @@ require (
 require (
 	github.com/VH992098059/chat-history v0.0.0-20250822090229-bff17e0a58c2
 	github.com/goccy/go-json v0.10.5
+	github.com/robfig/cron/v3 v3.0.1
 )
 
 require (

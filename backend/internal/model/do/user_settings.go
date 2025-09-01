@@ -16,8 +16,8 @@ type UserSettings struct {
 	UserId              interface{} // 用户ID，外键关联users表
 	Theme               interface{} // 主题设置：light-浅色，dark-深色，auto-跟随系统
 	Language            interface{} // 语言设置，如zh-CN, en-US等
-	NotificationEnabled interface{} // 通知开关：0-关闭，1-开启
-	AutoSaveSessions    interface{} // 自动保存会话：0-关闭，1-开启
+	NotificationEnabled interface{} // 通知开关：false-关闭，true-开启
+	AutoSaveSessions    interface{} // 自动保存会话：false-关闭，true-开启
 	MaxSessions         interface{} // 最大保存会话数量，超出后自动删除最旧的
 	FontSize            interface{} // 字体大小：small-小，medium-中，large-大
 	SettingsJson        interface{} // 其他设置的JSON存储，便于扩展新功能

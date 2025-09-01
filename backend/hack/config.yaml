@@ -8,5 +8,5 @@ gfcli:
       - my.image.pub/my-app
   gen:
     dao:
-      - link: "mysql:root:root@tcp(localhost:3306)/ai_chat_app"
+      - link: "pgsql:postgres:root@tcp(127.0.0.1:5432)/postgres"
         descriptionTag: true

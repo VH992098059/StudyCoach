@@ -20,16 +20,16 @@ type UsersDao struct {
 
 // UsersColumns defines and stores column names for table users.
 type UsersColumns struct {
-	Id           string // 用户ID，主键
-	Uuid         string // 用户UUID
-	Username     string // 用户名，唯一标识
-	Email        string // 用户邮箱，用于登录和通知
-	PasswordHash string // 密码哈希值，使用bcrypt等安全算法
-	AvatarUrl    string // 用户头像URL地址
-	CreatedAt    string // 账户创建时间
-	UpdatedAt    string // 最后更新时间
-	LastLoginAt  string // 最后登录时间
-	Status       string // 账户状态：active-活跃，inactive-未激活，banned-封禁
+	Id           string //
+	Uuid         string //
+	Username     string //
+	Email        string //
+	PasswordHash string //
+	AvatarUrl    string //
+	CreatedAt    string //
+	UpdatedAt    string //
+	LastLoginAt  string //
+	Status       string //
 }
 
 // usersColumns holds the columns for table users.

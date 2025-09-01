@@ -49,7 +49,7 @@ func LoginUser(ctx context.Context, username, password string) (id, uuid, token 
 		log.Println("出错啦！")
 		return "", "", "", gerror.New("缓存存储失败！")
 	}
-	return strconv.FormatUint(user.Id, 10), user.Uuid, signedString, nil
+	return strconv.FormatUint(uint64(user.Id), 10), user.Uuid, signedString, nil
 }
 func RegisterUser(ctx context.Context, in *entity.Users) (id int, err error) {
 	isExistUser, err := dao.Users.Ctx(ctx).Where("username", in.Username).Count()
