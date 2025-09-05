@@ -6,14 +6,13 @@ import (
 	eino2 "backend/studyCoach/eino"
 	"backend/studyCoach/eino/indexer"
 	"backend/studyCoach/eino/retriever"
-	"os"
-	"strings"
-
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/VH992098059/chat-history/eino"
@@ -161,11 +160,15 @@ func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName s
 }
 func stream(ctx context.Context, conf *configTool.Config, question []string, id string) (res *schema.StreamReader[*schema.Message], err error) {
 	var eh = eino.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
-	history, err := eh.GetHistory(id, 20)
+	history, err := eh.GetHistory(id, 200)
 	if err != nil {
-		return nil, err
+		log.Printf("获取历史记录失败: %v", err)
+		return nil, fmt.Errorf("get history failed: %v", err)
 	}
-
+	log.Printf("历史记录数量: %d", len(history))
+	/*	for i, msg := range history {
+		log.Printf("历史记录[%d]: Role=%s, Content=%s", i, msg.Role, msg.Content)
+	}*/
 	// 添加重试机制，最多重试3次
 	maxRetries := 3
 	for attempt := 0; attempt < maxRetries; attempt++ {
@@ -177,19 +180,12 @@ func stream(ctx context.Context, conf *configTool.Config, question []string, id 
 			}
 			continue
 		}
-
-		output := common.GetSafeOutput()
-		templateParams := common.GetSafeTemplateParams()
-		defer func() {
-			common.ReleaseSafeOutput(output)
-			common.ReleaseSafeTemplateParams(templateParams)
-		}()
-
 		// 分类处理不同来源的内容
 		var knowledgeContent []string
 		var networkContent []string
 		var userQuery string
 
+		// 先进行分类处理
 		for _, q := range question {
 			if strings.HasPrefix(q, "[知识库-") {
 				knowledgeContent = append(knowledgeContent, q)
@@ -200,15 +196,21 @@ func stream(ctx context.Context, conf *configTool.Config, question []string, id 
 			}
 		}
 
+		log.Printf("分类结果 - 用户查询: %s, 知识库内容数量: %d, 网络内容数量: %d", userQuery, len(knowledgeContent), len(networkContent))
+
+		output := common.GetSafeTemplateParams()
 		// 构建结构化的输入
 		output["user_query"] = userQuery
 		output["knowledge_base"] = knowledgeContent
 		output["network_search"] = networkContent
 		output["question"] = question // 保持兼容性
-		templateParams["chat_history"] = history
-		templateParams["has_knowledge"] = len(knowledgeContent) > 0
-		templateParams["has_network"] = len(networkContent) > 0
+		output["chat_history"] = history
+		output["has_knowledge"] = len(knowledgeContent) > 0
+		output["has_network"] = len(networkContent) > 0
 
+		log.Printf("传递给模型的参数 - user_query: %s, has_knowledge: %v, has_network: %v, chat_history长度: %d",
+			output["user_query"], output["has_knowledge"], output["has_network"], len(history))
+		log.Println("完整output:", output)
 		res, err = modelStream.Stream(ctx, output)
 		if err != nil {
 			log.Printf("流式生成失败 (尝试 %d/%d): %v", attempt+1, maxRetries, err)

@@ -1,9 +1,6 @@
 package api
 
 import (
-	v1 "backend/api/rag/v1"
-	"backend/internal/dao"
-	"backend/internal/model/do"
 	"backend/studyCoach/common"
 	"backend/studyCoach/configTool"
 	"backend/studyCoach/eino/regular_update"
@@ -38,17 +35,6 @@ func regularUpdateModel(ctx context.Context, input string) (*schema.Message, err
 		Model:     os.Getenv("Model_Type"),
 		IndexName: "NetworkUpdate",
 	}
-	id, err := dao.KnowledgeBase.Ctx(ctx).Data(do.KnowledgeBase{
-		Name:        conf.IndexName,
-		Status:      v1.StatusOK,
-		Description: "定时网络更新知识库",
-		Category:    "定时更新",
-	}).InsertAndGetId()
-	if err != nil {
-		log.Printf("该知识库已存在无需创建")
-	} else {
-		log.Printf("已创建知识库：%d", id)
-	}
 	maxRetries := 3
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		model, err := regular_update.BuildRegularUpdate(ctx, conf)
@@ -59,12 +45,7 @@ func regularUpdateModel(ctx context.Context, input string) (*schema.Message, err
 			}
 			continue
 		}
-		output := common.GetSafeOutput()
-		templateParams := common.GetSafeTemplateParams()
-		defer func() {
-			common.ReleaseSafeOutput(output)
-			common.ReleaseSafeTemplateParams(templateParams)
-		}()
+		output := common.OutputTemplate
 		output["question"] = sources // 保持兼容性
 		invoke, err := model.Invoke(ctx, output)
 		if err != nil {

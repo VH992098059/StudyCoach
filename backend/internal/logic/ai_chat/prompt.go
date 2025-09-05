@@ -3,6 +3,7 @@ package ai_chat
 import (
 	"context"
 	"fmt"
+
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
 )

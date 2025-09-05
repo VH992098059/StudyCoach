@@ -32,6 +32,7 @@ func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 		FormatType: schema.FString,
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.AnalysisSystemTemplate), // 专门的意图分析提示词
+			schema.MessagesPlaceholder("chat_history", true),
 			schema.UserMessage(common.UserMessageTemplate),
 		},
 	}
@@ -91,9 +92,10 @@ func (impl *ChatTemplate1Impl) Format(ctx context.Context, vs map[string]any, op
 		return nil, fmt.Errorf("提示工程构建失败: %w", err)
 	}
 	if len(format) == 0 {
-		return nil, fmt.Errorf("消息格式化结果为空")
+		return nil, fmt.Errorf("TaskChatTemplate消息格式化结果为空")
 	}
-	log.Println("初始化模版输出")
+	log.Println("TaskChatTemplate初始化模版输出")
+
 	return format, nil
 }
 
@@ -114,6 +116,7 @@ func BranchChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error
 		FormatType: schema.FString,
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.BranchSystemTemplate),
+			schema.MessagesPlaceholder("chat_history", true),
 			schema.UserMessage(common.UserTemplate),
 		},
 	}
@@ -127,7 +130,7 @@ func (impl *BranchChatTemplateImpl) Format(ctx context.Context, vs map[string]an
 		return nil, fmt.Errorf("提示工程构建失败: %w", err)
 	}
 	if len(format) == 0 {
-		return nil, fmt.Errorf("消息格式化结果为空")
+		return nil, fmt.Errorf("branch消息格式化结果为空")
 	}
 	log.Println("Branch分支初始化模版输出")
 	return format, nil

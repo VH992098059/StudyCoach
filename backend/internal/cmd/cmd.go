@@ -5,6 +5,7 @@ import (
 	"backend/internal/controller/check_jwt"
 	"backend/internal/controller/login"
 	"backend/internal/controller/rag"
+	"backend/internal/controller/regular_update"
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -61,6 +62,7 @@ var (
 				group.Bind(
 					ai_chat.NewV1(),
 					rag.NewV1(),
+					regular_update.NewV1(),
 				)
 
 				// Add WebSocket endpoint
