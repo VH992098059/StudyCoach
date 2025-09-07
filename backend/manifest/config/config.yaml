@@ -140,7 +140,7 @@ embedding:
   baseURL: "https://api.siliconflow.cn/v1"
   model: "Qwen/Qwen3-Embedding-8B"
 es:
-  address: "http://localhost:19200"
+  address: "http://studycoach-elasticsearch:9200"
   indexName: "niumagame"
 #  username: "elastic"
 #  password: "123456"
