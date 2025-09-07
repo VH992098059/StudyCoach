@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -69,13 +68,13 @@ func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName s
 	}
 	sources = append(sources, input)
 	client, err := elasticsearch.NewClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
+		Addresses: []string{g.Cfg().MustGet(ctx, "es.address").String()},
 	})
 	conf := &configTool.Config{
 		Client:    client,
-		ApiKey:    os.Getenv("Openai_API_Key"),
-		BaseURL:   os.Getenv("base_url"),
-		Model:     os.Getenv("Model_Type"),
+		ApiKey:    g.Cfg().MustGet(ctx, "chat.apiKey").String(),
+		BaseURL:   g.Cfg().MustGet(ctx, "chat.baseURL").String(),
+		Model:     g.Cfg().MustGet(ctx, "chat.model").String(),
 		IndexName: KnowledgeName,
 	}
 

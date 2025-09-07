@@ -23,7 +23,7 @@ func newLambda4(ctx context.Context, conf *configTool.Config) (lba *compose.Lamb
 	log.Printf("[ReActLambda] 配置工具 - 网络搜索: %v", isNetwork)
 
 	config := &react.AgentConfig{}
-	chatModelIns11, err := newChatModel1(ctx, conf)
+	chatModelIns11, err := newChatModel2(ctx, conf)
 	if err != nil {
 		return nil, err
 	}

@@ -92,7 +92,8 @@ logger:
 # 配置数据库
 database:
   default:
-  - link: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
+#  - link: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
+  - link: "pgsql:postgres:root@tcp(studycoach-postgres:5432)/postgres"
     debug: true
 # database:
 #   分组名称:
@@ -126,7 +127,8 @@ database:
 #     timeMaintainDisabled:  "(可选)是否完全关闭时间更新特性，true时CreatedAt/UpdatedAt/DeletedAt都将失效"
 redis:
   default:
-    address: "localhost:6379"
+    # address: "localhost:6379"
+    address: "studycoach-redis:6379"
     pass: "123456"
     db: 1
     idleTimeout: "60s"
@@ -134,13 +136,15 @@ chat:
   apiKey: "sk-**"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "Pro/deepseek-ai/DeepSeek-R1"
-  history: "postgres:root@tcp(localhost:5432)/postgres"
+#  history: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
+  history: "pgsql:postgres:root@tcp(studycoach-postgres:5432)/postgres"
 embedding:
   apiKey: "sk-**"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "Qwen/Qwen3-Embedding-8B"
 es:
-  address: "http://studycoach-elasticsearch:9200"
+#  address: "http://studycoach-elasticsearch:9200"
+  address: "http://localhost:9200"
   indexName: "niumagame"
 #  username: "elastic"
 #  password: "123456"
