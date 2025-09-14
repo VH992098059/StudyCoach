@@ -43,7 +43,9 @@ type Rag struct {
 func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName string) (*schema.StreamReader[*schema.Message], error) {
 	log.Printf("[ChatAiModel] 开始处理请求 - ID: %s, 网络搜索: %v, 知识库: %s", id, isNetWork, KnowledgeName)
 	//var eh = eino.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
-	var eh = eino.NewEinoHistory("host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
+	var eh = eino.NewEinoHistory(g.Cfg().MustGet(ctx, "chat.history").String())
+
+	//var eh = eino.NewEinoHistory("host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
 
 	var sources []string
 	log.Println("用户内容：", input)
@@ -143,6 +145,7 @@ func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName s
 						fmt.Printf("save assistant message err: %v\n", err)
 						return
 					}
+					GetMsg(fullMsg)
 					return
 				}
 				fullMsgs = append(fullMsgs, msg)
@@ -161,7 +164,7 @@ func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName s
 }
 func stream(ctx context.Context, conf *configTool.Config, question []string, id string, eh *eino.History) (res *schema.StreamReader[*schema.Message], err error) {
 	//var eh = eino.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
-	history, err := eh.GetHistory(id, 200)
+	history, err := eh.GetHistory(id, 50)
 	if err != nil {
 		log.Printf("获取历史记录失败: %v", err)
 		return nil, fmt.Errorf("get history failed: %v", err)
@@ -170,56 +173,72 @@ func stream(ctx context.Context, conf *configTool.Config, question []string, id 
 	/*	for i, msg := range history {
 		log.Printf("历史记录[%d]: Role=%s, Content=%s", i, msg.Role, msg.Content)
 	}*/
-	// 添加重试机制，最多重试3次
+
+	// 构建模型，只构建一次
+	modelStream, err := eino2.BuildstudyCoachFor(ctx, conf)
+	if err != nil {
+		log.Printf("构建模型失败: %v", err)
+		return nil, fmt.Errorf("构建模型失败: %v", err)
+	}
+
+	// 分类处理不同来源的内容
+	var knowledgeContent []string
+	var networkContent []string
+	var userQuery string
+
+	// 先进行分类处理
+	for _, q := range question {
+		if strings.HasPrefix(q, "[知识库-") {
+			knowledgeContent = append(knowledgeContent, q)
+		} else if strings.Contains(q, "https") || strings.Contains(q, "http") || len(q) > 500 {
+			networkContent = append(networkContent, q)
+		} else {
+			userQuery = q
+		}
+	}
+
+	log.Printf("分类结果 - 用户查询: %s, 知识库内容数量: %d, 网络内容数量: %d", userQuery, len(knowledgeContent), len(networkContent))
+
+	output := common.GetSafeTemplateParams()
+	// 构建结构化的输入
+	output["user_query"] = userQuery
+	output["knowledge_base"] = knowledgeContent
+	output["network_search"] = networkContent
+	output["question"] = question // 保持兼容性
+	output["chat_history"] = history
+	output["has_knowledge"] = len(knowledgeContent) > 0
+	output["has_network"] = len(networkContent) > 0
+
+	log.Printf("传递给模型的参数 - user_query: %s, has_knowledge: %v, has_network: %v, chat_history长度: %d",
+		output["user_query"], output["has_knowledge"], output["has_network"], len(history))
+
+	// 添加重试机制，最多重试3次，但只重试Stream调用
 	maxRetries := 3
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		modelStream, err := eino2.BuildstudyCoachFor(ctx, conf)
-		if err != nil {
-			log.Printf("构建模型失败 (尝试 %d/%d): %v", attempt+1, maxRetries, err)
-			if attempt == maxRetries {
-				return nil, fmt.Errorf("构建模型失败，已重试%d次: %v", maxRetries, err)
-			}
-			continue
-		}
-		// 分类处理不同来源的内容
-		var knowledgeContent []string
-		var networkContent []string
-		var userQuery string
-
-		// 先进行分类处理
-		for _, q := range question {
-			if strings.HasPrefix(q, "[知识库-") {
-				knowledgeContent = append(knowledgeContent, q)
-			} else if strings.Contains(q, "https") || strings.Contains(q, "http") || len(q) > 500 {
-				networkContent = append(networkContent, q)
-			} else {
-				userQuery = q
-			}
-		}
-
-		log.Printf("分类结果 - 用户查询: %s, 知识库内容数量: %d, 网络内容数量: %d", userQuery, len(knowledgeContent), len(networkContent))
-
-		output := common.GetSafeTemplateParams()
-		// 构建结构化的输入
-		output["user_query"] = userQuery
-		output["knowledge_base"] = knowledgeContent
-		output["network_search"] = networkContent
-		output["question"] = question // 保持兼容性
-		output["chat_history"] = history
-		output["has_knowledge"] = len(knowledgeContent) > 0
-		output["has_network"] = len(networkContent) > 0
-
-		log.Printf("传递给模型的参数 - user_query: %s, has_knowledge: %v, has_network: %v, chat_history长度: %d",
-			output["user_query"], output["has_knowledge"], output["has_network"], len(history))
-		log.Println("完整output:", output)
 		res, err = modelStream.Stream(ctx, output)
 		if err != nil {
 			log.Printf("流式生成失败 (尝试 %d/%d): %v", attempt+1, maxRetries, err)
-			if attempt == maxRetries {
-				return nil, fmt.Errorf("llm generate failed: %v", err)
+
+			// 检查上下文是否已取消，避免无意义的重试
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
 			}
+
+			// 如果是最后一次尝试，直接返回错误
+			if attempt == maxRetries-1 {
+				return nil, fmt.Errorf("llm generate failed after %d attempts: %v", maxRetries, err)
+			}
+
+			// 使用指数退避策略，但限制最大延迟时间
+			backoffDelay := time.Duration(1<<uint(attempt)) * time.Second
+			if backoffDelay > 5*time.Second {
+				backoffDelay = 5 * time.Second
+			}
+
+			log.Printf("等待 %v 后重试...", backoffDelay)
 			select {
-			case <-time.After(time.Duration(attempt+1) * time.Second):
+			case <-time.After(backoffDelay):
+				// 继续重试
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			}
@@ -323,4 +342,7 @@ func NewRagChat(ctx context.Context, conf *configTool.Config) (*Rag, error) {
 		conf:       conf,
 		// grader:  grader.NewGrader(cm),
 	}, nil
+}
+func GetMsg(output *schema.Message) *schema.Message {
+	return output
 }

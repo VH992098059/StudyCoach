@@ -1,6 +1,8 @@
 package api
 
 import (
+	"backend/api/rag/v1"
+	"backend/internal/logic/knowledge"
 	"backend/internal/model/entity"
 	"backend/studyCoach/common"
 	"backend/studyCoach/eino/retriever"
@@ -148,9 +150,12 @@ func (x *Rag) indexAsyncByDocsID(ctx context.Context, req *IndexAsyncByDocsIDReq
 	}
 	ids, err = x.IndexAsync(ctx, asyncReq)
 	if err != nil {
+		// 索引失败时更新文档状态为失败
+		knowledge.UpdateDocumentsStatus(ctx, req.DocumentsId, int(v1.StatusFailed))
 		return
 	}
-	//knowledge.UpdateDocumentsStatus(ctx, req.DocumentsId, int(v1.StatusActive))
+	// 索引成功后更新文档状态为已处理
+	knowledge.UpdateDocumentsStatus(ctx, req.DocumentsId, int(v1.StatusActive))
 	return
 }
 

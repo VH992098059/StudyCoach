@@ -113,10 +113,10 @@ export class SSEClient {
       reconnectInterval: 3000,
       maxReconnectAttempts: 5,
       headers: {},
-      timeout: 30000,
+      timeout: 300000,
       method: 'GET',
       body: undefined,
-      baseURL: process.env.NODE_ENV === 'production' ? '/api/gateway/chat ' : 'http://localhost:8000/gateway',
+      baseURL: process.env.NODE_ENV === 'production' ? '/api/gateway/chat' : 'http://localhost:8000/gateway',
       ...options
     };
   }

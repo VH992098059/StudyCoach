@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -221,4 +222,171 @@ func getContentType(ext string) string {
 	default:
 		return "application/octet-stream"
 	}
+}
+
+// ResumableUploadFile 断点上传
+func ResumableUploadFile(config config_minio.MinIOConfig, filePath string) (minio.UploadInfo, string, error) {
+	objectName := generateObjectName(filepath.Base(filePath))
+	createMinio, err := config_minio.CreateMinio(config)
+	if err != nil {
+		return minio.UploadInfo{}, "", err
+	}
+	ctx := context.Background()
+	exists, err := createMinio.BucketExists(ctx, config.BucketName)
+	if err != nil {
+		return minio.UploadInfo{}, "", err
+	}
+	if !exists {
+		err = createMinio.MakeBucket(ctx, config.BucketName, minio.MakeBucketOptions{})
+		if err != nil {
+			return minio.UploadInfo{}, "", err
+		}
+		log.Printf("创建成功： %s\n", config.BucketName)
+	}
+	object, err := createMinio.FPutObject(ctx, config.BucketName, objectName, filePath, minio.PutObjectOptions{})
+	if err != nil {
+		return minio.UploadInfo{}, "", err
+	}
+
+	log.Printf("上传成功 %s 大小为 %d\n", objectName, object.Size)
+	fileURL := fmt.Sprintf("https://%s/%s/%s", config.EndpointAddr, config.BucketName, objectName)
+	return object, fileURL, nil
+}
+
+// ResumableDownloadFile 从MinIO下载文件，如果下载中断则恢复
+// 它将下载的文件保存到指定的本地`filePath`
+func ResumableDownloadFile(config config_minio.MinIOConfig, bucketName, objectName, filePath string) error {
+	//创建MinIO客户端
+	client, err := config_minio.CreateMinio(config)
+	if err != nil {
+		return fmt.Errorf("创建MinIO客户端失败: %w", err)
+	}
+
+	//定义临时下载文件的路径
+	tempFilePath := filePath + ".tmp"
+
+	//检查现有临时文件的大小以确定下载的起点
+	file, err := os.OpenFile(tempFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("打开临时文件失败: %w", err)
+	}
+	defer file.Close()
+
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("获取临时文件状态失败: %w", err)
+	}
+	downloadedSize := stat.Size()
+
+	//获取MinIO中对象的总大小，看是否需要下载任何东西
+	objInfo, err := client.StatObject(context.Background(), bucketName, objectName, minio.StatObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("获取对象状态失败: %w", err)
+	}
+	totalSize := objInfo.Size
+
+	if downloadedSize >= totalSize {
+		log.Printf("文件 %s 已完全下载。", filePath)
+		// 如果临时文件是完整的，则重命名它。
+		if err := os.Rename(tempFilePath, filePath); err != nil {
+			return fmt.Errorf("重命名已完成的临时文件失败: %w", err)
+		}
+		return nil
+	}
+
+	log.Printf("从字节 %d 处恢复下载 %s", downloadedSize, objectName)
+
+	//从已下载的大小开始获取对象流。
+	opts := minio.GetObjectOptions{}
+	if err := opts.SetRange(downloadedSize, totalSize-1); err != nil {
+		return fmt.Errorf("为下载设置范围失败: %w", err)
+	}
+
+	object, err := client.GetObject(context.Background(), bucketName, objectName, opts)
+	if err != nil {
+		return fmt.Errorf("获取带范围的对象失败: %w", err)
+	}
+	defer object.Close()
+
+	//将下载的数据追加到临时文件。
+	written, err := io.Copy(file, object)
+	if err != nil {
+		return fmt.Errorf("写入临时文件失败: %w", err)
+	}
+
+	//验证最终大小并重命名文件。
+	if downloadedSize+written != totalSize {
+		return fmt.Errorf("下载失败：预期大小 %d，但得到 %d", totalSize, downloadedSize+written)
+	}
+
+	//在重命名之前关闭文件
+	file.Close()
+
+	if err := os.Rename(tempFilePath, filePath); err != nil {
+		return fmt.Errorf("将临时文件重命名为最终目标失败: %w", err)
+	}
+
+	log.Printf("成功下载并保存了 %s", filePath)
+	return nil
+}
+
+// BatchResumableDownloadResult 包含单个文件批量下载的结果
+type BatchResumableDownloadResult struct {
+	ObjectName string // MinIO中的对象名
+	FilePath   string // 保存到的本地路径
+	Error      error  // 如果下载失败，记录错误信息
+}
+
+// BatchResumableDownload 并发地批量下载文件，并支持断点续传
+// objectNames 是要下载的文件名列表
+// localDir 是要保存到的本地目录
+// maxConcurrency 是最大并发下载数
+func BatchResumableDownload(config config_minio.MinIOConfig, objectNames []string, localDir string, maxConcurrency int) <-chan BatchResumableDownloadResult {
+	results := make(chan BatchResumableDownloadResult, len(objectNames))
+	tasks := make(chan string, len(objectNames))
+
+	if err := os.MkdirAll(localDir, 0755); err != nil {
+		go func() {
+			defer close(results)
+			results <- BatchResumableDownloadResult{
+				Error: fmt.Errorf("创建本地目录 %s 失败: %w", localDir, err),
+			}
+		}()
+		return results
+	}
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < maxConcurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for objectName := range tasks {
+				localFilePath := filepath.Join(localDir, objectName)
+
+				//传入 bucketName
+				err := ResumableDownloadFile(config, config.BucketName, objectName, localFilePath)
+
+				results <- BatchResumableDownloadResult{
+					ObjectName: objectName,
+					FilePath:   localFilePath,
+					Error:      err,
+				}
+			}
+		}()
+	}
+
+	go func() {
+		for _, name := range objectNames {
+			tasks <- name
+		}
+		close(tasks)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	return results
 }

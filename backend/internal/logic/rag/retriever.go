@@ -17,7 +17,7 @@ func init() {
 		Addresses: []string{g.Cfg().MustGet(ctx, "es.address").String()},
 	})
 	if err != nil {
-		g.Log().Fatalf(ctx, "NewClient of es8 failed, err=%v", err)
+		g.Log().Errorf(ctx, "NewClient of es8 failed, err=%v", err)
 		return
 	}
 	ragSvr, err = api.NewRagChat(ctx, &configTool.Config{
@@ -29,7 +29,7 @@ func init() {
 		ChatModel: g.Cfg().MustGet(ctx, "chat.model").String(),
 	})
 	if err != nil {
-		g.Log().Fatalf(ctx, "New of rag failed, err=%v", err)
+		g.Log().Errorf(ctx, "New of rag failed, err=%v", err)
 		return
 	}
 }

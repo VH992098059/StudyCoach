@@ -7,13 +7,13 @@ import (
 	"context"
 )
 
-var LoginController = cLoginInfo{}
+var CLoginController = cLoginInfo{}
 
 type cLoginInfo struct {
 }
 
 func (c *cLoginInfo) Login(ctx context.Context, req *v1.LoginReq) (res *v1.LoginRes, err error) {
-	id, uuid, token, err := login.LoginUser(ctx, req.Username, req.Password)
+	id, uuid, token, err := login.Login(ctx, req.Username, req.Password)
 	if err != nil {
 		return nil, err
 	}

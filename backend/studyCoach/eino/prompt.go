@@ -110,7 +110,7 @@ type BranchChatTemplateConfig struct {
 	Templates  []schema.MessagesTemplate
 }
 
-// 分支判断模版
+// BranchChatTemplate 分支判断模版
 func BranchChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	config := &BranchChatTemplateConfig{
 		FormatType: schema.FString,
@@ -133,6 +133,43 @@ func (impl *BranchChatTemplateImpl) Format(ctx context.Context, vs map[string]an
 		return nil, fmt.Errorf("branch消息格式化结果为空")
 	}
 	log.Println("Branch分支初始化模版输出")
+	return format, nil
+}
+
+type BranchFileTemplateImpl struct {
+	config *BranchFileTemplateConfig
+}
+
+type BranchFileTemplateConfig struct {
+	//Role       schema.RoleType
+	//System     schema.RoleType
+	FormatType schema.FormatType
+	Templates  []schema.MessagesTemplate
+}
+
+// BranchFileTemplate 分支判断模版
+func BranchFileTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+	config := &BranchFileTemplateConfig{
+		FormatType: schema.FString,
+		Templates: []schema.MessagesTemplate{
+			schema.SystemMessage(common.BranchFileSystemTemplate),
+			schema.MessagesPlaceholder("chat_history", true),
+			schema.UserMessage(common.UserTemplate),
+		},
+	}
+	ctp = &BranchFileTemplateImpl{config: config}
+	return ctp, nil
+}
+func (impl *BranchFileTemplateImpl) Format(ctx context.Context, vs map[string]any, opts ...prompt.Option) ([]*schema.Message, error) {
+	template := prompt.FromMessages(impl.config.FormatType, impl.config.Templates...)
+	format, err := template.Format(ctx, vs)
+	if err != nil {
+		return nil, fmt.Errorf("提示工程构建失败: %w", err)
+	}
+	if len(format) == 0 {
+		return nil, fmt.Errorf("FileBranch消息格式化结果为空")
+	}
+	log.Println("FileBranch分支初始化模版输出")
 	return format, nil
 }
 

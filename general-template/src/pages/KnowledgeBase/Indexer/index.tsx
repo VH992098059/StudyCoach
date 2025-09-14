@@ -199,10 +199,21 @@ const Indexer: React.FC = () => {
       setFileList([]);
       
     } catch (error) {
+      console.error('Upload error details:', error);
+      
+      let errorMessage = '文档索引过程中发生错误，请重试';
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = `错误信息: ${error.message}`;
+        } else if ('code' in error) {
+          errorMessage = `错误代码: ${error.code}`;
+        }
+      }
+      
       setProcessingInfo({
         title: '文档处理失败',
         type: 'error',
-        description: '文档索引过程中发生错误，请重试',
+        description: errorMessage,
       });
 
       setIndexResult({
@@ -211,7 +222,7 @@ const Indexer: React.FC = () => {
         fileName: fileList[0]?.name
       });
 
-      message.error('文档索引失败!');
+      message.error(`文档索引失败: ${errorMessage}`);
       console.error('Upload error:', error);
     } finally {
       setUploading(false);
@@ -269,10 +280,21 @@ const Indexer: React.FC = () => {
       urlForm.resetFields();
       
     } catch (error) {
+      console.error('URL index error details:', error);
+      
+      let errorMessage = 'URL索引过程中发生错误，请重试';
+      if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = `错误信息: ${error.message}`;
+        } else if ('code' in error) {
+          errorMessage = `错误代码: ${error.code}`;
+        }
+      }
+      
       setProcessingInfo({
         title: 'URL处理失败',
         type: 'error',
-        description: 'URL索引过程中发生错误，请重试',
+        description: errorMessage,
       });
 
       setIndexResult({
@@ -281,7 +303,7 @@ const Indexer: React.FC = () => {
         fileName: urlValue
       });
 
-      message.error('URL索引失败!');
+      message.error(`URL索引失败: ${errorMessage}`);
       console.error('URL index error:', error);
     } finally {
       setUploading(false);

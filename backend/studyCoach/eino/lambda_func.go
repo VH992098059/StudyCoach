@@ -53,6 +53,6 @@ func newLambda3(ctx context.Context, input *schema.Message) (output map[string]a
 	}
 	NormalTemplateParams := common.NormalTemplateParams
 	NormalTemplateParams["question"] = input.Content
-	log.Println("NormalLambda输出：", NormalTemplateParams["chat_history"])
+	log.Println("NormalLambda历史内容输出：", NormalTemplateParams["chat_history"])
 	return NormalTemplateParams, nil
 }

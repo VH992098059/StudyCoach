@@ -28,6 +28,7 @@ export interface RequestConfig {
   retry?: boolean;
   cache?: boolean;
   timeout?: number;
+  headers?: Record<string, string>;
 }
 
 /**

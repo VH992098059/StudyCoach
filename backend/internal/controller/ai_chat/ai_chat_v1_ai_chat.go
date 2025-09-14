@@ -9,7 +9,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/gogf/gf/v2/frame/g"
 
-	"backend/api/ai_chat/v1"
+	v1 "backend/api/ai_chat/v1"
 )
 
 func (c *ControllerV1) AiChat(ctx context.Context, req *v1.AiChatReq) (res *v1.AiChatRes, err error) {

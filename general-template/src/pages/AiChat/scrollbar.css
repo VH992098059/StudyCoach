@@ -23,7 +23,6 @@
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 3px;
-  transition: background 0.3s ease;
 }
 
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
@@ -46,6 +45,42 @@
 /* 平滑过渡效果 */
 .custom-scrollbar::-webkit-scrollbar-thumb {
   transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
+/* AI Markdown 内容样式 */
+.ai-markdown {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  line-height: 18px !important;
+}
+
+.ai-markdown p {
+  margin: 0 !important;
+  white-space: pre-wrap !important;
+}
+
+.ai-markdown br {
+  display: block !important;
+  margin: 0.25em 0 !important;
+  content: "" !important;
+}
+
+/* 确保列表项正确换行 */
+.ai-markdown ul, .ai-markdown ol {
+  margin: 0.5em 0 !important;
+  padding-left: 1.5em !important;
+}
+
+.ai-markdown li {
+  margin: 0.1em 0 !important;
+  white-space: pre-wrap !important;
+}
+
+/* 用户消息样式 */
+.user-markdown {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  line-height: 1.6 !important;
 }
 
 /* 更细致的滚动条样式 */

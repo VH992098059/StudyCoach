@@ -17,7 +17,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func LoginUser(ctx context.Context, username, password string) (id, uuid, token string, err error) {
+func Login(ctx context.Context, username, password string) (id, uuid, token string, err error) {
 
 	var user entity.Users
 	if username != "" {
@@ -67,7 +67,8 @@ func RegisterUser(ctx context.Context, in *entity.Users) (id int, err error) {
 		PasswordHash: encryptPassword,
 		Uuid:         uuidUser,
 		Email:        in.Email,
-		Status:       "inactive", //默认未激活
+		Status:       "inactive",   //默认未激活
+		AvatarUrl:    "avatar.png", //默认头像
 	}).InsertAndGetId()
 	if err != nil {
 		return 0, err

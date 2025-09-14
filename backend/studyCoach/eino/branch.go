@@ -17,7 +17,7 @@ func newBranch(ctx context.Context, input *schema.Message) (endNode string, err 
 	defer cancel()
 
 	content := strings.ToLower(input.Content)
-	log.Printf("[newBranch] 开始分支判断 - 内容: %s", content)
+	log.Printf("[newBranch] 开始分支判断")
 	log.Println("AnalysisChatModel分支输出")
 	param := map[string]interface{}{
 		"question": content,

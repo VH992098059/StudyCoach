@@ -91,6 +91,20 @@ func BranchNewChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err
 	return cm, nil
 }
 
+func BranchFileChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+	// TODO Modify component configuration here.
+	config := &openai.ChatModelConfig{
+		Model:   "deepseek-ai/DeepSeek-V3",
+		APIKey:  os.Getenv("Openai_API_Key"),
+		BaseURL: os.Getenv("Base_URL"),
+	}
+	cm, err = openai.NewChatModel(ctx, config)
+	if err != nil {
+		return nil, err
+	}
+	return cm, nil
+}
+
 // newChatModel2 component initialization function of node 'ToStudyChatModel' in graph 'studyCoachFor'
 func newChatModel3(ctx context.Context, conf *configTool.Config) (cm model.ToolCallingChatModel, err error) {
 	// TODO Modify component configuration here.

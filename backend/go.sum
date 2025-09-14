@@ -62,14 +62,14 @@ github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20250801075622-
 github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20250801075622-6721dae36fe9/go.mod h1:fmiH53K78cbNy04YD7HQ0yYFul7y4dofusitomP+f1Y=
 github.com/cloudwego/eino-ext/components/indexer/es8 v0.0.0-20250818090953-a59b1be0df04 h1:KrRI/ROgYn4vcn/QuVN1Mp9QOx6BaZrJ1URQdACDuSs=
 github.com/cloudwego/eino-ext/components/indexer/es8 v0.0.0-20250818090953-a59b1be0df04/go.mod h1:Z2inSha/l1GEEGMyibp/cZiEwmETMPAh0m0pmVIKt4A=
-github.com/cloudwego/eino-ext/components/model/ark v0.1.23 h1:LZkaQuPB4hPPtuLU4oE4R8+69ebak/GmABcUPhmuN4Q=
-github.com/cloudwego/eino-ext/components/model/ark v0.1.23/go.mod h1:v6cx0axah4pw4h6bOyQ8HElgzuZY0pgMtowZ/8bTGFo=
-github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250828061307-a19adf5c9b50 h1:qLGSpG29U6oUavKbOVVLfQAR04dSx5aRav370eIWxug=
-github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250828061307-a19adf5c9b50/go.mod h1:QQhCuQxuBAVWvu/YAZBhs/RsR76mUigw59Tl0kh04C8=
+github.com/cloudwego/eino-ext/components/model/ark v0.1.27 h1:rn6pYdjNeYf5+PHK5hHXqercw8YVI+fHsAACsoneEw0=
+github.com/cloudwego/eino-ext/components/model/ark v0.1.27/go.mod h1:v6cx0axah4pw4h6bOyQ8HElgzuZY0pgMtowZ/8bTGFo=
+github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250905035413-86dbae6351d5 h1:D04jOL3xKn9CstVRaPkunhPffIbEVp0VfQV5e/26lS8=
+github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250905035413-86dbae6351d5/go.mod h1:QQhCuQxuBAVWvu/YAZBhs/RsR76mUigw59Tl0kh04C8=
 github.com/cloudwego/eino-ext/components/retriever/es8 v0.0.0-20250801075622-6721dae36fe9 h1:0m7c6tvzBw75jn5Pqg10isQqW4MhWSTQamMGZ/qeHuU=
 github.com/cloudwego/eino-ext/components/retriever/es8 v0.0.0-20250801075622-6721dae36fe9/go.mod h1:1AyubarL2OiJ/HDCDehIPOxuNy5ZwN4aVu6qi78J2DU=
-github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20250828061307-a19adf5c9b50 h1:7T6tomc7nZPpRTwWAZIhuW2KAxJHvzFS3XbC/gSEoZw=
-github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20250828061307-a19adf5c9b50/go.mod h1:RwtbhEnfY79+CoCdG8mVrn8p7WhgzmcgMWPtx2WrIf4=
+github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20250905035413-86dbae6351d5 h1:QXvFwTFC5cWYfZV+lcJxPQkeVHuI6cxoVk3tk8Azf8s=
+github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20250905035413-86dbae6351d5/go.mod h1:RwtbhEnfY79+CoCdG8mVrn8p7WhgzmcgMWPtx2WrIf4=
 github.com/cloudwego/eino-ext/libs/acl/openai v0.0.0-20250826113018-8c6f6358d4bb h1:RMslzyijc3bi9EkqCulpS0hZupTl1y/wayR3+fVRN/c=
 github.com/cloudwego/eino-ext/libs/acl/openai v0.0.0-20250826113018-8c6f6358d4bb/go.mod h1:fHn/6OqPPY1iLLx9wzz+MEVT5Dl9gwuZte1oLEnCoYw=
 github.com/cloudwego/iasm v0.2.0/go.mod h1:8rXZaNYT2n95jn+zTI1sDr+IgcD2GVs0nlbbQPiEFhY=
@@ -294,6 +294,8 @@ github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7
 github.com/rollbar/rollbar-go v1.0.2/go.mod h1:AcFs5f0I+c71bpHlXNNDbOWJiKwjFDtISeXco0L5PKQ=
 github.com/rs/xid v1.6.0 h1:fV591PaemRlL6JfRxGDEPl69wICngIQ3shQtzfy2gxU=
 github.com/rs/xid v1.6.0/go.mod h1:7XoLgs4eV+QndskICGsho+ADou8ySMSjJKDIan90Nz0=
+github.com/sergi/go-diff v1.4.0 h1:n/SP9D5ad1fORl+llWyN+D6qoUETXNZARKjyY2/KVCw=
+github.com/sergi/go-diff v1.4.0/go.mod h1:A0bzQcvG0E7Rwjx0REVgAGH58e96+X0MeOfepqsbeW4=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
 github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
@@ -311,6 +313,7 @@ github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSS
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
+github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=

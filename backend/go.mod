@@ -31,6 +31,7 @@ require (
 	github.com/VH992098059/chat-history v0.0.0-20250822090229-bff17e0a58c2
 	github.com/goccy/go-json v0.10.5
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/sergi/go-diff v1.4.0
 )
 
 require (
@@ -68,9 +69,9 @@ require (
 	github.com/cloudwego/eino-ext/components/document/parser/pdf v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20250801075622-6721dae36fe9
 	github.com/cloudwego/eino-ext/components/indexer/es8 v0.0.0-20250818090953-a59b1be0df04
-	github.com/cloudwego/eino-ext/components/model/ark v0.1.23
-	github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250828061307-a19adf5c9b50
-	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20250828061307-a19adf5c9b50
+	github.com/cloudwego/eino-ext/components/model/ark v0.1.27
+	github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250905035413-86dbae6351d5
+	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20250905035413-86dbae6351d5
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.0.0-20250826113018-8c6f6358d4bb // indirect
 	github.com/dgraph-io/ristretto v0.2.0
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect

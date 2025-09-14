@@ -81,10 +81,10 @@ func BuildstudyCoachFor(ctx context.Context, conf *configTool.Config) (r compose
 	}
 	_ = g.AddChatTemplateNode(EmotionAndCompanionShipTemplate, emotionAndCompanionShipTemplateKeyOfChatTemplate)
 	_ = g.AddEdge(compose.START, AnalysisChatTemplate)
-	_ = g.AddEdge(EmotionAndCompanionChatModel, compose.END)
-	_ = g.AddEdge(ReActLambda, compose.END)
-	_ = g.AddEdge(ToStudyChatModel, compose.END)
 	_ = g.AddEdge(NormalChatModel, compose.END)
+	_ = g.AddEdge(EmotionAndCompanionChatModel, compose.END)
+	_ = g.AddEdge(ToStudyChatModel, compose.END)
+	_ = g.AddEdge(ReActLambda, compose.END)
 	_ = g.AddEdge(AnalysisChatTemplate, AnalysisChatModel)
 	_ = g.AddEdge(EmotionAndCompanionShipLambda, EmotionAndCompanionShipTemplate)
 	_ = g.AddEdge(ChatLambda, TaskChatTemplate)

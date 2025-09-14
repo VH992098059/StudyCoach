@@ -55,7 +55,7 @@ var (
 				group.Middleware(ghttp.MiddlewareHandlerResponse)
 				group.Bind(
 					check_jwt.NewV1(),
-					login.LoginController,
+					login.CLoginController,
 				)
 				////中间件拦截
 				//group.Middleware(middleware.Auth)

@@ -7,6 +7,8 @@ import { SSEClient, SSEConnectionState } from '../../utils/sse/sse';
 import MDEditor from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
+import { Markdown } from '../../components/Markdown';
+import styles from '../../components/Markdown/markdown.module.scss';
 import KnowledgeSelector, { type KnowledgeSelectorRef } from '../../components/KnowledgeSelector';
 
 const { Title } = Typography;
@@ -158,7 +160,9 @@ const AIChat: React.FC = () => {
     console.log(`创建SSE连接 - 第 ${currentAttempt + 1} 次尝试`);
     
     // 创建新的SSE客户端
-    const client = new SSEClient('/chat', {
+    // 根据环境区分endpoint：本地开发使用'/chat'，Docker环境使用''
+    const endpoint = process.env.NODE_ENV === 'production' ? '' : '/chat';
+    const client = new SSEClient(endpoint, {
       method: 'POST',
       body: JSON.stringify({
         id: sessionId,
@@ -1081,16 +1085,11 @@ const AIChat: React.FC = () => {
                     transition: 'all 0.2s ease'
                   }}
                 >
-                  <MDEditor.Markdown
-                    className={message.isUser ? 'user-markdown' : 'ai-markdown'}
-                    source={sanitizeMarkdown(message.content)}
-                    style={{ backgroundColor: 'transparent', color: message.isUser ? '#fff' : '#000', margin: 0 }}
-                    rehypePlugins={[]}
-                    remarkPlugins={[]}
-                    components={{
-                      // 允许HTML标签渲染
-                      br: ({ ...props }) => <br {...props} />,
-                    }}
+                  <Markdown
+                    className={message.isUser ? styles['user-markdown'] : styles['ai-markdown']}
+                    content={sanitizeMarkdown(message.content)}
+                    fontSize={isMobile ? 12 : 13}
+            
                   />
                 </div>
                 {message.isUser && (
@@ -1138,15 +1137,10 @@ const AIChat: React.FC = () => {
                   border: '2px solidrgb(6, 6, 7)',
                   position: 'relative'
                 }}>
-                  <MDEditor.Markdown
-                    className="ai-markdown"
-                    source={sanitizeMarkdown(currentAiMessage)}
-                    rehypePlugins={[]}
-                    remarkPlugins={[]}
-                    components={{
-                      // 允许HTML标签渲染
-                      br: ({ ...props }) => <br {...props} />,
-                    }}
+                  <Markdown
+                    className={styles['ai-markdown']}
+                    content={sanitizeMarkdown(currentAiMessage)}
+                    fontSize={isMobile ? 12 : 13}
                   />
                   <div style={{
                     display: 'inline-block',
@@ -1581,7 +1575,7 @@ const AIChat: React.FC = () => {
         )}
       </Drawer>
       
-      <style>
+      {/* <style>
         {`
           @keyframes blink {
             0%, 50% { opacity: 1; }
@@ -1684,7 +1678,7 @@ const AIChat: React.FC = () => {
           }
           }
         `}
-      </style>
+      </style> */}
     </div>
   );
 };

@@ -16,11 +16,27 @@ func main() {
 		BucketName:      "images",
 	}
 	imagePath := "C:\\Users\\solid\\Pictures\\VPcGsmE-battlefield-wallpaper_waifu2x_noise2_scale_x2.0.png"
-	io, err := minio_func.UploadMinIO(config, imagePath)
+	io, fileURL, err := minio_func.ResumableUploadFile(config, imagePath)
+
 	if err != nil {
 		log.Fatalf("图片上传错误：%v", err)
 	}
-	fmt.Printf("图片已成功上传！访问URL：%s\n", io)
+	fmt.Printf("图片已成功上传！访问URL：%s\n文件上传信息：%s\n", fileURL, io)
+
+	fileToDownload := []string{"20250909-115057-VPcGsmE-battlefield-wallpaper_waifu2x_noise2_scale_x2.0.png"}
+	downloadDir := "./my_downloads"
+
+	downloadResults := minio_func.BatchResumableDownload(config, fileToDownload, downloadDir, 3)
+	log.Println("开始批量下载...")
+	for result := range downloadResults {
+		if result.Error != nil {
+			log.Printf("下载文件 %s 失败: %v", result.ObjectName, result.Error)
+		} else {
+			log.Printf("成功下载文件 %s 到 %s", result.ObjectName, result.FilePath)
+		}
+	}
+	log.Println("所有下载任务已完成。")
+
 	/*matchedFiles, err := minio_func.SearchObjectsMinIO(config, "halo")
 	if err != nil {
 		log.Printf("搜索失败：%v", err)
@@ -41,4 +57,5 @@ func main() {
 		fileSuffix := config_minio.GetFilePrefix(fileName)
 		fmt.Printf("文件：%s,大小：%d 字节\n", fileSuffix, len(data))
 	}*/
+
 }
