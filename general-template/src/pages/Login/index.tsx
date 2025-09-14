@@ -10,7 +10,7 @@ import { Form, Input, Button, Checkbox, message, Divider } from 'antd';
 import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone, ArrowLeftOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthLayout from '../../components/AuthLayout';
-import './index.css';
+import './index.scss';
 
 /**
  * 登录表单数据接口

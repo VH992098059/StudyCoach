@@ -10,7 +10,7 @@ import { Layout, Menu, Button, Avatar, Dropdown, Space, Drawer } from 'antd';
 import { UserOutlined, LoginOutlined, LogoutOutlined, MenuOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { MenuProps } from 'antd';
-import './index.css';
+import './index.scss';
 
 const { Header: AntHeader } = Layout;
 

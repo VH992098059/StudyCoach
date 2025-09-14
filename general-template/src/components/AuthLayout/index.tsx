@@ -8,7 +8,7 @@
 import React, { Suspense } from 'react';
 import { Layout as AntLayout, Spin, Alert, Button } from 'antd';
 import { ErrorBoundary } from 'react-error-boundary';
-import './index.css';
+import './index.scss';
 
 const { Content } = AntLayout;
 

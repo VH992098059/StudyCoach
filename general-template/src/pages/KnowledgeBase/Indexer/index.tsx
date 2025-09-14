@@ -38,7 +38,7 @@ import {
 import type { UploadProps, UploadFile } from 'antd';
 import ApiClient from '../../../utils/axios/index';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../../services/knowledgeBase';
-import './index.css';
+import './index.scss';
 
 
 const { Dragger } = Upload;

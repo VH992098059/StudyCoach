@@ -11,7 +11,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import Header from '../Header';
 import Footer from '../Footer';
 import type { MenuProps } from 'antd';
-import './index.css';
+import './index.scss';
 
 const { Content } = AntLayout;
 

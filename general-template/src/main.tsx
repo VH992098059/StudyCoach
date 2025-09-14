@@ -11,7 +11,7 @@ import { RouterProvider } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import router from './router';
-import './index.css';
+import './index.scss';
 
 /**
  * 应用程序启动

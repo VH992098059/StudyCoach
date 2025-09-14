@@ -3,7 +3,7 @@ import { Form, Input, Button, message, Steps, Result } from 'antd';
 import { MailOutlined, LockOutlined, SafetyOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../../components/AuthLayout';
-import './ResetPassword.css';
+import './ResetPassword.scss';
 
 const { Step } = Steps;
 

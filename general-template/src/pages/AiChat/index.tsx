@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Typography, Input, Button, Card, Avatar, Space, Divider, List, message, Drawer, Alert, Popconfirm, Row, Col, Collapse, Form, InputNumber, Slider, Tag, Empty, Tooltip } from 'antd';
 import { SendOutlined, StopOutlined, RobotOutlined, UserOutlined, DeleteOutlined, PlusOutlined, MenuOutlined, ExclamationCircleOutlined, PaperClipOutlined, SettingOutlined, FileTextOutlined, CopyOutlined, GlobalOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useBreakpoints } from '../../hooks/useMediaQuery';
-import './scrollbar.css';
+import './scrollbar.scss';
 import { SSEClient, SSEConnectionState } from '../../utils/sse/sse';
 import MDEditor from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';

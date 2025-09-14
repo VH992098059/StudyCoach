@@ -30,7 +30,7 @@ import {
 } from '@ant-design/icons';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../../services/knowledgeBase';
 import { RetrieverService, type RetrievalDocument } from '../../../services/retriever';
-import './index.css';
+import './index.scss';
 
 const { Panel } = Collapse;
 const { Option } = Select;

@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
-import './index.css';
+import './index.scss';
 
 /**
  * 响应式容器组件属性接口

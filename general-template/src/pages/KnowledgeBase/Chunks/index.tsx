@@ -32,7 +32,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { ChunksService,type KnowledgeChunk, ChunkStatus } from '../../../services/chunks';
 import { DocumentsService, type DocumentData } from '../../../services/documents';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../../services/knowledgeBase';
-import './index.css';
+import './index.scss';
 
 const { Option } = Select;
 const { confirm } = Modal;

@@ -15,7 +15,7 @@ import {
   WechatOutlined,
   QqOutlined,
 } from '@ant-design/icons';
-import './index.css';
+import './index.scss';
 
 const { Footer: AntFooter } = Layout;
 

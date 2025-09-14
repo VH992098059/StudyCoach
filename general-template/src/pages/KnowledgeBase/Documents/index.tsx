@@ -32,7 +32,7 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../../services/knowledgeBase';
 import { DocumentsService, type DocumentData, DocumentStatus } from '../../../services/documents';
-import './index.css';
+import './index.scss';
 
 const { Option } = Select;
 const { confirm } = Modal;
