@@ -170,7 +170,7 @@ func UploadMinIO(config config_minio.MinIOConfig, imagePath string) (string, err
 		}
 	}
 	objectName := generateObjectName(filepath.Base(imagePath))
-	contentType := getContentType(filepath.Ext(imagePath))
+	contentType := GetContentType(filepath.Ext(imagePath))
 
 	//上传文件
 	file, err := os.Open(imagePath)
@@ -207,7 +207,7 @@ func generateObjectName(filename string) string {
 	name := time.Now().Format("20060102-150405") + "-" + filename[:len(filename)-len(ext)]
 	return fmt.Sprintf("%s%s", name, ext)
 }
-func getContentType(ext string) string {
+func GetContentType(ext string) string {
 	switch ext {
 	case ".jpg", ".jpeg":
 		{
@@ -227,6 +227,7 @@ func getContentType(ext string) string {
 // ResumableUploadFile 断点上传
 func ResumableUploadFile(config config_minio.MinIOConfig, filePath string) (minio.UploadInfo, string, error) {
 	objectName := generateObjectName(filepath.Base(filePath))
+	log.Println(objectName)
 	createMinio, err := config_minio.CreateMinio(config)
 	if err != nil {
 		return minio.UploadInfo{}, "", err

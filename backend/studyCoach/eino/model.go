@@ -45,12 +45,11 @@ func newChatModel(ctx context.Context, conf *configTool.Config) (cm model.ToolCa
 		// 基础配置
 		BaseURL: "http://localhost:11434", // Ollama 服务地址
 		Timeout: 30 * time.Second,         // 请求超时时间
-		Model:   "0ssamaak0/xtuner-llava:llama3-8b-v1.1-int4",
+		Model:   "hf-mirror.com/MoYoYoTech/VoiceDialogue:Q6_K ",
 	}*/
 
-	// TODO Modify component configuration here.
 	config := &openai.ChatModelConfig{
-		Model:   conf.Model,
+		Model:   "deepseek-ai/DeepSeek-V3",
 		APIKey:  conf.ApiKey,
 		BaseURL: conf.BaseURL,
 	}
@@ -78,20 +77,6 @@ func newChatModel2(ctx context.Context, conf *configTool.Config) (cm model.ToolC
 }
 
 func BranchNewChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
-	// TODO Modify component configuration here.
-	config := &openai.ChatModelConfig{
-		Model:   "deepseek-ai/DeepSeek-V3",
-		APIKey:  os.Getenv("Openai_API_Key"),
-		BaseURL: os.Getenv("Base_URL"),
-	}
-	cm, err = openai.NewChatModel(ctx, config)
-	if err != nil {
-		return nil, err
-	}
-	return cm, nil
-}
-
-func BranchFileChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 	// TODO Modify component configuration here.
 	config := &openai.ChatModelConfig{
 		Model:   "deepseek-ai/DeepSeek-V3",
@@ -144,6 +129,7 @@ func newChatModel1(ctx context.Context, conf *configTool.Config) (cm model.ToolC
 		BaseURL: conf.BaseURL,
 	}
 	cm, err = ark.NewChatModel(ctx, config)
+
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,7 @@ const (
 )
 
 type DocumentsListReq struct {
-	g.Meta        `path:"/v1/documents" method:"get" tags:"rag"`
+	g.Meta        `path:"/v1/documents" method:"get" tags:"rag" sm:"获取文档列表"`
 	KnowledgeName string `p:"knowledge_name" dc:"knowledge_name" v:"required|length:3,50"`
 	Page          int    `p:"page" dc:"page" v:"required|min:1" d:"1"`
 	Size          int    `p:"size" dc:"size" v:"required|min:1|max:100" d:"10"`
@@ -29,7 +29,7 @@ type DocumentsListRes struct {
 }
 
 type DocumentsDeleteReq struct {
-	g.Meta     `path:"/v1/documentsDelete" method:"delete" tags:"rag" summary:"Delete a document and its chunks"`
+	g.Meta     `path:"/v1/documentsDelete" method:"delete" tags:"rag" summary:"Delete a document and its chunks" sm:"删除文档及其片段"`
 	DocumentId int64 `p:"document_id" dc:"document_id" v:"required"`
 }
 

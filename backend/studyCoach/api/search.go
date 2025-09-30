@@ -123,7 +123,7 @@ func SearchConcurrentlyWithCache(ctx context.Context, input string) []string {
 		return PerformSearch(ctx, input)
 	})
 	if err != nil {
-		log.Printf("%v", err)
+		log.Printf("发生错误：%v", err)
 		return nil
 	}
 	sources := result.([]string)

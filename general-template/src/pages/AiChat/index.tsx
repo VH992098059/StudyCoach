@@ -1,31 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Typography, Input, Button, Card, Avatar, Space, Divider, List, message, Drawer, Alert, Popconfirm, Row, Col, Collapse, Form, InputNumber, Slider, Tag, Empty, Tooltip } from 'antd';
-import { SendOutlined, StopOutlined, RobotOutlined, UserOutlined, DeleteOutlined, PlusOutlined, MenuOutlined, ExclamationCircleOutlined, PaperClipOutlined, SettingOutlined, FileTextOutlined, CopyOutlined, GlobalOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { SendOutlined, StopOutlined, RobotOutlined, UserOutlined, DeleteOutlined, PlusOutlined, MenuOutlined, ExclamationCircleOutlined, SettingOutlined, FileTextOutlined, CopyOutlined, GlobalOutlined, InfoCircleOutlined, SoundOutlined, PauseOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { useBreakpoints } from '../../hooks/useMediaQuery';
+import { useChatSessions } from '../../hooks/useChatSessions';
 import './scrollbar.scss';
 import { SSEClient, SSEConnectionState } from '../../utils/sse/sse';
 import MDEditor from '@uiw/react-md-editor';
 import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
-import { Markdown } from '../../components/Markdown';
-import styles from '../../components/Markdown/markdown.module.scss';
 import KnowledgeSelector, { type KnowledgeSelectorRef } from '../../components/KnowledgeSelector';
+import type { Message, UploadedFile } from '../../types/chat';
+import FileUpload from './components/FileUpload';
+import { MessageItem, MarkdownRenderer, defaultCopyAiMessage } from './components';
 
 const { Title } = Typography;
 const { TextArea } = Input;
 const { Panel } = Collapse;
-
-/**
- * 聊天消息接口
- */
-interface ChatMessage {
-  id: string;
-  content: string;
-  isUser: boolean;
-  timestamp: Date;
-  files?: File[];
-  references?: ReferenceDocument[];
-}
 
 /**
  * 参考文档接口
@@ -47,36 +37,22 @@ interface AdvancedSettings {
   score: number;
 }
 
-interface Message {
-  id: number;
-  msg_id: string;
-  content: string;
-  isUser: boolean;
-  timestamp: Date;
-}
-
-interface ChatSession {
-  id: string;
-  title: string;
-  messages: Message[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 const AIChat: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      msg_id: `msg_${Date.now()}_${Math.random().toString(36)}`,
-      content: '你好！我是AI助手，有什么可以帮助你的吗？',
-      isUser: false,
-      timestamp: new Date(),
-    },
-  ]);
+  // 使用聊天会话管理Hook
+  const {
+    currentSessionId,
+    chatSessions,
+    messages,
+    createNewSession,
+    loadSession,
+    deleteSession,
+    updateCurrentSession,
+    setMessages,
+    generateMsgId,
+  } = useChatSessions();
+
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string>('');
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [isScrolling, setIsScrolling] = useState(false);
   const [isMessageScrolling, setIsMessageScrolling] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -105,7 +81,18 @@ const AIChat: React.FC = () => {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [currentAiMessage, setCurrentAiMessage] = useState<string>('');
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  
+  // 文件上传相关状态
+  const [currentUploadedFiles, setCurrentUploadedFiles] = useState<UploadedFile[]>([]);
+  
+  // 朗读功能相关状态
+  const [isReading, setIsReading] = useState(false);
+  const [currentReadingMsgId, setCurrentReadingMsgId] = useState<string | null>(null);
+  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
+  
+  // 面板隐藏状态
+  const [isChatHistoryCollapsed, setIsChatHistoryCollapsed] = useState(false);
+  const [isSessionInfoCollapsed, setIsSessionInfoCollapsed] = useState(false);
   
   // 响应式断点
   const { isMobile, isTablet } = useBreakpoints();
@@ -122,12 +109,6 @@ const AIChat: React.FC = () => {
   // 常量配置
   const MAX_RECONNECT_ATTEMPTS = 3;
   const CONNECTION_TIMEOUT = 60000; // 60秒
-  const STORAGE_KEY = 'ai_chat_sessions';
-
-  // 生成唯一的消息ID
-  const generateMsgId = (): string => {
-    return `msg_${Date.now()}_${Math.random().toString(36)}`;
-  };
 
   // 清理SSE连接
   const cleanupSSEConnection = () => {
@@ -248,7 +229,6 @@ const AIChat: React.FC = () => {
       console.error('SSE连接错误:', data.data);
       setConnectionState(SSEConnectionState.ERROR);
       
-      const errorMessage = data.data?.message || '连接错误';
       
       // 检查是否需要重连
       if (currentAttempt < MAX_RECONNECT_ATTEMPTS) {
@@ -289,7 +269,7 @@ const AIChat: React.FC = () => {
           setReconnectAttempts(nextAttempt);
           setConnectionError(`连接超时，正在尝试第 ${nextAttempt} 次重连...`);
           
-          console.log(`连接超时，准备第 ${nextAttempt} 次重连 (最大 ${MAX_RECONNECT_ATTEMPTS} 次)`);
+          // console.log(`连接超时，准备第 ${nextAttempt} 次重连 (最大 ${MAX_RECONNECT_ATTEMPTS} 次)`);
           
           setTimeout(() => {
             createSSEConnection(question, sessionId, nextAttempt);
@@ -310,139 +290,6 @@ const AIChat: React.FC = () => {
     client.connect();
   };
 
-  // 加载聊天记录
-  const loadChatSessions = () => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const sessions: ChatSession[] = JSON.parse(stored).map((session: any) => ({
-          ...session,
-          createdAt: new Date(session.createdAt),
-          updatedAt: new Date(session.updatedAt),
-          messages: session.messages.map((msg: any) => ({
-            ...msg,
-            msg_id: msg.msg_id || generateMsgId(),
-            timestamp: new Date(msg.timestamp)
-          }))
-        }));
-        setChatSessions(sessions);
-        // 如果存在历史会话，默认加载最新一条
-        if (sessions.length > 0) {
-          setCurrentSessionId(sessions[0].id);
-          setMessages(sessions[0].messages);
-          return;
-        }
-      }
-    } catch (error) {
-      console.error('加载聊天记录失败:', error);
-    }
-    // 若没有任何历史会话，则创建新会话
-    createNewSession();
-  };
-
-  // 保存聊天记录
-  const saveChatSessions = (sessions: ChatSession[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-    } catch (error) {
-      console.error('保存聊天记录失败:', error);
-      message.error('保存聊天记录失败');
-    }
-  };
-
-  // 创建新会话
-  const createNewSession = () => {
-    const newSessionId = Date.now().toString();
-    const newSession: ChatSession = {
-      id: newSessionId,
-      title: '新对话',
-      messages: [
-        {
-          id: 1,
-          msg_id: generateMsgId(),
-          content: '你好！我是AI助手，有什么可以帮助你的吗？',
-          isUser: false,
-          timestamp: new Date(),
-        },
-      ],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    const updatedSessions = [newSession, ...chatSessions];
-    setChatSessions(updatedSessions);
-    saveChatSessions(updatedSessions);
-    setCurrentSessionId(newSessionId);
-    setMessages(newSession.messages);
-    
-    // 清理连接状态
-    cleanupSSEConnection();
-    setReconnectAttempts(0);
-    setConnectionError(null);
-  };
-
-  // 加载指定会话
-  const loadSession = (sessionId: string) => {
-    const session = chatSessions.find(s => s.id === sessionId);
-    if (session) {
-      setCurrentSessionId(sessionId);
-      setMessages(session.messages);
-      
-      // 清理连接状态
-      cleanupSSEConnection();
-      setReconnectAttempts(0);
-      setConnectionError(null);
-    }
-  };
-
-  // 删除会话
-  const deleteSession = (sessionId: string) => {
-    const updatedSessions = chatSessions.filter(s => s.id !== sessionId);
-    setChatSessions(updatedSessions);
-    saveChatSessions(updatedSessions);
-    
-    if (currentSessionId === sessionId) {
-      if (updatedSessions.length > 0) {
-        loadSession(updatedSessions[0].id);
-      } else {
-        createNewSession();
-      }
-    }
-  };
-
-  // 更新当前会话
-  const updateCurrentSession = (newMessages: Message[]) => {
-    if (!currentSessionId) return;
-    
-    const updatedSessions = chatSessions.map(session => {
-      if (session.id === currentSessionId) {
-        const firstUserMessage = newMessages.find(msg => msg.isUser);
-        const title = firstUserMessage ? 
-          firstUserMessage.content.slice(0, 20) + (firstUserMessage.content.length > 20 ? '...' : '') : 
-          '新对话';
-        const lastMessageTs = newMessages.length > 0 ? newMessages[newMessages.length - 1].timestamp : session.updatedAt;
-        
-        return {
-          ...session,
-          title,
-          messages: newMessages,
-          // 仅以最后一条消息时间作为会话更新时间，避免点击切换导致时间变化
-          updatedAt: lastMessageTs,
-        };
-      }
-      return session;
-    });
-    
-    setChatSessions(updatedSessions);
-    saveChatSessions(updatedSessions);
-  };
-
-  // 初始化
-  useEffect(() => {
-    loadChatSessions();
-  }, []);
-
-
 
 
   // 更新会话消息
@@ -450,7 +297,7 @@ const AIChat: React.FC = () => {
     if (currentSessionId && messages.length > 1) {
       updateCurrentSession(messages);
     }
-  }, [messages, currentSessionId]);
+  }, [messages, currentSessionId, updateCurrentSession]);
 
   // 清理资源
   useEffect(() => {
@@ -565,10 +412,7 @@ const AIChat: React.FC = () => {
     setSelectedMsgId(null);
   };
 
-  // 去除后端返回的 ```markdown 语言标识，避免渲染出文字
-  const sanitizeMarkdown = (text: string) => {
-    return text ? text.replace(/```markdown/g, '```').replace(/^[\s\n]+/, '') : '';
-  };
+
 
   // 处理用户输入文本，针对Tauri环境优化换行处理
   const formatUserInput = (text: string) => {
@@ -607,19 +451,15 @@ const AIChat: React.FC = () => {
     }
   };
 
-  // 处理文件上传
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      const newFiles = Array.from(files);
-      setUploadedFiles(prev => [...prev, ...newFiles]);
-      message.success(`已选择 ${newFiles.length} 个文件`);
-    }
+  // 处理文件上传变化
+  const handleFilesChange = (files: UploadedFile[]) => {
+    setCurrentUploadedFiles(files);
   };
 
-  // 移除已上传的文件
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  // 处理文件上传完成
+  const handleUploadComplete = (files: UploadedFile[]) => {
+    console.log('文件上传完成:', files);
+    // 这里可以添加上传完成后的处理逻辑
   };
 
   /**
@@ -690,6 +530,114 @@ const AIChat: React.FC = () => {
       message.error('复制失败');
     }
   };
+
+
+
+  /**
+   * 朗读AI回复内容
+   */
+  const readAloudMessage = (msgId: string, content: string) => {
+    // 如果正在朗读同一条消息，则停止朗读
+    if (isReading && currentReadingMsgId === msgId) {
+      stopReading();
+      return;
+    }
+
+    // 如果正在朗读其他消息，先停止
+    if (isReading) {
+      stopReading();
+    }
+
+    try {
+      // 检查浏览器是否支持语音合成
+      if (!('speechSynthesis' in window)) {
+        message.error('您的浏览器不支持语音朗读功能');
+        return;
+      }
+
+      // 处理文本内容，移除Markdown语法
+      const textToRead = content
+        .replace(/```[\s\S]*?```/g, '[代码块]') // 替换代码块
+        .replace(/`([^`]+)`/g, '$1') // 移除行内代码标记
+        .replace(/\*\*([^*]+)\*\*/g, '$1') // 移除粗体标记
+        .replace(/\*([^*]+)\*/g, '$1') // 移除斜体标记
+        .replace(/#{1,6}\s+/g, '') // 移除标题标记
+        .replace(/^\s*[-*+]\s+/gm, '• ') // 替换列表标记为点号
+        .replace(/^\s*\d+\.\s+/gm, '') // 移除有序列表标记
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 移除链接，保留文本
+        .replace(/\n{2,}/g, '。 ') // 将换行替换为句号和空格
+        .replace(/\s+/g, ' ') // 合并多余空格
+        .trim();
+
+      if (!textToRead) {
+        message.warning('没有可朗读的内容');
+        return;
+      }
+
+      // 创建语音合成实例
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      
+      // 设置语音参数
+      utterance.lang = 'zh-CN'; // 中文
+      utterance.rate = 0.9; // 语速
+      utterance.pitch = 1; // 音调
+      utterance.volume = 1; // 音量
+
+      // 设置事件监听器
+      utterance.onstart = () => {
+        setIsReading(true);
+        setCurrentReadingMsgId(msgId);
+        message.success('开始朗读');
+      };
+
+      utterance.onend = () => {
+        setIsReading(false);
+        setCurrentReadingMsgId(null);
+        speechSynthesisRef.current = null;
+      };
+
+      utterance.onerror = (event) => {
+        console.error('朗读出错:', event.error);
+        setIsReading(false);
+        setCurrentReadingMsgId(null);
+        speechSynthesisRef.current = null;
+        message.error('朗读失败');
+      };
+
+      // 保存引用并开始朗读
+      speechSynthesisRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+
+    } catch (error) {
+      console.error('朗读功能出错:', error);
+      message.error('朗读功能出错');
+    }
+  };
+
+  /**
+   * 停止朗读
+   */
+  const stopReading = () => {
+    try {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      setIsReading(false);
+      setCurrentReadingMsgId(null);
+      speechSynthesisRef.current = null;
+    } catch (error) {
+      console.error('停止朗读出错:', error);
+    }
+  };
+
+  // 组件卸载时清理朗读
+  useEffect(() => {
+    return () => {
+      if (isReading) {
+        stopReading();
+      }
+    };
+  }, []);
 
   // 渲染连接状态指示器
   const renderConnectionStatus = () => {
@@ -766,43 +714,73 @@ const AIChat: React.FC = () => {
       {/* 左侧聊天记录面板 - 桌面端 */}
       {!isMobile && (
         <div style={{
-          width: isTablet ? '250px' : '300px',
+          width: isChatHistoryCollapsed ? '50px' : (isTablet ? '250px' : '300px'),
           backgroundColor: '#fff',
           borderRight: '1px solid #e8e8e8',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          transition: 'width 0.3s ease',
+          position: 'relative'
         }}>
-        <div style={{
-          padding: '16px',
-          borderBottom: '1px solid #e8e8e8',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <Title level={4} style={{ margin: 0 }}>
-            聊天记录
-          </Title>
-          <Button 
-            icon={<PlusOutlined />} 
-            onClick={createNewSession}
-            type="primary"
-            size="small"
-          >
-            新对话
-          </Button>
-        </div>
+        {/* 隐藏伸缩按钮 */}
+        <Button
+          type="text"
+          icon={isChatHistoryCollapsed ? <RightOutlined /> : <LeftOutlined />}
+          onClick={() => setIsChatHistoryCollapsed(!isChatHistoryCollapsed)}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '8px',
+            zIndex: 10,
+            width: '24px',
+            height: '24px',
+            minWidth: '24px',
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px'
+          }}
+          title={isChatHistoryCollapsed ? '展开聊天记录' : '收起聊天记录'}
+        />
         
-        <div 
-           ref={scrollContainerRef}
-           style={{ 
-             flex: 1, 
-             overflow: 'auto',
-             scrollbarWidth: 'thin',
-             scrollbarColor: isScrolling ? '#d4d4d4 transparent' : 'transparent transparent'
-           }}
-           className={`custom-scrollbar ${isScrolling ? 'scrolling' : ''}`}
-           onScroll={handleScroll}
-         >
+        {!isChatHistoryCollapsed && (
+          <>
+            <div style={{
+              padding: '16px',
+              borderBottom: '1px solid #e8e8e8',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              paddingRight: '40px' // 为隐藏按钮留出空间
+            }}>
+              <Title level={4} style={{ margin: 0 }}>
+                聊天记录
+              </Title>
+              <Button 
+                icon={<PlusOutlined />} 
+                onClick={createNewSession}
+                type="primary"
+                size="small"
+              >
+                新对话
+              </Button>
+            </div>
+          </>
+        )}
+        
+        {!isChatHistoryCollapsed && (
+          <div 
+             ref={scrollContainerRef}
+             style={{ 
+               flex: 1, 
+               overflow: 'auto',
+               scrollbarWidth: 'thin',
+               scrollbarColor: isScrolling ? '#d4d4d4 transparent' : 'transparent transparent'
+             }}
+             className={`custom-scrollbar ${isScrolling ? 'scrolling' : ''}`}
+             onScroll={handleScroll}
+           >
           <List
             dataSource={chatSessions}
             renderItem={(session) => (
@@ -859,7 +837,8 @@ const AIChat: React.FC = () => {
             )}
             locale={{ emptyText: '暂无聊天记录' }}
           />
-        </div>
+          </div>
+        )}
         </div>
       )}
       
@@ -990,9 +969,7 @@ const AIChat: React.FC = () => {
               style={{ padding: '4px 8px' }}
             />
           )}
-          <Title level={isMobile ? 3 : 2} style={{ margin: 0, flex: 1 }}>
-            AI 聊天助手
-          </Title>
+          
           {isMobile && (
             <Button
               icon={<InfoCircleOutlined />}
@@ -1057,59 +1034,16 @@ const AIChat: React.FC = () => {
           {renderConnectionStatus()}
           
           {messages.map((message) => (
-            <div key={message.id} style={{ marginBottom: '12px' }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: message.isUser ? 'flex-end' : 'flex-start',
-                alignItems: 'flex-start',
-                gap: isMobile ? '6px' : '8px'
-              }}>
-                {!message.isUser && (
-                  <Avatar 
-                    icon={<RobotOutlined />} 
-                    style={{ backgroundColor: '#1890ff' }}
-                  />
-                )}
-                <div 
-                  onClick={() => handleMessageClick(message.msg_id)}
-                  style={{
-                    maxWidth: isMobile ? '85%' : '70%',
-                    padding: isMobile ? '10px 12px' : '12px 14px',
-                    borderRadius: isMobile ? '8px' : '12px',
-                    backgroundColor: message.isUser ? '#1890ff' : '#e6f7ff',
-                    wordBreak: 'break-word',
-                    overflowX: 'auto',
-                    fontSize: isMobile ? '12px' : '13px',
-                    cursor: 'pointer',
-                    border: '2px solid transparent',
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  <Markdown
-                    className={message.isUser ? styles['user-markdown'] : styles['ai-markdown']}
-                    content={sanitizeMarkdown(message.content)}
-                    fontSize={isMobile ? 12 : 13}
-            
-                  />
-                </div>
-                {message.isUser && (
-                  <Avatar 
-                    icon={<UserOutlined />} 
-                    style={{ backgroundColor: '#52c41a' }}
-                  />
-                )}
-              </div>
-              <div style={{
-                textAlign: message.isUser ? 'right' : 'left',
-                fontSize: '12px',
-                color: '#999',
-                marginTop: '4px',
-                marginLeft: message.isUser ? '0' : (isMobile ? '40px' : '48px'),
-                marginRight: message.isUser ? (isMobile ? '40px' : '48px') : '0'
-              }}>
-                {message.timestamp.toLocaleTimeString()}
-              </div>
-            </div>
+            <MessageItem
+              key={message.id}
+              message={message}
+              isMobile={isMobile}
+              isReading={isReading}
+              currentReadingMsgId={currentReadingMsgId}
+              onMessageClick={handleMessageClick}
+              onCopyMessage={defaultCopyAiMessage}
+              onReadMessage={readAloudMessage}
+            />
           ))}
           
           {/* 实时显示AI回复 */}
@@ -1137,10 +1071,10 @@ const AIChat: React.FC = () => {
                   border: '2px solidrgb(6, 6, 7)',
                   position: 'relative'
                 }}>
-                  <Markdown
-                    className={styles['ai-markdown']}
-                    content={sanitizeMarkdown(currentAiMessage)}
+                  <MarkdownRenderer
+                    content={currentAiMessage}
                     fontSize={isMobile ? 12 : 13}
+                    isUser={false}
                   />
                   <div style={{
                     display: 'inline-block',
@@ -1182,42 +1116,13 @@ const AIChat: React.FC = () => {
         padding: '12px',
         backgroundColor: '#fafafa'
       }}>
-        {/* 已上传文件显示 */}
-        {uploadedFiles.length > 0 && (
-          <div style={{ marginBottom: '8px' }}>
-            <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
-              已选择文件:
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-              {uploadedFiles.map((file, index) => (
-                <div
-                  key={index}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    backgroundColor: '#e6f7ff',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    gap: '4px'
-                  }}
-                >
-                  <span>{file.name}</span>
-                  <span
-                    onClick={() => removeFile(index)}
-                    style={{
-                      cursor: 'pointer',
-                      color: '#ff4d4f',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    ×
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* 文件上传组件 */}
+        <FileUpload
+          onFilesChange={handleFilesChange}
+          onUploadComplete={handleUploadComplete}
+          disabled={loading}
+          style={{ marginBottom: currentUploadedFiles.length > 0 ? '8px' : '0' }}
+        />
         
         {/* 输入框 */}
         <TextArea
@@ -1246,28 +1151,6 @@ const AIChat: React.FC = () => {
         }}>
           {/* 左侧控制区域 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* 文件上传按钮 */}
-            <input
-              type="file"
-              multiple
-              onChange={handleFileUpload}
-              style={{ display: 'none' }}
-              id="file-upload"
-              accept=".txt,.pdf,.doc,.docx,.jpg,.jpeg,.png"
-            />
-            <Button
-              type="text"
-              icon={<PaperClipOutlined />}
-              onClick={() => document.getElementById('file-upload')?.click()}
-              style={{
-                border: 'none',
-                boxShadow: 'none',
-                color: '#666',
-                fontSize: '16px'
-              }}
-              title="上传文件"
-            />
-
             {/* 知识库选择 */}
             <KnowledgeSelector
               ref={knowledgeSelectorRef}
@@ -1389,7 +1272,7 @@ const AIChat: React.FC = () => {
         {/* 右侧会话信息面板 - 桌面端和平板端 */}
         {!isMobile && (
           <div style={{
-            width: isTablet ? '240px' : '280px',
+            width: isSessionInfoCollapsed ? '50px' : (isTablet ? '240px' : '280px'),
             display: 'flex',
             flexDirection: 'column',
             gap: '16px'
@@ -1445,8 +1328,7 @@ const AIChat: React.FC = () => {
                       <Card
                         key={doc.id}
                         size="small"
-                        style={{ marginBottom: '8px'}}
-                      
+                        style={{ marginBottom: '8px' }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
                           <div style={{ flex: 1 }}>
@@ -1485,6 +1367,7 @@ const AIChat: React.FC = () => {
                 </div>
               </Card>
             )}
+            
           </div>
         )}
       </div>
@@ -1503,6 +1386,7 @@ const AIChat: React.FC = () => {
             onClick={() => setShowReferences(!showReferences)}
             size="small"
           />
+          
         }
       >
         <div style={{ marginBottom: '16px' }}>
@@ -1575,110 +1459,7 @@ const AIChat: React.FC = () => {
         )}
       </Drawer>
       
-      {/* <style>
-        {`
-          @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0; }
-          }
-          .user-markdown table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 8px 0;
-          }
-          .user-markdown th, .user-markdown td {
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #ffffff;
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 8px 12px;
-            text-align: left;
-          }
-          .user-markdown th {
-            background-color: rgba(255, 255, 255, 0.2);
-            font-weight: bold;
-          }
-          .ai-markdown table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 8px 0;
-            max-width: 600px;
-            table-layout: fixed;
-          }
-          .ai-markdown th, .ai-markdown td {
-            border: 1px solid #d9d9d9;
-            color: #333333;
-            background-color: #fafafa;
-            padding: 8px 12px;
-            text-align: left;
-            word-break: break-word;
-            white-space: normal;
-            font-size: 13px;
-          }
-          .ai-markdown th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-          }
-          .user-markdown, .ai-markdown {
-            display: block;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            font-size: 13px;
-          }
-          .wmde-markdown.wmde-markdown-color.ai-markdown {
-            font-size: 13px;
-          }
-          .wmde-markdown.wmde-markdown-color.user-markdown {
-            font-size: 13px;
-          }
-          .wmde-markdown pre {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            max-width: 100%;
-            white-space: pre;
-            margin: 8px 0;
-            width: 100%;
-          }
-          .wmde-markdown pre > code {
-            font-size: 11px;
-            color:#ffffff;
-          }
-          @media screen and (max-width: 1125px) {
-            .user-markdown, .ai-markdown {
-              font-size: 12px;
-            }
-            .wmde-markdown.wmde-markdown-color.ai-markdown {
-              font-size: 12px;
-            }
-            .wmde-markdown.wmde-markdown-color.user-markdown {
-              font-size: 12px;
-            }
-            .wmde-markdown pre {
-              overflow-x: auto;
-              -webkit-overflow-scrolling: touch;
-              max-width: 100%;
-              white-space: pre;
-              width: 300px;
-            }
-            .wmde-markdown pre > code {
-              font-size: 11px !important;
-              line-height: 1.4;
-              white-space: pre;
-              word-break: normal;
-              overflow-wrap: normal;
-              display: block;
-              padding: 8px 12px;
-              border-radius: 6px;
-              max-width: none;
-            }
-          }
-          .user-markdown table, .ai-markdown table {
-            margin-top: 0;
-            width: max-content;
-            width: 100%;
-          }
-          }
-        `}
-      </style> */}
+      
     </div>
   );
 };

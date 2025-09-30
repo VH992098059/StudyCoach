@@ -5,7 +5,7 @@ import (
 )
 
 type AiChatReq struct {
-	g.Meta        `path:"/chat" method:"post"`
+	g.Meta        `path:"/chat" method:"post" tags:"ai_chat" sm:"AI聊天对话"`
 	ID            string  `json:"id" v:"required"` // 会话id
 	Question      string  `json:"question" v:"required"`
 	KnowledgeName string  `json:"knowledge_name"`

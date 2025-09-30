@@ -6,7 +6,7 @@ import (
 )
 
 type RetrieverReq struct {
-	g.Meta        `path:"/v1/retriever" method:"post" tags:"rag"`
+	g.Meta        `path:"/v1/retriever" method:"post" tags:"rag" sm:"知识检索"`
 	Question      string  `json:"question" v:"required"`
 	TopK          int     `json:"top_k"` // 默认为5
 	Score         float64 `json:"score"` // 默认为0.2
@@ -19,7 +19,7 @@ type RetrieverRes struct {
 }
 
 type RetrieverDifyReq struct {
-	g.Meta           `path:"/v1/dify/retrieval" method:"post" tags:"rag" no_wrap_resp:"true"`
+	g.Meta           `path:"/v1/dify/retrieval" method:"post" tags:"rag" no_wrap_resp:"true" sm:"Dify知识检索"`
 	KnowledgeID      string            `json:"knowledge_id" v:"required"`
 	Query            string            `json:"query" v:"required"`
 	RetrievalSetting *RetrievalSetting `json:"retrieval_setting" v:"required"`

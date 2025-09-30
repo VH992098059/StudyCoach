@@ -29,6 +29,8 @@ require (
 
 require (
 	github.com/VH992098059/chat-history v0.0.0-20250822090229-bff17e0a58c2
+	github.com/cloudwego/eino-ext/components/model/ollama v0.1.2
+	github.com/cloudwego/eino-ext/components/tool/mcp v0.0.4
 	github.com/goccy/go-json v0.10.5
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sergi/go-diff v1.4.0
@@ -46,10 +48,10 @@ require (
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/minio/crc64nvme v1.0.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
+	github.com/ollama/ollama v0.12.3 // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.3.0 // indirect
-	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 )
 

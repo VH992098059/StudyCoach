@@ -6,7 +6,7 @@ import (
 )
 
 type IndexerReq struct {
-	g.Meta        `path:"/v1/indexer" method:"post" mime:"multipart/form-data" tags:"rag"`
+	g.Meta        `path:"/v1/indexer" method:"post" mime:"multipart/form-data" tags:"rag" sm:"文档索引处理"`
 	File          *ghttp.UploadFile `p:"file" type:"file" dc:"如果是本地文件，怎上传文件"`
 	URL           string            `p:"url" dc:"如果是网络文件则直接输入url即可"`
 	KnowledgeName string            `p:"knowledge_name" dc:"知识库名称" v:"required"`

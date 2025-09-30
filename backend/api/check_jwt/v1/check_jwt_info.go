@@ -3,7 +3,7 @@ package v1
 import "github.com/gogf/gf/v2/frame/g"
 
 type CheckJwtInfoReq struct {
-	g.Meta `path:"/jwt_info" method:"get" summary:"check jwt" tags:"jwt"`
+	g.Meta `path:"/jwt_info" method:"get" summary:"check jwt" tags:"jwt" sm:"检查JWT令牌信息"`
 }
 type CheckJwtInfoRes struct {
 	Msg string `json:"msg"`
