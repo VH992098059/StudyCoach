@@ -1,8 +1,6 @@
 /**
  * @fileoverview 知识块管理页面
  * @description 用于管理知识库中的文档分块，包括查看、编辑、删除等操作
- * @author 开发团队
- * @version 1.0.0
  */
 
 import React, { useState, useEffect } from 'react';
@@ -20,6 +18,7 @@ import {
   Tooltip,
   Input,
   Switch,
+  Alert,
 } from 'antd';
 import {
   SearchOutlined,
@@ -29,6 +28,7 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import type { TableRowSelection } from 'antd/es/table/interface';
 import { ChunksService,type KnowledgeChunk, ChunkStatus } from '../../../services/chunks';
 import { DocumentsService, type DocumentData } from '../../../services/documents';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../../services/knowledgeBase';
@@ -56,6 +56,11 @@ const Chunks: React.FC = () => {
   const [knowledgeList, setKnowledgeList] = useState<KnowledgeBase[]>([]);
   const [knowledgeLoading, setKnowledgeLoading] = useState(false);
   const [selectedKnowledge, setSelectedKnowledge] = useState<string>('');
+
+  // 多选删除相关状态
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<KnowledgeChunk[]>([]);
+  const [batchDeleteLoading, setBatchDeleteLoading] = useState(false);
 
   /**
    * 获取知识库列表
@@ -109,6 +114,9 @@ const Chunks: React.FC = () => {
     setSelectedKnowledge(value);
     setSelectedDocument(undefined);
     setCurrentPage(1);
+    // 清空选择状态
+    setSelectedRowKeys([]);
+    setSelectedRows([]);
   };
 
   // 组件挂载时获取知识库列表
@@ -186,6 +194,9 @@ const Chunks: React.FC = () => {
   const handleDocumentChange = (value: number) => {
     setSelectedDocument(value);
     setCurrentPage(1);
+    // 清空选择状态
+    setSelectedRowKeys([]);
+    setSelectedRows([]);
   };
 
   /**
@@ -280,6 +291,76 @@ const Chunks: React.FC = () => {
   };
 
   /**
+   * 批量删除确认
+   */
+  const confirmBatchDelete = () => {
+    if (selectedRows.length === 0) {
+      message.warning('请先选择要删除的知识块');
+      return;
+    }
+
+    confirm({
+      title: '批量删除确认',
+      icon: <ExclamationCircleOutlined />,
+      content: (
+        <div>
+          <p>确定要删除以下 {selectedRows.length} 个知识块吗？此操作不可恢复。</p>
+          <div style={{ maxHeight: '200px', overflow: 'auto', marginTop: '10px' }}>
+            {selectedRows.map((chunk, index) => (
+              <div key={chunk.id} style={{ padding: '2px 0' }}>
+                {index + 1}. {chunk.chunkId}
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+      okText: '确定删除',
+      okType: 'danger',
+      cancelText: '取消',
+      width: 500,
+      onOk: handleBatchDelete,
+    });
+  };
+
+  /**
+   * 批量删除处理
+   */
+  const handleBatchDelete = async () => {
+    setBatchDeleteLoading(true);
+    try {
+      // 并发删除所有选中的知识块
+      const deletePromises = selectedRows.map(chunk => 
+        ChunksService.delete({ id: chunk.id })
+      );
+      
+      await Promise.all(deletePromises);
+      
+      message.success(`成功删除 ${selectedRows.length} 个知识块`);
+      
+      // 清空选择状态
+      setSelectedRowKeys([]);
+      setSelectedRows([]);
+      
+      // 重新获取列表
+      await fetchChunksList();
+      
+    } catch (error) {
+      message.error('批量删除失败');
+      console.error('Batch delete error:', error);
+    } finally {
+      setBatchDeleteLoading(false);
+    }
+  };
+
+  /**
+   * 清空选择
+   */
+  const handleClearSelection = () => {
+    setSelectedRowKeys([]);
+    setSelectedRows([]);
+  };
+
+  /**
    * 分页变化处理
    */
   const handlePageChange = (page: number, size?: number) => {
@@ -287,6 +368,26 @@ const Chunks: React.FC = () => {
     if (size) {
       setPageSize(size);
     }
+    // 分页时清空选择状态
+    setSelectedRowKeys([]);
+    setSelectedRows([]);
+  };
+
+  /**
+   * 行选择配置
+   */
+  const rowSelection: TableRowSelection<KnowledgeChunk> = {
+    selectedRowKeys,
+    onChange: (newSelectedRowKeys, newSelectedRows) => {
+      setSelectedRowKeys(newSelectedRowKeys);
+      setSelectedRows(newSelectedRows);
+    },
+    // onSelect: (record, selected, selectedRows) => {
+    //   // 可以在这里添加单行选择的逻辑
+    // },
+    // onSelectAll: (selected, selectedRows, changeRows) => {
+    //   // 可以在这里添加全选的逻辑
+    // },
   };
 
   /**
@@ -426,11 +527,39 @@ const Chunks: React.FC = () => {
           </div>
         </div>
 
+        {/* 批量操作工具栏 */}
+        {selectedRowKeys.length > 0 && (
+          <Alert
+            message={
+              <Space>
+                <span>已选择 {selectedRowKeys.length} 个知识块</span>
+                <Button size="small" onClick={handleClearSelection}>
+                  取消选择
+                </Button>
+                <Button
+                  type="primary"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  loading={batchDeleteLoading}
+                  onClick={confirmBatchDelete}
+                >
+                  批量删除
+                </Button>
+              </Space>
+            }
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
         <Table
           columns={columns}
           dataSource={chunksList}
           loading={loading}
           rowKey="id"
+          rowSelection={rowSelection}
           pagination={false}
           locale={{
             emptyText: !selectedKnowledge ? (

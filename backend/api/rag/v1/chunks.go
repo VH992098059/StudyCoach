@@ -15,10 +15,10 @@ type ChunksListReq struct {
 
 type ChunksListRes struct {
 	g.Meta `mime:"application/json"`
-	Data   []entity.KnowledgeChunks `json:"data"`
-	Total  int                      `json:"total"`
-	Page   int                      `json:"page"`
-	Size   int                      `json:"size"`
+	Data   []*entity.KnowledgeChunks `json:"data"`
+	Total  int                       `json:"total"`
+	Page   int                       `json:"page"`
+	Size   int                       `json:"size"`
 }
 
 type ChunkDeleteReq struct {

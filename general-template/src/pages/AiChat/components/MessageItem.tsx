@@ -23,6 +23,10 @@ interface MessageItemProps {
   isReading?: boolean;
   /** 当前朗读的消息ID */
   currentReadingMsgId?: string | null;
+  /** 是否正在加载 */
+  isLoading?: boolean;
+  /** 当前加载的消息ID */
+  loadingMsgId?: string | null;
   /** 点击消息回调 */
   onMessageClick?: (msgId: string) => void;
   /** 复制消息回调 */
@@ -41,6 +45,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
   isSelected = false,
   isReading = false,
   currentReadingMsgId = null,
+  isLoading = false,
+  loadingMsgId = null,
   onMessageClick,
   onCopyMessage,
   onReadMessage
@@ -124,6 +130,8 @@ const MessageItem: React.FC<MessageItemProps> = ({
             isMobile={isMobile}
             isReading={isReading}
             currentReadingMsgId={currentReadingMsgId}
+            isLoading={isLoading}
+            loadingMsgId={loadingMsgId}
             onCopyMessage={onCopyMessage}
             onReadMessage={onReadMessage}
           />

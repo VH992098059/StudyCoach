@@ -1,8 +1,6 @@
 /**
  * @fileoverview 文档索引页面
  * @description 用于上传和索引文档到知识库的页面
- * @author 开发团队
- * @version 1.0.0
  */
 
 import React, { useState, useRef, useEffect } from 'react';

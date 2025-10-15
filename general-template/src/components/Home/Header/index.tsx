@@ -1,8 +1,6 @@
 /**
  * @fileoverview 头部导航组件
  * @description 应用的顶部导航栏，包含Logo、导航菜单、用户操作区域和移动端适配
- * @author 开发团队
- * @version 1.0.0
  */
 
 import React, { useState } from 'react';

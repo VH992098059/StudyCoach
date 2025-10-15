@@ -138,10 +138,10 @@ func (x *Rag) indexAsyncByDocsID(ctx context.Context, req *IndexAsyncByDocsIDReq
 			Ext:            string(ext),
 		})
 	}
-	//if err = knowledge.SaveChunksData(ctx, req.DocumentsId, chunks); err != nil {
-	//	// 这里不返回err，不影响用户使用
-	//	g.Log().Errorf(ctx, "indexAsyncByDocsID insert chunks failed, err=%v", err)
-	//}
+	if err = knowledge.SaveChunksData(ctx, req.DocumentsId, chunks); err != nil {
+		// 这里不返回err，不影响用户使用
+		g.Log().Errorf(ctx, "indexAsyncByDocsID insert chunks failed, err=%v", err)
+	}
 
 	asyncReq := &IndexAsyncReq{
 		Docs:          docs,

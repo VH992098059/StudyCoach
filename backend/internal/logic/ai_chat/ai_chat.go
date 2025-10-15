@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
+	"github.com/VH992098059/chat-history/eino"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
-	"github.com/wangle201210/chat-history/eino"
 )
 
 type ChatBase struct {

@@ -15,7 +15,7 @@ func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.Know
 		return nil
 	}
 	status := int(v1.StatusIndexing)
-	_, err := dao.KnowledgeChunks.Ctx(ctx).Data(chunks).Save()
+	_, err := dao.KnowledgeChunks.Ctx(ctx).Data(chunks).FieldsEx("id", "created_at").OnConflict("knowledge_doc_id", "chunk_id").Save()
 	if err != nil {
 		g.Log().Errorf(ctx, "SaveChunksData err=%+v", err)
 		status = int(v1.StatusFailed)
@@ -25,9 +25,8 @@ func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.Know
 }
 
 // GetChunksList 查询知识块列表
-func GetChunksList(ctx context.Context, where entity.KnowledgeChunks, page, size int) (list []entity.KnowledgeChunks, total int, err error) {
+func GetChunksList(ctx context.Context, where entity.KnowledgeChunks, page, size int) (list []*entity.KnowledgeChunks, total int, err error) {
 	model := dao.KnowledgeChunks.Ctx(ctx)
-
 	// 构建查询条件
 	if where.KnowledgeDocId != 0 {
 		model = model.Where("knowledge_doc_id", where.KnowledgeDocId)
@@ -35,21 +34,17 @@ func GetChunksList(ctx context.Context, where entity.KnowledgeChunks, page, size
 	if where.ChunkId != "" {
 		model = model.Where("chunk_id", where.ChunkId)
 	}
-
 	// 获取总数
 	total, err = model.Count()
 	if err != nil {
 		return
 	}
-
 	// 分页查询
 	if page > 0 && size > 0 {
-		model = model.Page(page, size)
+		model = model.Page(size, page)
 	}
-
 	// 按创建时间倒序
 	model = model.OrderDesc("created_at")
-
 	err = model.Scan(&list)
 	return
 }

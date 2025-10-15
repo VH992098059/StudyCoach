@@ -42,8 +42,8 @@ type Rag struct {
 
 func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName string) (*schema.StreamReader[*schema.Message], error) {
 	log.Printf("[ChatAiModel] 开始处理请求 - ID: %s, 网络搜索: %v, 知识库: %s", id, isNetWork, KnowledgeName)
-	//var eh = eino.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
-	var eh = eino.NewEinoHistory(g.Cfg().MustGet(ctx, "chat.history").String())
+	var eh = eino.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
+	//var eh = &eino.History{}
 
 	//var eh = eino.NewEinoHistory("host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
 
@@ -163,7 +163,6 @@ func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName s
 	return srs[0], nil
 }
 func stream(ctx context.Context, conf *configTool.Config, question []string, id string, eh *eino.History) (res *schema.StreamReader[*schema.Message], err error) {
-	//var eh = eino.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
 	history, err := eh.GetHistory(id, 50)
 	if err != nil {
 		log.Printf("获取历史记录失败: %v", err)

@@ -9,6 +9,7 @@ import (
 	"github.com/cloudwego/eino-ext/components/model/ark"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/joho/godotenv"
 )
 
@@ -44,12 +45,12 @@ func newChatModel(ctx context.Context, conf *configTool.Config) (cm model.ToolCa
 	/*config := &ollama.ChatModelConfig{
 		// 基础配置
 		BaseURL: "http://localhost:11434", // Ollama 服务地址
-		Timeout: 30 * time.Second,         // 请求超时时间
-		Model:   "hf-mirror.com/MoYoYoTech/VoiceDialogue:Q6_K ",
+		Timeout: 300 * time.Second,        // 请求超时时间
+		Model:   "hf-mirror.com/MoYoYoTech/VoiceDialogue:Q6_K",
 	}*/
 
 	config := &openai.ChatModelConfig{
-		Model:   "deepseek-ai/DeepSeek-V3",
+		Model:   "Qwen/Qwen3-14B",
 		APIKey:  conf.ApiKey,
 		BaseURL: conf.BaseURL,
 	}
@@ -138,9 +139,9 @@ func newChatModel1(ctx context.Context, conf *configTool.Config) (cm model.ToolC
 
 func RewriteModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 	config := &ark.ChatModelConfig{
-		Model:   os.Getenv("ARK_MODEL_TYPE"),
-		APIKey:  os.Getenv("ARK_API_KEY"),
-		BaseURL: os.Getenv("ARK_MODEL_URL"),
+		Model:   g.Cfg().MustGet(ctx, "rewrite.model").String(),
+		APIKey:  g.Cfg().MustGet(ctx, "rewrite.apiKey").String(),
+		BaseURL: g.Cfg().MustGet(ctx, "rewrite.baseURL").String(),
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	if err != nil {
@@ -152,9 +153,9 @@ func RewriteModel(ctx context.Context) (cm model.ToolCallingChatModel, err error
 func QaModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 	// TODO Modify component configuration here.
 	config := &ark.ChatModelConfig{
-		Model:   os.Getenv("ARK_MODEL_TYPE"),
-		APIKey:  os.Getenv("ARK_API_KEY"),
-		BaseURL: os.Getenv("ARK_MODEL_URL"),
+		Model:   g.Cfg().MustGet(ctx, "qa.model").String(),
+		APIKey:  g.Cfg().MustGet(ctx, "qa.apiKey").String(),
+		BaseURL: g.Cfg().MustGet(ctx, "qa.baseURL").String(),
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	if err != nil {

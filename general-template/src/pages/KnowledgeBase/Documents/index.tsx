@@ -1,8 +1,6 @@
 /**
  * @fileoverview 知识文档管理页面
  * @description 用于管理知识库中的文档，包括查看、删除等操作
- * @author 开发团队
- * @version 1.0.0
  */
 
 import React, { useState, useEffect } from 'react';
@@ -18,7 +16,6 @@ import {
   Pagination,
   Empty,
   Tooltip,
-  Spin,
   Alert,
 } from 'antd';
 import {
@@ -30,14 +27,12 @@ import {
   PlusOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import type { TableRowSelection } from 'antd/es/table/interface';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../../services/knowledgeBase';
 import { DocumentsService, type DocumentData, DocumentStatus } from '../../../services/documents';
 import './index.scss';
 
 const { Option } = Select;
-const { confirm } = Modal;
-
-
 
 /**
  * 知识文档管理页面组件
@@ -53,6 +48,11 @@ const Documents: React.FC = () => {
   // 知识库列表相关状态
   const [knowledgeList, setKnowledgeList] = useState<KnowledgeBase[]>([]);
   const [knowledgeLoading, setKnowledgeLoading] = useState<boolean>(false);
+
+  // 多选相关状态
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<DocumentData[]>([]);
+  const [batchDeleteLoading, setBatchDeleteLoading] = useState(false);
 
   /**
    * 获取知识库列表
@@ -81,18 +81,12 @@ const Documents: React.FC = () => {
     fetchKnowledgeList();
   }, []);
 
-
-
-
-
   /**
    * 格式化日期
    */
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleString('zh-CN');
   };
-
-
 
   /**
    * 获取知识库名称
@@ -122,6 +116,10 @@ const Documents: React.FC = () => {
       
       setDocumentsList(response.data);
       setTotal(response.total);
+      
+      // 清空选择状态
+      setSelectedRowKeys([]);
+      setSelectedRows([]);
     } catch (error) {
       console.error('获取文档列表失败:', error);
       message.error('获取文档列表失败');
@@ -138,6 +136,9 @@ const Documents: React.FC = () => {
   const handleKnowledgeChange = (value: string) => {
     setSelectedKnowledge(value);
     setCurrentPage(1);
+    // 清空选择状态
+    setSelectedRowKeys([]);
+    setSelectedRows([]);
   };
 
   /**
@@ -179,6 +180,66 @@ const Documents: React.FC = () => {
   };
 
   /**
+   * 批量删除确认
+   */
+  const confirmBatchDelete = () => {
+    if (selectedRows.length === 0) {
+      message.warning('请先选择要删除的文档');
+      return;
+    }
+
+    Modal.confirm({
+      title: '批量删除确认',
+      icon: <ExclamationCircleOutlined />,
+      content: (
+        <div>
+          <p>确定要删除以下 {selectedRows.length} 个文档吗？此操作不可恢复。</p>
+          <div style={{ maxHeight: '200px', overflow: 'auto', marginTop: '10px' }}>
+            {selectedRows.map((doc, index) => (
+              <div key={doc.id} style={{ padding: '2px 0' }}>
+                {index + 1}. {doc.fileName}
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+      okText: '确定删除',
+      cancelText: '取消',
+      okType: 'danger',
+      onOk: handleBatchDelete,
+    });
+  };
+
+  /**
+   * 执行批量删除
+   */
+  const handleBatchDelete = async () => {
+    if (selectedRows.length === 0) return;
+
+    setBatchDeleteLoading(true);
+    try {
+      // 并发删除所有选中的文档
+      const deletePromises = selectedRows.map(doc => 
+        DocumentsService.delete({ document_id: doc.id })
+      );
+      
+      await Promise.all(deletePromises);
+      
+      message.success(`成功删除 ${selectedRows.length} 个文档`);
+      
+      // 清空选择状态并重新获取列表
+      setSelectedRowKeys([]);
+      setSelectedRows([]);
+      fetchDocumentsList();
+    } catch (error) {
+      message.error('批量删除失败，请重试');
+      console.error('Batch delete error:', error);
+    } finally {
+      setBatchDeleteLoading(false);
+    }
+  };
+
+  /**
    * 分页变化处理
    */
   const handlePageChange = (page: number, size?: number) => {
@@ -186,6 +247,30 @@ const Documents: React.FC = () => {
     if (size) {
       setPageSize(size);
     }
+    // 清空选择状态
+    setSelectedRowKeys([]);
+    setSelectedRows([]);
+  };
+
+  /**
+   * 行选择配置
+   */
+  const rowSelection: TableRowSelection<DocumentData> = {
+    selectedRowKeys,
+    onChange: (newSelectedRowKeys: React.Key[], newSelectedRows: DocumentData[]) => {
+      setSelectedRowKeys(newSelectedRowKeys);
+      setSelectedRows(newSelectedRows);
+    },
+    onSelectAll: (selected: boolean, selectedRows: DocumentData[], changeRows: DocumentData[]) => {
+      // 可以在这里添加全选/取消全选的自定义逻辑
+    },
+    onSelect: (record: DocumentData, selected: boolean, selectedRows: DocumentData[]) => {
+      // 可以在这里添加单行选择的自定义逻辑
+    },
+    getCheckboxProps: (record: DocumentData) => ({
+      disabled: false, // 可以根据文档状态来禁用某些行的选择
+      name: record.fileName,
+    }),
   };
 
   /**
@@ -327,6 +412,42 @@ const Documents: React.FC = () => {
           </div>
         </div>
 
+        {/* 批量操作工具栏 */}
+        {selectedRowKeys.length > 0 && (
+          <div style={{ 
+            marginBottom: 16, 
+            padding: '8px 16px', 
+            background: '#f0f2f5', 
+            borderRadius: '6px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span>
+              已选择 <strong>{selectedRowKeys.length}</strong> 项
+            </span>
+            <Space>
+              <Button 
+                onClick={() => {
+                  setSelectedRowKeys([]);
+                  setSelectedRows([]);
+                }}
+              >
+                取消选择
+              </Button>
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                loading={batchDeleteLoading}
+                onClick={confirmBatchDelete}
+              >
+                批量删除
+              </Button>
+            </Space>
+          </div>
+        )}
+
         {knowledgeList.length === 0 && !knowledgeLoading && (
           <Alert
             message="暂无可用知识库"
@@ -358,6 +479,7 @@ const Documents: React.FC = () => {
           dataSource={documentsList}
           loading={loading}
           rowKey="id"
+          rowSelection={rowSelection}
           pagination={false}
           locale={{
             emptyText: selectedKnowledge ? (

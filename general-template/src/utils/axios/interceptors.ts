@@ -13,6 +13,11 @@ export const requestInterceptor = {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // 处理 FormData 请求，删除 Content-Type 让浏览器自动设置
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
+    }
+
     // 添加请求时间戳
     if (config.params) {
       config.params._t = Date.now();

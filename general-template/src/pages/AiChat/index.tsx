@@ -12,6 +12,7 @@ import KnowledgeSelector, { type KnowledgeSelectorRef } from '../../components/K
 import type { Message, UploadedFile } from '../../types/chat';
 import FileUpload from './components/FileUpload';
 import { MessageItem, MarkdownRenderer, defaultCopyAiMessage } from './components';
+import { voiceService, type VoiceState } from '../../services/voice';
 
 const { Title } = Typography;
 const { TextArea } = Input;
@@ -85,10 +86,13 @@ const AIChat: React.FC = () => {
   // 文件上传相关状态
   const [currentUploadedFiles, setCurrentUploadedFiles] = useState<UploadedFile[]>([]);
   
-  // 朗读功能相关状态
-  const [isReading, setIsReading] = useState(false);
-  const [currentReadingMsgId, setCurrentReadingMsgId] = useState<string | null>(null);
-  const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
+  // 朗读功能相关状态 - 使用语音服务
+  const [voiceState, setVoiceState] = useState<VoiceState>({ 
+    isReading: false, 
+    currentReadingMsgId: null,
+    isLoading: false,
+    loadingMsgId: null
+  });
   
   // 面板隐藏状态
   const [isChatHistoryCollapsed, setIsChatHistoryCollapsed] = useState(false);
@@ -534,108 +538,51 @@ const AIChat: React.FC = () => {
 
 
   /**
-   * 朗读AI回复内容
+   * 播放音频的辅助函数
    */
-  const readAloudMessage = (msgId: string, content: string) => {
-    // 如果正在朗读同一条消息，则停止朗读
-    if (isReading && currentReadingMsgId === msgId) {
-      stopReading();
-      return;
-    }
+ 
 
-    // 如果正在朗读其他消息，先停止
-    if (isReading) {
-      stopReading();
-    }
-
-    try {
-      // 检查浏览器是否支持语音合成
-      if (!('speechSynthesis' in window)) {
-        message.error('您的浏览器不支持语音朗读功能');
-        return;
-      }
-
-      // 处理文本内容，移除Markdown语法
-      const textToRead = content
-        .replace(/```[\s\S]*?```/g, '[代码块]') // 替换代码块
-        .replace(/`([^`]+)`/g, '$1') // 移除行内代码标记
-        .replace(/\*\*([^*]+)\*\*/g, '$1') // 移除粗体标记
-        .replace(/\*([^*]+)\*/g, '$1') // 移除斜体标记
-        .replace(/#{1,6}\s+/g, '') // 移除标题标记
-        .replace(/^\s*[-*+]\s+/gm, '• ') // 替换列表标记为点号
-        .replace(/^\s*\d+\.\s+/gm, '') // 移除有序列表标记
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 移除链接，保留文本
-        .replace(/\n{2,}/g, '。 ') // 将换行替换为句号和空格
-        .replace(/\s+/g, ' ') // 合并多余空格
-        .trim();
-
-      if (!textToRead) {
-        message.warning('没有可朗读的内容');
-        return;
-      }
-
-      // 创建语音合成实例
-      const utterance = new SpeechSynthesisUtterance(textToRead);
-      
-      // 设置语音参数
-      utterance.lang = 'zh-CN'; // 中文
-      utterance.rate = 0.9; // 语速
-      utterance.pitch = 1; // 音调
-      utterance.volume = 1; // 音量
-
-      // 设置事件监听器
-      utterance.onstart = () => {
-        setIsReading(true);
-        setCurrentReadingMsgId(msgId);
-        message.success('开始朗读');
-      };
-
-      utterance.onend = () => {
-        setIsReading(false);
-        setCurrentReadingMsgId(null);
-        speechSynthesisRef.current = null;
-      };
-
-      utterance.onerror = (event) => {
-        console.error('朗读出错:', event.error);
-        setIsReading(false);
-        setCurrentReadingMsgId(null);
-        speechSynthesisRef.current = null;
-        message.error('朗读失败');
-      };
-
-      // 保存引用并开始朗读
-      speechSynthesisRef.current = utterance;
-      window.speechSynthesis.speak(utterance);
-
-    } catch (error) {
-      console.error('朗读功能出错:', error);
-      message.error('朗读功能出错');
-    }
+  /**
+   * 朗读AI回复内容 - 使用语音服务
+   */
+  const readAloudMessage = async (msgId: string, content: string) => {
+    await voiceService.readMessage(msgId, content);
   };
 
   /**
-   * 停止朗读
+   * 停止朗读 - 使用语音服务
    */
   const stopReading = () => {
-    try {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      setIsReading(false);
-      setCurrentReadingMsgId(null);
-      speechSynthesisRef.current = null;
-    } catch (error) {
-      console.error('停止朗读出错:', error);
-    }
+    voiceService.stopReading();
   };
 
-  // 组件卸载时清理朗读
+  // 语音服务初始化和清理
   useEffect(() => {
-    return () => {
-      if (isReading) {
-        stopReading();
+    // 设置语音服务回调
+    voiceService.setCallbacks({
+      onStateChange: (state) => {
+        setVoiceState(state);
+      },
+      onLoadStart: (msgId) => {
+        // 可以在这里添加额外的加载开始逻辑
+      },
+      onCanPlay: () => {
+        // 可以在这里添加额外的可播放逻辑
+      },
+      onEnded: () => {
+        // 可以在这里添加额外的播放结束逻辑
+      },
+      onError: (error) => {
+        // 可以在这里添加额外的错误处理逻辑
+      },
+      onAbort: () => {
+        // 可以在这里添加额外的中止逻辑
       }
+    });
+
+    // 组件卸载时清理
+    return () => {
+      voiceService.destroy();
     };
   }, []);
 
@@ -1038,8 +985,10 @@ const AIChat: React.FC = () => {
               key={message.id}
               message={message}
               isMobile={isMobile}
-              isReading={isReading}
-              currentReadingMsgId={currentReadingMsgId}
+              isReading={voiceState.isReading}
+              currentReadingMsgId={voiceState.currentReadingMsgId}
+              isLoading={voiceState.isLoading}
+              loadingMsgId={voiceState.loadingMsgId}
               onMessageClick={handleMessageClick}
               onCopyMessage={defaultCopyAiMessage}
               onReadMessage={readAloudMessage}

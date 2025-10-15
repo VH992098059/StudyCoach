@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Button, Tooltip, message } from 'antd';
-import { CopyOutlined, SoundOutlined, PauseOutlined } from '@ant-design/icons';
+import { CopyOutlined, SoundOutlined, PauseOutlined, LoadingOutlined } from '@ant-design/icons';
 
 interface MessageActionsProps {
   /** 消息内容 */
@@ -18,6 +18,10 @@ interface MessageActionsProps {
   isReading?: boolean;
   /** 当前朗读的消息ID */
   currentReadingMsgId?: string | null;
+  /** 是否正在加载 */
+  isLoading?: boolean;
+  /** 当前加载的消息ID */
+  loadingMsgId?: string | null;
   /** 复制消息回调 */
   onCopyMessage?: (content: string) => Promise<void>;
   /** 朗读消息回调 */
@@ -58,10 +62,13 @@ const MessageActions: React.FC<MessageActionsProps> = ({
   isMobile = false,
   isReading = false,
   currentReadingMsgId = null,
+  isLoading = false,
+  loadingMsgId = null,
   onCopyMessage = defaultCopyAiMessage,
   onReadMessage
 }) => {
   const isCurrentlyReading = isReading && currentReadingMsgId === messageId;
+  const isCurrentlyLoading = isLoading && loadingMsgId === messageId;
   
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -117,15 +124,23 @@ const MessageActions: React.FC<MessageActionsProps> = ({
       </Tooltip>
       
       {onReadMessage && (
-        <Tooltip title={isCurrentlyReading ? "停止朗读" : "朗读内容"}>
+        <Tooltip title={
+          isCurrentlyLoading ? "正在加载..." : 
+          isCurrentlyReading ? "停止朗读" : "朗读内容"
+        }>
           <Button
             type="text"
             size="small"
-            icon={isCurrentlyReading ? <PauseOutlined /> : <SoundOutlined />}
+            icon={
+              isCurrentlyLoading ? <LoadingOutlined spin /> :
+              isCurrentlyReading ? <PauseOutlined /> : <SoundOutlined />
+            }
             onClick={handleRead}
+            disabled={isCurrentlyLoading}
             style={{
               ...buttonStyle,
-              color: isCurrentlyReading ? '#1890ff' : '#999'
+              color: isCurrentlyLoading ? '#1890ff' : 
+                     isCurrentlyReading ? '#1890ff' : '#999'
             }}
           />
         </Tooltip>

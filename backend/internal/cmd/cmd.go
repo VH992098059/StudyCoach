@@ -7,6 +7,7 @@ import (
 	"backend/internal/controller/login"
 	"backend/internal/controller/rag"
 	"backend/internal/controller/regular_update"
+	"backend/internal/controller/voice"
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -65,6 +66,7 @@ var (
 					ai_chat.NewV1(),
 					rag.NewV1(),
 					regular_update.NewV1(),
+					voice.NewV1(),
 				)
 
 				// Add WebSocket endpoint
