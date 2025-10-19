@@ -44,8 +44,18 @@ export const requestInterceptor = {
  * 响应拦截器
  */
 export const responseInterceptor = {
-  onFulfilled: (response: AxiosResponse<ApiResponse>) => {
+  onFulfilled: (response: AxiosResponse<any>) => {
     const { data, config } = response;
+    const responseType = (config as any).responseType;
+    // 对于二进制/流式响应，直接返回原始数据
+    if (responseType === 'blob' || responseType === 'arraybuffer') {
+      // 隐藏 loading
+      const showLoading = (config as any).showLoading !== false;
+      if (showLoading) {
+        console.log('Request completed (binary):', config.url);
+      }
+      return data;
+    }
     
     // 隐藏 loading
     const showLoading = (config as any).showLoading !== false;
@@ -54,13 +64,13 @@ export const responseInterceptor = {
     }
 
     // 检查业务状态码 (GoFrame使用code=0表示成功)
-    if (data.code === 0) {
-      return data.data;
+    if (data && typeof data === 'object' && 'code' in data && (data as any).code === 0) {
+      return (data as any).data;
     } else {
       const error: ApiError = {
-        code: data.code,
-        message: data.message,
-        details: data.data,
+        code: (data as any)?.code ?? -1,
+        message: (data as any)?.message ?? '请求失败',
+        details: (data as any)?.data,
       };
       
       // 显示错误信息

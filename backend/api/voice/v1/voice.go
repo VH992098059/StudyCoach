@@ -21,7 +21,6 @@ type AsrResult struct {
 	CleanText string `json:"clean_text"`
 	Text      string `json:"text"`
 }
-type AsrBase64Res struct {
-	g.Meta `mime:"application/json"`
-	Result AsrResult `json:"result"`
+type AsrRes struct {
+	g.Meta `mime:"audio/mpeg"`
 }

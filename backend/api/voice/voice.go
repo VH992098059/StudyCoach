@@ -12,4 +12,5 @@ import (
 
 type IVoiceV1 interface {
 	Voice(ctx context.Context, req *v1.VoiceReq) (res *v1.VoiceRes, err error)
+	Asr(ctx context.Context, req *v1.AsrReq) (res *v1.AsrRes, err error)
 }

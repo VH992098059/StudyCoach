@@ -1,21 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Typography, Input, Button, Card, Avatar, Space, Divider, List, message, Drawer, Alert, Popconfirm, Row, Col, Collapse, Form, InputNumber, Slider, Tag, Empty, Tooltip } from 'antd';
+import { Typography, Button, Card, Avatar, Space, Divider, List, message, Drawer, Alert, Popconfirm, Row, Col, Collapse, Form, InputNumber, Slider, Tag, Empty, Tooltip } from 'antd';
 import { SendOutlined, StopOutlined, RobotOutlined, UserOutlined, DeleteOutlined, PlusOutlined, MenuOutlined, ExclamationCircleOutlined, SettingOutlined, FileTextOutlined, CopyOutlined, GlobalOutlined, InfoCircleOutlined, SoundOutlined, PauseOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { useBreakpoints } from '../../hooks/useMediaQuery';
 import { useChatSessions } from '../../hooks/useChatSessions';
 import './scrollbar.scss';
 import { SSEClient, SSEConnectionState } from '../../utils/sse/sse';
-import MDEditor from '@uiw/react-md-editor';
-import '@uiw/react-md-editor/markdown-editor.css';
-import '@uiw/react-markdown-preview/markdown.css';
 import KnowledgeSelector, { type KnowledgeSelectorRef } from '../../components/KnowledgeSelector';
 import type { Message, UploadedFile } from '../../types/chat';
-import FileUpload from './components/FileUpload';
-import { MessageItem, MarkdownRenderer, defaultCopyAiMessage } from './components';
+import { MessageItem, MarkdownRenderer, defaultCopyAiMessage, SessionInfoPanel, SessionInfoDrawer } from './components';
 import { voiceService, type VoiceState } from '../../services/voice';
+import ConnectionStatus from './components/ConnectionStatus';
+import InputArea from './components/InputArea';
+import MicRecorderButton from './components/MicRecorderButton';
 
 const { Title } = Typography;
-const { TextArea } = Input;
 const { Panel } = Collapse;
 
 /**
@@ -374,12 +372,18 @@ const AIChat: React.FC = () => {
 
   const handleSend = async () => {
     if (!inputValue.trim() || loading) return;
+    await sendQuestionByText(inputValue);
+  };
+
+  // 语音/外部文本统一发送逻辑
+  const sendQuestionByText = async (text: string) => {
+    if (!text.trim()) return;
 
     // 获取参考文档（仅在选择了知识库时）
     let references: ReferenceDocument[] = [];
     if (selectedKnowledge !== 'none') {
       try {
-        references = await fetchReferenceDocuments(inputValue);
+        references = await fetchReferenceDocuments(text);
         setReferenceDocuments(references);
         if (references.length > 0) {
           setShowReferences(true);
@@ -388,7 +392,6 @@ const AIChat: React.FC = () => {
         console.error('获取参考文档失败:', error);
       }
     } else {
-      // 如果选择"无"知识库，清空参考文档
       setReferenceDocuments([]);
       setShowReferences(false);
     }
@@ -396,23 +399,19 @@ const AIChat: React.FC = () => {
     const userMessage: Message = {
       id: Date.now(),
       msg_id: generateMsgId(),
-      content: formatUserInput(inputValue),
+      content: formatUserInput(text),
       isUser: true,
       timestamp: new Date(),
     };
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    const question = inputValue;
     setInputValue('');
     setLoading(true);
     setReconnectAttempts(0);
     setConnectionError(null);
 
-    // 创建SSE连接并发送消息
-    createSSEConnection(question, currentSessionId, 0); // 第一次连接，传递0作为尝试次数
-    
-    // 清除选中的消息ID
+    createSSEConnection(text, currentSessionId, 0);
     setSelectedMsgId(null);
   };
 
@@ -482,6 +481,20 @@ const AIChat: React.FC = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  /**
+   * 切换联网状态
+   */
+  const handleToggleNetwork = () => {
+    setIsNetworkEnabled(prev => !prev);
+  };
+
+  /**
+   * 切换高级设置面板
+   */
+  const handleToggleAdvancedSettings = () => {
+    setShowAdvancedSettings(prev => !prev);
   };
 
   /**
@@ -586,61 +599,7 @@ const AIChat: React.FC = () => {
     };
   }, []);
 
-  // 渲染连接状态指示器
-  const renderConnectionStatus = () => {
-    if (!loading && connectionState === SSEConnectionState.DISCONNECTED) {
-      return null;
-    }
-
-    let statusText = '';
-    let statusColor = '';
-    
-    switch (connectionState) {
-      case SSEConnectionState.CONNECTING:
-        statusText = '正在连接...';
-        statusColor = '#1890ff';
-        break;
-      case SSEConnectionState.CONNECTED:
-        statusText = '已连接';
-        statusColor = '#52c41a';
-        break;
-      case SSEConnectionState.RECONNECTING:
-        statusText = `重连中... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`;
-        statusColor = '#faad14';
-        break;
-      case SSEConnectionState.ERROR:
-        statusText = '连接错误';
-        statusColor = '#ff4d4f';
-        break;
-      default:
-        return null;
-    }
-
-    return (
-      <div style={{
-        padding: '8px 12px',
-        backgroundColor: '#f0f0f0',
-        borderRadius: '6px',
-        marginBottom: '12px',
-        fontSize: '12px',
-        color: statusColor,
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px'
-      }}>
-        <div style={{
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          backgroundColor: statusColor,
-          animation: connectionState === SSEConnectionState.CONNECTING || 
-                    connectionState === SSEConnectionState.RECONNECTING ? 
-                    'pulse 1.5s infinite' : 'none'
-        }} />
-        {statusText}
-      </div>
-    );
-  };
+  // 连接状态指示器已抽离为组件
 
   return (
     <div style={{
@@ -978,7 +937,12 @@ const AIChat: React.FC = () => {
           onScroll={handleMessageScroll}
         >
           {/* 连接状态指示器 */}
-          {renderConnectionStatus()}
+          <ConnectionStatus
+            loading={loading}
+            connectionState={connectionState}
+            reconnectAttempts={reconnectAttempts}
+            maxReconnectAttempts={MAX_RECONNECT_ATTEMPTS}
+          />
           
           {messages.map((message) => (
             <MessageItem
@@ -1059,354 +1023,73 @@ const AIChat: React.FC = () => {
       </Card>
 
       {/* 输入区域 */}
-      <div style={{ 
-        border: '1px solid #d9d9d9',
-        borderRadius: '8px',
-        padding: '12px',
-        backgroundColor: '#fafafa'
-      }}>
-        {/* 文件上传组件 */}
-        <FileUpload
-          onFilesChange={handleFilesChange}
-          onUploadComplete={handleUploadComplete}
-          disabled={loading}
-          style={{ marginBottom: currentUploadedFiles.length > 0 ? '8px' : '0' }}
-        />
-        
-        {/* 输入框 */}
-        <TextArea
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="输入你的消息... (按 Enter 发送，Shift+Enter 换行)"
-          autoSize={{ minRows: 2, maxRows: 4 }}
-          className="custom-scrollbar"
-          style={{ 
-            fontSize: isMobile ? '14px' : '16px',
-            border: 'none',
-            backgroundColor: 'transparent',
-            resize: 'none'
-          }}
-          disabled={loading}
-        />
-        
-        {/* 按钮区域 */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: '8px',
-          gap: '8px'
-        }}>
-          {/* 左侧控制区域 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* 知识库选择 */}
-            <KnowledgeSelector
-              ref={knowledgeSelectorRef}
-              value={selectedKnowledge}
-              onChange={handleKnowledgeChange}
-              style={{ width: '120px' }}
-              size="small"
-            />
+      <InputArea
+        inputValue={inputValue}
+        loading={loading}
+        selectedKnowledge={selectedKnowledge}
+        isNetworkEnabled={isNetworkEnabled}
+        showAdvancedSettings={showAdvancedSettings}
+        advancedSettings={advancedSettings}
+        currentUploadedFiles={currentUploadedFiles}
+        knowledgeSelectorRef={knowledgeSelectorRef}
+        onVoiceTranscript={(text) => sendQuestionByText(text)}
 
-            {/* 联网按钮 */}
-            <Tooltip title={isNetworkEnabled ? "关闭联网" : "开启联网"}>
-              <Button
-                type="text"
-                icon={<GlobalOutlined />}
-                onClick={() => setIsNetworkEnabled(!isNetworkEnabled)}
-                style={{
-                  border: 'none',
-                  boxShadow: 'none',
-                  color: isNetworkEnabled ? '#1890ff' : '#666',
-                  fontSize: '16px'
-                }}
-              />
-            </Tooltip>
-
-            {/* 高级设置按钮 */}
-            <Tooltip title="高级设置">
-              <Button
-                type="text"
-                icon={<SettingOutlined />}
-                onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                style={{
-                  border: 'none',
-                  boxShadow: 'none',
-                  color: showAdvancedSettings ? '#1890ff' : '#666',
-                  fontSize: '16px'
-                }}
-              />
-            </Tooltip>
-          </div>
-          
-          {/* 发送/停止按钮 */}
-          <div>
-            {loading ? (
-              <Button
-                type="text"
-                danger
-                icon={<StopOutlined />}
-                onClick={handleStop}
-                style={{
-                  border: 'none',
-                  boxShadow: 'none',
-                  color: '#ff4d4f',
-                  fontSize: '16px'
-                }}
-                title="停止"
-              />
-            ) : (
-              <Button
-                type="text"
-                icon={<SendOutlined />}
-                onClick={handleSend}
-                disabled={!inputValue.trim()}
-                style={{
-                  border: 'none',
-                  boxShadow: 'none',
-                  color: inputValue.trim() ? '#1890ff' : '#d9d9d9',
-                  fontSize: '16px'
-                }}
-                title="发送"
-              />
-            )}
-          </div>
-        </div>
-
-        {/* 高级设置面板 */}
-        {showAdvancedSettings && (
-          <div style={{
-            marginTop: '8px',
-            padding: '12px',
-            backgroundColor: '#f5f5f5',
-            borderRadius: '6px',
-            border: '1px solid #d9d9d9'
-          }}>
-            <Form layout="horizontal" size="small">
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label={`返回数量: ${advancedSettings.topK}`} style={{ marginBottom: '8px' }}>
-                    <Slider
-                      min={1}
-                      max={10}
-                      value={advancedSettings.topK}
-                      onChange={(value) => handleAdvancedSettingsChange('topK', value)}
-                      marks={{ 1: '1', 5: '5', 10: '10' }}
-                      style={{ margin: '0 8px' }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label={`相似度: ${advancedSettings.score}`} style={{ marginBottom: '8px' }}>
-                    <Slider
-                      min={0}
-                      max={1}
-                      step={0.1}
-                      value={advancedSettings.score}
-                      onChange={(value) => handleAdvancedSettingsChange('score', value)}
-                      marks={{ 0: '0', 0.5: '0.5', 1: '1' }}
-                      style={{ margin: '0 8px' }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </Form>
-          </div>
-        )}
-      </div>
+        onInputChange={setInputValue}
+        onKeyPress={handleKeyPress}
+        onSend={handleSend}
+        onStop={handleStop}
+        onToggleNetwork={handleToggleNetwork}
+        onToggleAdvancedSettings={handleToggleAdvancedSettings}
+        onKnowledgeChange={handleKnowledgeChange}
+        onFilesChange={handleFilesChange}
+        onUploadComplete={handleUploadComplete}
+        onAdvancedSettingsChange={handleAdvancedSettingsChange}
+      />
 
         </div>
 
         {/* 右侧会话信息面板 - 桌面端和平板端 */}
         {!isMobile && (
-          <div style={{
-            width: isSessionInfoCollapsed ? '50px' : (isTablet ? '240px' : '280px'),
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px'
-          }}>
-            <Card 
-              size="small" 
-              title="会话信息"
-              extra={
-                <Button
-                  type="text"
-                  icon={<FileTextOutlined />}
-                  onClick={() => setShowReferences(!showReferences)}
-                  size="small"
-                />
-              }
-            >
-              <div style={{ fontSize: isTablet ? '11px' : '12px', color: '#666' }}>
-                <div>会话ID: {currentSessionId || '未开始'}</div>
-                <div>消息数: {messages.length}</div>
-                <div>知识库: {selectedKnowledge === 'none' ? '无' : selectedKnowledge}</div>
-                <div>联网: {isNetworkEnabled ? '已开启' : '已关闭'}</div>
-                <div>参考文档: {referenceDocuments.length} 条</div>
-              </div>
-            </Card>
-
-            {/* 参考文档面板 - 右侧版本 */}
-            {showReferences && (
-              <Card 
-                size="small" 
-                title="参考文档" 
-                extra={
-                  <Button
-                    type="text"
-                    size="small"
-                    onClick={() => setShowReferences(false)}
-                  >
-                    收起
-                  </Button>
-                }
-              >
-                <div 
-                  style={{ 
-                    maxHeight: isTablet ? '300px' : '400px', 
-                    overflowY: 'auto',
-                    scrollbarWidth: 'thin',
-                    scrollbarColor: isReferenceScrolling ? '#d4d4d4 transparent' : 'transparent transparent'
-                  }}
-                  className={`custom-scrollbar ${isReferenceScrolling ? 'scrolling' : ''}`}
-                  onScroll={handleReferenceScroll}
-                >
-                  {referenceDocuments.length > 0 ? (
-                    referenceDocuments.map((doc, index) => (
-                      <Card
-                        key={doc.id}
-                        size="small"
-                        style={{ marginBottom: '8px' }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 'bold', fontSize: isTablet ? '11px' : '12px', marginBottom: '2px' }}>
-                              {doc.title}
-                            </div>
-                            <div style={{ fontSize: isTablet ? '10px' : '11px', color: '#666', marginBottom: '4px' }}>
-                              <Tag color="blue" >相似度: {(doc.similarity * 100).toFixed(1)}%</Tag>
-                              <Tag color="green" >来源: {doc.source}</Tag>
-                            </div>
-                          </div>
-                          <Tooltip title="复制内容">
-                            <Button
-                              type="text"
-                              icon={<CopyOutlined />}
-                              size="small"
-                              onClick={() => copyToClipboard(doc.content)}
-                            />
-                          </Tooltip>
-                        </div>
-                        <div style={{ fontSize: isTablet ? '10px' : '11px', color: '#333', lineHeight: '1.4' }}>
-                          <MDEditor.Markdown
-                            source={doc.content.length > (isTablet ? 60 : 80) ? doc.content.substring(0, isTablet ? 60 : 80) + '...' : doc.content}
-                            style={{ backgroundColor: 'transparent', fontSize: isTablet ? '10px' : '11px' }}
-                          />
-                        </div>
-                      </Card>
-                    ))
-                  ) : (
-                    <Empty 
-                      description="暂无参考文档"
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      style={{ margin: '20px 0' }}
-                    />
-                  )}
-                </div>
-              </Card>
-            )}
-            
+          <div
+            style={{
+              width: isSessionInfoCollapsed ? '50px' : (isTablet ? '240px' : '280px'),
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+            }}
+          >
+            <SessionInfoPanel
+              isTablet={isTablet}
+              currentSessionId={currentSessionId}
+              messagesCount={messages.length}
+              selectedKnowledge={selectedKnowledge}
+              isNetworkEnabled={isNetworkEnabled}
+              referenceDocuments={referenceDocuments}
+              showReferences={showReferences}
+              onToggleReferences={() => setShowReferences(!showReferences)}
+              isReferenceScrolling={isReferenceScrolling}
+              onReferenceScroll={handleReferenceScroll}
+              onCopyDocumentContent={copyToClipboard}
+            />
           </div>
         )}
       </div>
 
       {/* 移动端会话信息抽屉 */}
-      <Drawer
-        title="会话信息"
-        placement="right"
-        onClose={() => setSessionInfoDrawerVisible(false)}
+      <SessionInfoDrawer
         open={sessionInfoDrawerVisible}
-        width={300}
-        extra={
-          <Button
-            type="text"
-            icon={<FileTextOutlined />}
-            onClick={() => setShowReferences(!showReferences)}
-            size="small"
-          />
-          
-        }
-      >
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.6' }}>
-            <div>会话ID: {currentSessionId || '未开始'}</div>
-            <div>消息数: {messages.length}</div>
-            <div>知识库: {selectedKnowledge === 'none' ? '无' : selectedKnowledge}</div>
-            <div>联网: {isNetworkEnabled ? '已开启' : '已关闭'}</div>
-            <div>参考文档: {referenceDocuments.length} 条</div>
-          </div>
-        </div>
-
-        {/* 参考文档面板 - 移动端版本 */}
-        {showReferences && (
-          <div>
-            <Divider style={{ margin: '12px 0' }}>参考文档</Divider>
-            <div 
-              style={{ 
-                maxHeight: '400px', 
-                overflowY: 'auto',
-                scrollbarWidth: 'thin',
-                scrollbarColor: isReferenceScrolling ? '#d4d4d4 transparent' : 'transparent transparent'
-              }}
-              className={`custom-scrollbar ${isReferenceScrolling ? 'scrolling' : ''}`}
-              onScroll={handleReferenceScroll}
-            >
-              {referenceDocuments.length > 0 ? (
-                referenceDocuments.map((doc, index) => (
-                  <Card
-                    key={doc.id}
-                    size="small"
-                    style={{ marginBottom: '8px' }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 'bold', fontSize: '11px', marginBottom: '2px' }}>
-                          {doc.title}
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>
-                          <Tag color="blue">相似度: {(doc.similarity * 100).toFixed(1)}%</Tag>
-                          <Tag color="green">来源: {doc.source}</Tag>
-                        </div>
-                      </div>
-                      <Tooltip title="复制内容">
-                        <Button
-                          type="text"
-                          icon={<CopyOutlined />}
-                          size="small"
-                          onClick={() => copyToClipboard(doc.content)}
-                        />
-                      </Tooltip>
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#333', lineHeight: '1.4' }}>
-                      <MDEditor.Markdown
-                        source={doc.content.length > 60 ? doc.content.substring(0, 60) + '...' : doc.content}
-                        style={{ backgroundColor: 'transparent', fontSize: '10px' }}
-                      />
-                    </div>
-                  </Card>
-                ))
-              ) : (
-                <Empty 
-                  description="暂无参考文档"
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  style={{ margin: '20px 0' }}
-                />
-              )}
-            </div>
-          </div>
-        )}
-      </Drawer>
+        onClose={() => setSessionInfoDrawerVisible(false)}
+        showReferences={showReferences}
+        onToggleReferences={() => setShowReferences(!showReferences)}
+        currentSessionId={currentSessionId}
+        messagesCount={messages.length}
+        selectedKnowledge={selectedKnowledge}
+        isNetworkEnabled={isNetworkEnabled}
+        referenceDocuments={referenceDocuments}
+        isReferenceScrolling={isReferenceScrolling}
+        onReferenceScroll={handleReferenceScroll}
+        onCopyDocumentContent={copyToClipboard}
+      />
       
       
     </div>

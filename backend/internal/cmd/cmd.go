@@ -8,6 +8,7 @@ import (
 	"backend/internal/controller/rag"
 	"backend/internal/controller/regular_update"
 	"backend/internal/controller/voice"
+	"backend/internal/controller/ws"
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -31,6 +32,9 @@ var (
 
 			// Health check and observability endpoints
 			s.Group("/", func(group *ghttp.RouterGroup) {
+				group.GET("/ws", func(r *ghttp.Request) {
+					ws.WsHandler(r.Response.ResponseWriter, r.Request)
+				})
 				group.GET("/healthz", func(r *ghttp.Request) {
 					r.Response.WriteJson(g.Map{"status": "ok", "timestamp": gtime.Now().Unix()})
 				})
@@ -69,11 +73,6 @@ var (
 					voice.NewV1(),
 				)
 
-				// Add WebSocket endpoint
-				group.GET("/ws", func(r *ghttp.Request) {
-					// Placeholder for WebSocket upgrade - will reference ws.WsHandler
-					r.Response.Write("WebSocket endpoint")
-				})
 			})
 
 			s.Run()
