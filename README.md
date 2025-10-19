@@ -128,7 +128,7 @@ studyCoach/
 1. 克隆仓库
 
 ```bash
-git clone <repository-url>
+git clone [<repository-url>](https://github.com/VH992098059/StudyCoach.git)
 cd studyCoach
 ```
 
