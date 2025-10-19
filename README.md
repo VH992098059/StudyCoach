@@ -100,7 +100,7 @@ studyCoach/
 
 - Go 1.24、GoFrame v2、Eino（多模型集成）
 - PostgreSQL、Redis、Elasticsearch、MinIO
-- 并发与稳定性：`errgroup + 信号量`、`singleflight`、HTTP 连接池（最大 100）、超时与重试策略、错误恢复
+
 
 ### AI 技术栈
 

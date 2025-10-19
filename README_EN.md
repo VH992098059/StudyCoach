@@ -100,7 +100,6 @@ studyCoach/
 
 - Go 1.24, GoFrame v2, Eino (multi-model integration)
 - PostgreSQL, Redis, Elasticsearch, MinIO
-- Concurrency & stability: `errgroup + semaphore`, `singleflight`, HTTP connection pool (max 100), timeouts & retries, panic recovery
 
 ### AI Stack
 
