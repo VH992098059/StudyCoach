@@ -152,21 +152,12 @@ go run main.go
 
 ```bash
 cd general-template
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 > 语音功能：后端已集成 TTS（硅基流动 API）与本地 ASR（SenseVoice），前端包含录音与播放组件，可直接体验语音朗读与通话。
 
-### Docker 部署
-
-提供完整的 Docker 部署方案：
-
-```bash
-docker-compose up -d
-```
-
-访问：`http://localhost`
 
 ## 🔧 性能优化配置
 
