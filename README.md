@@ -1,5 +1,7 @@
 # StudyCoach - AI智能学习助手
 
+[中文](./README.md) | [English](./README_EN.md)
+
 <div align="center">
 
 ![StudyCoach Logo](https://img.shields.io/badge/StudyCoach-AI%20Learning%20Assistant-blue?style=for-the-badge)
@@ -177,7 +179,6 @@ docker-compose up -d
 - 内容抓取超时：30 秒
 
 对应文件：
-
 - 前端超时：`general-template/src/utils/axios/config.ts`
 - 后端超时：`studyCoach/rerank/rerank.go`, `studyCoach/api/retriever.go`
 - 其他超时：`studyCoach/api/openai.go`, `studyCoach/configTool/maincontent.go`
