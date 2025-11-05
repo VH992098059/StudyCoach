@@ -101,10 +101,13 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     if (disabled || working) return;
     stoppedRef.current = false;
     fetchAbortRef.current = new AbortController();
+    console.log(window.location.href);
+    
     try {
+      //使用VAD识别语音
       const vad = await MicVAD.new({
-        onnxWASMBasePath: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/",
-        baseAssetPath: "https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@0.0.27/dist/",
+        onnxWASMBasePath: window.location.href+"node_modules/onnxruntime-web/dist/",
+        baseAssetPath: window.location.href+"node_modules/@ricky0123/vad-web/dist/",
         positiveSpeechThreshold: 0.6,
         negativeSpeechThreshold: 0.35,
         minSpeechMs: 800,

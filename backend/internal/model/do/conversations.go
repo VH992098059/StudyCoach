@@ -11,12 +11,12 @@ import (
 // Conversations is the golang structure of table conversations for DAO operations like Where/Data.
 type Conversations struct {
 	g.Meta     `orm:"table:conversations, do:true"`
-	Id         interface{} //
-	ConvId     interface{} //
-	Title      interface{} //
-	CreatedAt  interface{} //
-	UpdatedAt  interface{} //
-	Settings   interface{} //
-	IsArchived interface{} //
-	IsPinned   interface{} //
+	Id         any //
+	ConvId     any //
+	Title      any //
+	CreatedAt  any //
+	UpdatedAt  any //
+	Settings   any //
+	IsArchived any //
+	IsPinned   any //
 }

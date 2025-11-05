@@ -136,3 +136,28 @@ func DeleteDocument(ctx context.Context, id int64) error {
 		return nil
 	})
 }
+func DeleteDocumentByKB(ctx context.Context, id int64) error {
+	var knowledgeDoc entity.KnowledgeDocuments
+	var knowledgeBase entity.KnowledgeBase
+	dao.KnowledgeBase.Ctx(ctx).Where("id", id).Fields("name").Scan(&knowledgeBase)
+	dao.KnowledgeDocuments.Ctx(ctx).Where("knowledge_base_name", knowledgeBase.Name).Fields("id").Scan(&knowledgeDoc)
+	return dao.KnowledgeDocuments.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		//删除块
+		_, err := dao.KnowledgeChunks.Ctx(ctx).TX(tx).Where("knowledge_doc_id", knowledgeDoc.Id).Delete()
+		if err != nil {
+			g.Log().Errorf(ctx, "删除文档块失败: ID=%d, 错误: %v", knowledgeDoc.Id, err)
+			return fmt.Errorf("删除文档块失败: %w", err)
+		}
+		//删除文档
+		result, err := dao.KnowledgeDocuments.Ctx(ctx).TX(tx).Where("id", knowledgeDoc.Id).Delete()
+		if err != nil {
+			return err
+		}
+		_, err = result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("获取影响行数失败: %w", err)
+		}
+		g.Log().Infof(ctx, "文档删除成功: name=%s", knowledgeBase.Name)
+		return nil
+	})
+}

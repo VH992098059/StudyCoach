@@ -1,7 +1,6 @@
 package regular_update
 
 import (
-	"backend/studyCoach/configTool"
 	"context"
 
 	"github.com/cloudwego/eino/components/tool"
@@ -10,14 +9,14 @@ import (
 )
 
 // newLambda component initialization function of node 'Lambda2' in graph 'RegularUpdate'
-func newLambda(ctx context.Context, conf *configTool.Config) (lba *compose.Lambda, err error) {
+func newLambda(ctx context.Context) (lba *compose.Lambda, err error) {
 	// TODO Modify component configuration here.
 	config := &react.AgentConfig{}
-	chatModelIns11, err := newChatModel(ctx, conf)
+	chatModelIns11, err := newChatModel(ctx)
 	if err != nil {
 		return nil, err
 	}
-	config.ToolCallingModel = chatModelIns11
+	config.Model = chatModelIns11
 	toolIns21, err := newTool(ctx)
 	if err != nil {
 		return nil, err

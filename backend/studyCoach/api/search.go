@@ -136,7 +136,7 @@ func SearchConcurrentlyWithCache(ctx context.Context, input string) []string {
 	return sources
 }
 
-// 执行实际搜索
+// PerformSearch 执行实际搜索
 func PerformSearch(ctx context.Context, input string) ([]string, error) {
 	searchTool, err := eino2.NewTool(ctx)
 	if err != nil {

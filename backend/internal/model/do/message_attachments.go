@@ -11,7 +11,7 @@ import (
 // MessageAttachments is the golang structure of table message_attachments for DAO operations like Where/Data.
 type MessageAttachments struct {
 	g.Meta       `orm:"table:message_attachments, do:true"`
-	Id           interface{} //
-	MessageId    interface{} //
-	AttachmentId interface{} //
+	Id           any //
+	MessageId    any //
+	AttachmentId any //
 }

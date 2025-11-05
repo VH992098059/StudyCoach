@@ -11,7 +11,6 @@ import { MessageItem, MarkdownRenderer, defaultCopyAiMessage, SessionInfoPanel, 
 import { voiceService, type VoiceState } from '../../services/voice';
 import ConnectionStatus from './components/ConnectionStatus';
 import InputArea from './components/InputArea';
-import MicRecorderButton from './components/MicRecorderButton';
 
 const { Title } = Typography;
 const { Panel } = Collapse;

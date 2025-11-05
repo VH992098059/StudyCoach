@@ -12,11 +12,11 @@ import (
 // DocumentVectors is the golang structure of table document_vectors for DAO operations like Where/Data.
 type DocumentVectors struct {
 	g.Meta     `orm:"table:document_vectors, do:true"`
-	Id         interface{} //
-	Content    interface{} //
-	Vector     interface{} //
-	Metadata   interface{} //
-	SourceType interface{} //
+	Id         any         //
+	Content    any         //
+	Vector     any         //
+	Metadata   any         //
+	SourceType any         //
 	CreatedAt  *gtime.Time //
 	UpdatedAt  *gtime.Time //
 }

@@ -12,12 +12,12 @@ import (
 // KnowledgeChunks is the golang structure of table knowledge_chunks for DAO operations like Where/Data.
 type KnowledgeChunks struct {
 	g.Meta         `orm:"table:knowledge_chunks, do:true"`
-	Id             interface{} //
-	KnowledgeDocId interface{} //
-	ChunkId        interface{} //
-	Content        interface{} //
-	Ext            interface{} //
-	Status         interface{} //
+	Id             any         //
+	KnowledgeDocId any         //
+	ChunkId        any         //
+	Content        any         //
+	Ext            any         //
+	Status         any         //
 	CreatedAt      *gtime.Time //
 	UpdatedAt      *gtime.Time //
 }

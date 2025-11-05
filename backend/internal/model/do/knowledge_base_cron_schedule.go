@@ -12,9 +12,9 @@ import (
 // KnowledgeBaseCronSchedule is the golang structure of table knowledge_base_cron_schedule for DAO operations like Where/Data.
 type KnowledgeBaseCronSchedule struct {
 	g.Meta          `orm:"table:knowledge_base_cron_schedule, do:true"`
-	Id              interface{} //
-	KnowledgeBaseId interface{} //
-	CronExpression  interface{} //
+	Id              any         //
+	KnowledgeBaseId any         //
+	CronExpression  any         //
 	CreatedAt       *gtime.Time //
 	UpdatedAt       *gtime.Time //
 }

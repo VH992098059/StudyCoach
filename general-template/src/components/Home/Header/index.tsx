@@ -115,8 +115,8 @@ const Header: React.FC<HeaderProps> = ({
         return ['chunks'];
       case '/retriever':
         return ['retriever'];
-      case '/about':
-        return ['about'];
+      case '/cron':
+        return ['cronpage'];
       default:
         return [];
     }
@@ -148,8 +148,8 @@ const Header: React.FC<HeaderProps> = ({
       case 'retriever':
         navigate('/retriever');
         break;
-      case 'about':
-        navigate('/about');
+      case 'cronpage':
+        navigate('/cron');
         break;
       default:
         break;

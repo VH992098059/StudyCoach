@@ -1,0 +1,49 @@
+.cron-page {
+  padding: 16px;
+}
+
+.cron-stack {
+  width: 100%;
+}
+
+.cron-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 992px) {
+  .cron-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.section-card {
+  width: 100%;
+}
+
+.actions {
+  margin-top: 8px;
+}
+
+.status-label {
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 12px;
+}
+
+.status-value {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.cron-page .ant-statistic .ant-statistic-content-value {
+  font-size: 16px;
+}
+
+.error-detail {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 12px;
+  overflow: auto;
+}

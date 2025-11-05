@@ -81,7 +81,14 @@ const KnowledgeBase: React.FC = () => {
   // 显示新建对话框
   const showAddDialog = () => {
     setIsEdit(false);
+    // 重置并确保表单字段全部清空
     resetForm();
+    form.setFieldsValue({
+      name: '',
+      description: '',
+      category: '',
+      isNetwork: undefined,
+    });
     setDialogVisible(true);
   };
 
@@ -241,6 +248,7 @@ const KnowledgeBase: React.FC = () => {
             size="small" 
             icon={<PlusOutlined />}
             onClick={showAddDialog}
+            style={{height:"33px"}}
           >
             新建知识库
           </Button>
@@ -270,6 +278,7 @@ const KnowledgeBase: React.FC = () => {
       <Modal
         title={isEdit ? '编辑知识库' : '新建知识库'}
         open={dialogVisible}
+        destroyOnHidden
         onCancel={() => {
           setDialogVisible(false);
           resetForm();
@@ -320,7 +329,7 @@ const KnowledgeBase: React.FC = () => {
           >
             <Input placeholder="请输入知识库分类" />
           </Form.Item>
-          
+      
           {isEdit && (
             <Form.Item
               label="状态"
