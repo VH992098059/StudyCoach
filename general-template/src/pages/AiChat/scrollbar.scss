@@ -1,50 +1,158 @@
-/* 自定义滚动条样式 */
-.custom-scrollbar {
-  /* Firefox */
+/* 现代化滚动条样式 - 响应式设计 */
+
+// 颜色变量
+:root {
+  --scrollbar-width: 8px;
+  --scrollbar-width-mobile: 6px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.4);
+  --scrollbar-thumb-active: rgba(0, 0, 0, 0.6);
+}
+
+// 暗色主题
+@media (prefers-color-scheme: dark) {
+  :root {
+    --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
+    --scrollbar-thumb-active: rgba(255, 255, 255, 0.6);
+  }
+}
+
+/* Firefox 滚动条 */
+* {
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
-.custom-scrollbar:hover {
-  scrollbar-color: #d4d4d4 transparent;
+/* Webkit 浏览器滚动条 (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+  
+  @media (max-width: 768px) {
+    width: var(--scrollbar-width-mobile);
+    height: var(--scrollbar-width-mobile);
+  }
 }
 
-/* Webkit browsers (Chrome, Safari, Edge) */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: calc(var(--scrollbar-width) / 2);
+  
+  @media (max-width: 768px) {
+    border-radius: calc(var(--scrollbar-width-mobile) / 2);
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: calc(var(--scrollbar-width) / 2);
+  transition: all 0.2s ease;
+  
+  @media (max-width: 768px) {
+    border-radius: calc(var(--scrollbar-width-mobile) / 2);
+  }
+  
+  &:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+  
+  &:active {
+    background: var(--scrollbar-thumb-active);
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
+::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
 }
 
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background: #d4d4d4;
+/* 特定容器的滚动条样式 */
+.messages-container {
+  &::-webkit-scrollbar {
+    width: 6px;
+    
+    @media (max-width: 768px) {
+      width: 4px;
+    }
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 3px;
+    
+    @media (max-width: 768px) {
+      border-radius: 2px;
+    }
+    
+    &:hover {
+      background: var(--scrollbar-thumb-hover);
+    }
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #b8b8b8;
+.chat-sidebar {
+  .session-list {
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 2px;
+      
+      &:hover {
+        background: var(--scrollbar-thumb-hover);
+      }
+    }
+  }
 }
 
-/* 滚动时显示滚动条 */
-.custom-scrollbar.scrolling::-webkit-scrollbar-thumb {
-  background: #d4d4d4;
+/* 滚动时的增强样式 */
+.scrolling {
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-hover);
+    transition: background-color 0.1s ease;
+  }
 }
 
-.custom-scrollbar.scrolling {
-  scrollbar-color: #d4d4d4 transparent;
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-hover);
+    min-height: 40px;
+  }
 }
 
-/* 平滑过渡效果 */
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  transition: background-color 0.3s ease, opacity 0.3s ease;
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  :root {
+    --scrollbar-thumb: rgba(0, 0, 0, 0.8);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 1);
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --scrollbar-thumb: rgba(255, 255, 255, 0.8);
+      --scrollbar-thumb-hover: rgba(255, 255, 255, 1);
+    }
+  }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+  ::-webkit-scrollbar-thumb {
+    transition: none;
+  }
+  
+  .scrolling ::-webkit-scrollbar-thumb {
+    transition: none;
+  }
 }
 
 /* AI Markdown 内容样式 */
@@ -81,21 +189,4 @@
   white-space: pre-wrap !important;
   word-wrap: break-word !important;
   line-height: 1.6 !important;
-}
-
-/* 更细致的滚动条样式 */
-.custom-scrollbar::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* 响应式设计 - 移动端隐藏滚动条 */
-@media (max-width: 768px) {
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 0px;
-    background: transparent;
-  }
-  
-  .custom-scrollbar {
-    scrollbar-width: none;
-  }
 }

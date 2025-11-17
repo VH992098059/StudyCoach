@@ -1,0 +1,89 @@
+.cron-page {
+  padding: 16px;
+}
+
+.cron-stack {
+  width: 100%;
+}
+
+.cron-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 992px) {
+  .cron-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.section-card {
+  width: 100%;
+}
+
+.actions {
+  margin-top: 8px;
+}
+
+.status-label {
+  color: rgba(0, 0, 0, 0.65);
+  font-size: 12px;
+}
+
+.status-value {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.cron-page .ant-statistic .ant-statistic-content-value {
+  font-size: 16px;
+}
+
+.error-detail {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 12px;
+  overflow: auto;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .cron-page {
+    padding: 12px;
+  }
+  .cron-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .actions .ant-btn {
+    width: 100%;
+  }
+  .cron-page .ant-form-item {
+    margin-bottom: 12px;
+  }
+  .cron-page .ant-radio-group {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .cron-page .ant-select,
+  .cron-page .ant-picker,
+  .cron-page .ant-input {
+    width: 100% !important;
+  }
+  .cron-page .ant-statistic .ant-statistic-content-value {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 576px) {
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}

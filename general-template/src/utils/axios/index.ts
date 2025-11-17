@@ -2,6 +2,8 @@ import axios, { type AxiosInstance} from 'axios';
 import { API_CONFIG } from './config';
 import { requestInterceptor, responseInterceptor } from './interceptors';
 import type { RequestConfig } from './types';
+// 注意：某些情况下浏览器开发工具会代理 XMLHttpRequest 并对 blob/arraybuffer 的 responseText 访问抛错。
+// 为此我们提供一个基于 fetch 的二进制请求辅助方法，以避免 XHR 代理造成的干扰。
 
 /**
  * 创建 axios 实例
@@ -62,6 +64,46 @@ export class ApiClient {
     config?: RequestConfig
   ): Promise<T> {
     return http.post(url, data, config);
+  }
+
+  /**
+   * POST 请求，返回 Blob（二进制），内部使用 fetch 以避免 XHR 的 responseText 读取错误
+   */
+  static async postBlob(
+    url: string,
+    data?: any,
+    config?: RequestConfig
+  ): Promise<Blob> {
+    const base = API_CONFIG.BASE_URL.replace(/\/$/, '');
+    const path = url.startsWith('/') ? url : `/${url}`;
+    const fullUrl = `${base}${path}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(config?.headers || {}),
+    };
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const showLoading = config?.showLoading !== false;
+    if (showLoading) {
+      console.log('Request started (blob):', fullUrl);
+    }
+    const resp = await fetch(fullUrl, {
+      method: 'POST',
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      // 允许通过 RequestConfig.signal 取消请求
+      signal: config?.signal,
+    });
+    if (showLoading) {
+      console.log('Request completed (blob):', fullUrl);
+    }
+    if (!resp.ok) {
+      const msg = `请求失败 (${resp.status})`;
+      throw new Error(msg);
+    }
+    return await resp.blob();
   }
 
   /**

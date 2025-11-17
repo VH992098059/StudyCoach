@@ -20,10 +20,10 @@ func BuildstudyCoachFor(ctx context.Context, conf *configTool.Config) (r compose
 		TaskChatTemplate                = "TaskChatTemplate"
 		ReActLambda                     = "ReActLambda"
 		ToStudyChatTemplate             = "ToStudyChatTemplate"
-		ToStudyChatModel                = "ToStudyChatModel"
 		NormalChatTemplate              = "NormalChatTemplate"
-		NormalChatModel                 = "NormalChatModel"
 		EmotionAndCompanionShipTemplate = "EmotionAndCompanionShipTemplate"
+		ToStudyChatModel                = "ToStudyChatModel"
+		NormalChatModel                 = "NormalChatModel"
 	)
 	g := compose.NewGraph[map[string]any, *schema.Message]()
 	analysisChatTemplateKeyOfChatTemplate, err := newChatTemplate(ctx)
@@ -60,31 +60,31 @@ func BuildstudyCoachFor(ctx context.Context, conf *configTool.Config) (r compose
 		return nil, err
 	}
 	_ = g.AddChatTemplateNode(ToStudyChatTemplate, toStudyChatTemplateKeyOfChatTemplate)
-	toStudyChatModelKeyOfChatModel, err := newChatModel3(ctx, conf)
-	if err != nil {
-		return nil, err
-	}
-	_ = g.AddChatModelNode(ToStudyChatModel, toStudyChatModelKeyOfChatModel)
 	normalChatTemplateKeyOfChatTemplate, err := newChatTemplate3(ctx)
 	if err != nil {
 		return nil, err
 	}
 	_ = g.AddChatTemplateNode(NormalChatTemplate, normalChatTemplateKeyOfChatTemplate)
-	normalChatModelKeyOfChatModel, err := newChatModel4(ctx, conf)
-	if err != nil {
-		return nil, err
-	}
-	_ = g.AddChatModelNode(NormalChatModel, normalChatModelKeyOfChatModel)
 	emotionAndCompanionShipTemplateKeyOfChatTemplate, err := newChatTemplate4(ctx)
 	if err != nil {
 		return nil, err
 	}
 	_ = g.AddChatTemplateNode(EmotionAndCompanionShipTemplate, emotionAndCompanionShipTemplateKeyOfChatTemplate)
+	toStudyChatModelKeyOfLambda, err := newLambda5(ctx, conf)
+	if err != nil {
+		return nil, err
+	}
+	_ = g.AddLambdaNode(ToStudyChatModel, toStudyChatModelKeyOfLambda)
+	normalChatModelKeyOfLambda, err := newLambda6(ctx, conf)
+	if err != nil {
+		return nil, err
+	}
+	_ = g.AddLambdaNode(NormalChatModel, normalChatModelKeyOfLambda)
 	_ = g.AddEdge(compose.START, AnalysisChatTemplate)
-	_ = g.AddEdge(NormalChatModel, compose.END)
 	_ = g.AddEdge(EmotionAndCompanionChatModel, compose.END)
-	_ = g.AddEdge(ToStudyChatModel, compose.END)
 	_ = g.AddEdge(ReActLambda, compose.END)
+	_ = g.AddEdge(ToStudyChatModel, compose.END)
+	_ = g.AddEdge(NormalChatModel, compose.END)
 	_ = g.AddEdge(AnalysisChatTemplate, AnalysisChatModel)
 	_ = g.AddEdge(EmotionAndCompanionShipLambda, EmotionAndCompanionShipTemplate)
 	_ = g.AddEdge(ChatLambda, TaskChatTemplate)

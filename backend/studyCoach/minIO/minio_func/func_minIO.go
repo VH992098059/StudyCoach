@@ -23,22 +23,25 @@ var (
 )
 
 // SearchObjectsMinIO 根据模式搜索MinIO中的对象
-func SearchObjectsMinIO(config config_minio.MinIOConfig, pattern string) ([]string, error) {
+func SearchObjectsMinIO(ctx context.Context, config config_minio.MinIOConfig, pattern string) ([]string, error) {
 	//创建连接minio客户端
 	client, err := config_minio.CreateMinio(config)
 	if err != nil {
 		return nil, err
 	}
-	//创建ctx
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
 	//查询存储桶是否存在
 	exists, err := client.BucketExists(ctx, config.BucketName)
 	if err != nil {
 		return nil, fmt.Errorf("存储桶查询失败：%w", err)
 	}
 	if !exists {
-		return nil, fmt.Errorf("存储桶 %s 不存在", config.BucketName)
+		err = client.MakeBucket(ctx, config.BucketName, minio.MakeBucketOptions{Region: "china"})
+		if err != nil {
+			return nil, fmt.Errorf("存储桶 %s 创建失败", config.BucketName)
+		}
+		log.Printf("存储桶 %s 创建成功", config.BucketName)
+	} else {
+		log.Printf("存储桶 %s 已存在", config.BucketName)
 	}
 	// 列出存储桶中的所有对象
 	objectCh := client.ListObjects(ctx, config.BucketName, minio.ListObjectsOptions{
@@ -59,20 +62,18 @@ func SearchObjectsMinIO(config config_minio.MinIOConfig, pattern string) ([]stri
 }
 
 // DownloadFromMinIOToMemory 从minio图片下载到内存
-func DownloadFromMinIOToMemory(config config_minio.MinIOConfig, objectName string) ([]byte, error) {
+func DownloadFromMinIOToMemory(ctx context.Context, config config_minio.MinIOConfig, objectName string) ([]byte, error) {
 	//创建连接minio客户端
 	client, err := config_minio.CreateMinio(config)
 	if err != nil {
 		return nil, err
 	}
-	//创建ctx
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
 	object, err := client.GetObject(ctx, config.BucketName, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("获取对象失败：%w", err)
 	}
 	defer object.Close()
+	//读取文件
 	data, err := io.ReadAll(object)
 	if err != nil {
 		return nil, fmt.Errorf("读取对象数据失败：%w", err)
@@ -82,8 +83,8 @@ func DownloadFromMinIOToMemory(config config_minio.MinIOConfig, objectName strin
 }
 
 // DownloadFromMinIOByPattern 通过模糊匹配下载文件到内存
-func DownloadFromMinIOByPattern(config config_minio.MinIOConfig, pattern string) (map[string][]byte, error) {
-	matchedObjects, err := SearchObjectsMinIO(config, pattern)
+func DownloadFromMinIOByPattern(ctx context.Context, config config_minio.MinIOConfig, pattern string) (map[string][]byte, error) {
+	matchedObjects, err := SearchObjectsMinIO(ctx, config, pattern)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func DownloadFromMinIOByPattern(config config_minio.MinIOConfig, pattern string)
 		return nil, fmt.Errorf("未找到匹配模式 '%s' 的文件", pattern)
 	}
 	if len(matchedObjects) == 1 {
-		data, err := DownloadFromMinIOToMemory(config, matchedObjects[0])
+		data, err := DownloadFromMinIOToMemory(ctx, config, matchedObjects[0])
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +118,7 @@ func DownloadFromMinIOByPattern(config config_minio.MinIOConfig, pattern string)
 		go func() {
 			defer wg.Done()
 			for objectName := range tasks {
-				data, err := DownloadFromMinIOToMemory(config, objectName)
+				data, err := DownloadFromMinIOToMemory(ctx, config, objectName)
 				results <- downloadResult{
 					objectName: objectName,
 					data:       data,
@@ -170,7 +171,7 @@ func UploadMinIO(config config_minio.MinIOConfig, imagePath string) (string, err
 		}
 	}
 	objectName := generateObjectName(filepath.Base(imagePath))
-	contentType := getContentType(filepath.Ext(imagePath))
+	contentType := GetContentType(filepath.Ext(imagePath))
 
 	//上传文件
 	file, err := os.Open(imagePath)
@@ -207,7 +208,8 @@ func generateObjectName(filename string) string {
 	name := time.Now().Format("20060102-150405") + "-" + filename[:len(filename)-len(ext)]
 	return fmt.Sprintf("%s%s", name, ext)
 }
-func getContentType(ext string) string {
+
+func GetContentType(ext string) string {
 	switch ext {
 	case ".jpg", ".jpeg":
 		{
@@ -227,6 +229,7 @@ func getContentType(ext string) string {
 // ResumableUploadFile 断点上传
 func ResumableUploadFile(config config_minio.MinIOConfig, filePath string) (minio.UploadInfo, string, error) {
 	objectName := generateObjectName(filepath.Base(filePath))
+	log.Println(objectName)
 	createMinio, err := config_minio.CreateMinio(config)
 	if err != nil {
 		return minio.UploadInfo{}, "", err
@@ -247,9 +250,8 @@ func ResumableUploadFile(config config_minio.MinIOConfig, filePath string) (mini
 	if err != nil {
 		return minio.UploadInfo{}, "", err
 	}
-
 	log.Printf("上传成功 %s 大小为 %d\n", objectName, object.Size)
-	fileURL := fmt.Sprintf("https://%s/%s/%s", config.EndpointAddr, config.BucketName, objectName)
+	fileURL := fmt.Sprintf("http://%s/%s/%s", config.EndpointAddr, config.BucketName, objectName)
 	return object, fileURL, nil
 }
 
@@ -389,4 +391,29 @@ func BatchResumableDownload(config config_minio.MinIOConfig, objectNames []strin
 	}()
 
 	return results
+}
+
+// SaveMarkdown 存储md文件
+func SaveMarkdown(ctx context.Context, config config_minio.MinIOConfig) (result string, err error) {
+	//创建连接minio客户端
+	client, err := config_minio.CreateMinio(config)
+	if err != nil {
+		return "", err
+	}
+	//查询存储桶是否存在
+	exists, err := client.BucketExists(ctx, config.BucketName)
+	if err != nil {
+		return "", fmt.Errorf("存储桶查询失败：%w", err)
+	}
+	if !exists {
+		err = client.MakeBucket(ctx, config.BucketName, minio.MakeBucketOptions{Region: "china"})
+		if err != nil {
+			return "", fmt.Errorf("存储桶 %s 创建失败", config.BucketName)
+		}
+		log.Printf("存储桶 %s 创建成功", config.BucketName)
+	} else {
+		log.Printf("存储桶 %s 已存在", config.BucketName)
+	}
+
+	return
 }

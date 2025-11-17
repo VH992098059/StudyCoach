@@ -12,11 +12,11 @@
 export const ROUTES = {
   AICHAT: '/',
   KNOWLEDGEBASE: '/knowledgebase',
-  ABOUT: '/about',
   LOGIN: '/login',
   REGISTER: '/register',
   RESET_PASSWORD: '/reset-password',
   NOT_FOUND: '/404',
+  CRON_PAGE:'/cron'
 } as const;
 
 /**
@@ -69,16 +69,6 @@ export const routeConfigs: RouteConfig[] = [
     },
   },
   {
-    path: ROUTES.ABOUT,
-    name: 'about',
-    component: 'About',
-    meta: {
-      title: '关于我们 - 通用模板',
-      description: '了解我们的团队和企业文化',
-      keywords: ['关于', '团队', '企业'],
-    },
-  },
-  {
     path: ROUTES.LOGIN,
     name: 'login',
     component: 'Login',
@@ -96,6 +86,16 @@ export const routeConfigs: RouteConfig[] = [
       title: '用户注册 - 通用模板',
       description: '创建新的用户账户',
       keywords: ['注册', '新用户', '账户创建'],
+    },
+  },
+  {
+    path:ROUTES.CRON_PAGE,
+    name: 'cronpage',
+    component: 'CronPage',
+    meta: {
+      title: 'Cron 管理 - 通用模板',
+      description: '管理定时任务',
+      keywords: ['Cron', '定时任务', '管理'],
     },
   },
   {

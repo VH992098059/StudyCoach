@@ -9,18 +9,24 @@ export default defineConfig({
     outDir: 'build',
     emptyOutDir: true,
   },
-  server:{
-    host:'0.0.0.0',
-    port:5173,
+  // 预优化依赖，确保 onnxruntime-web 在开发环境中被正确预打包
+  optimizeDeps: {
+    include: ['onnxruntime-web']
+  },
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
     strictPort: true, // 如果端口被占用则失败，而不是尝试其他端口
     open: false, // Tauri开发模式下不需要自动打开浏览器
-    proxy:{
-      '/*': { //当有 /api开头的地址是，代理到target地址
-        target: 'http://localhost:8000', // 需要跨域代理的本地路径
-        changeOrigin: true, //是否改变请求源头
+    proxy: {
+      // 仅代理 WebSocket，不再代理所有顶级路径，避免静态模块被错误代理到后端
+      '/ws': {
+        target: 'ws://localhost:8000', // 需要跨域代理的本地路径
         ws: true,
         rewrite: (path) => path.replace(/^\/*/, ''),
-      }
+      },
+      // 如需代理后端 HTTP 接口，请在此按需添加精确前缀，例如：
+      // '/gateway': { target: 'http://localhost:8000', changeOrigin: true }
     }
   }
 })

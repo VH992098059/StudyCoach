@@ -1,8 +1,6 @@
 /**
  * @fileoverview 头部导航组件
  * @description 应用的顶部导航栏，包含Logo、导航菜单、用户操作区域和移动端适配
- * @author 开发团队
- * @version 1.0.0
  */
 
 import React, { useState } from 'react';
@@ -117,8 +115,8 @@ const Header: React.FC<HeaderProps> = ({
         return ['chunks'];
       case '/retriever':
         return ['retriever'];
-      case '/about':
-        return ['about'];
+      case '/cron':
+        return ['cronpage'];
       default:
         return [];
     }
@@ -150,8 +148,8 @@ const Header: React.FC<HeaderProps> = ({
       case 'retriever':
         navigate('/retriever');
         break;
-      case 'about':
-        navigate('/about');
+      case 'cronpage':
+        navigate('/cron');
         break;
       default:
         break;

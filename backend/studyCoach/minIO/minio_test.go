@@ -1,17 +1,18 @@
-package main
+package test
 
 import (
 	"backend/studyCoach/minIO/config_minio"
 	"backend/studyCoach/minIO/minio_func"
 	"fmt"
 	"log"
+	"testing"
 )
 
-func main() {
+func TestMinIO(T *testing.T) {
 	config := config_minio.MinIOConfig{
 		EndpointAddr:    "localhost:9000",
 		AccessKeyID:     "minioadmin",
-		SecretAccessKey: "minioadmin",
+		SecretAccessKey: "770880520",
 		UseSSL:          false,
 		BucketName:      "images",
 	}
@@ -21,9 +22,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("图片上传错误：%v", err)
 	}
-	fmt.Printf("图片已成功上传！访问URL：%s\n文件上传信息：%s\n", fileURL, io)
+	fmt.Printf("图片已成功上传！访问URL：%s\n文件上传信息：%s\n", fileURL, io.Location)
 
-	fileToDownload := []string{"20250909-115057-VPcGsmE-battlefield-wallpaper_waifu2x_noise2_scale_x2.0.png"}
+	fileToDownload := []string{"20251116-002514-VPcGsmE-battlefield-wallpaper_waifu2x_noise2_scale_x2.0.png"}
 	downloadDir := "./my_downloads"
 
 	downloadResults := minio_func.BatchResumableDownload(config, fileToDownload, downloadDir, 3)

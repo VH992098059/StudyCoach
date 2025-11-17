@@ -15,7 +15,6 @@ import type { MenuProps } from 'antd';
  * 懒加载页面组件
  * @description 使用React.lazy实现代码分割，提高应用性能
  */
-const About = React.lazy(() => import('../pages/About'));
 const AiChat = React.lazy(() => import('../pages/AiChat'));
 const KnowledgeBase = React.lazy(() => import('../pages/KnowledgeBase'));
 const Indexer = React.lazy(() => import('../pages/KnowledgeBase/Indexer'));
@@ -26,7 +25,7 @@ const NotFound = React.lazy(() => import('../pages/NotFound'));
 const Login = React.lazy(() => import('../pages/Login'));
 const Register = React.lazy(() => import('../pages/Register'));
 const ResetPassword = React.lazy(() => import('../pages/Auth/ResetPassword'));
-
+const CronPage=React.lazy(()=>import('../pages/Cron/index'))
 /**
  * 加载中组件
  * @description 在懒加载组件加载过程中显示的loading界面
@@ -109,6 +108,10 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
       label: '知识库管理',
     },
     {
+      key:'cronpage',
+      label:'定时管理'
+    },
+    {
       key: 'indexer',
       label: '索引管理',
     },
@@ -123,11 +126,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
     {
       key: 'retriever',
       label: '文档检索',
-    },
-    {
-      key: 'about',
-      label: '关于',
-    },
+    }
   ];
 
   /**
@@ -332,18 +331,6 @@ export const router = createBrowserRouter([
       </LayoutWrapper>
     ),
   },
-  {
-    path: '/about',
-    element: (
-      <LayoutWrapper>
-        <Suspense fallback={<LoadingComponent />}>
-          <RouteGuard>
-            <About />
-          </RouteGuard>
-        </Suspense>
-      </LayoutWrapper>
-    ),
-  },
   // 认证相关页面（不使用主布局）
   {
     path: '/login',
@@ -368,6 +355,17 @@ export const router = createBrowserRouter([
         <ResetPassword />
       </Suspense>
     ),
+  },
+  {
+    path:"/cron",
+    element:(
+      <LayoutWrapper>
+        <Suspense fallback={<LoadingComponent/>}>
+          <CronPage/>
+        </Suspense>
+      </LayoutWrapper>
+
+    )
   },
   // 404页面
   {

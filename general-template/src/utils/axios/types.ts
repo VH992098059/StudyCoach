@@ -29,6 +29,10 @@ export interface RequestConfig {
   cache?: boolean;
   timeout?: number;
   headers?: Record<string, string>;
+  // 允许配置响应类型以支持二进制/流式数据（如音频）
+  responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
+  // 可选的中止信号，用于取消 fetch 请求
+  signal?: AbortSignal;
 }
 
 /**

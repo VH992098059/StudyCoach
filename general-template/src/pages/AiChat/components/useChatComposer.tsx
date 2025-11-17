@@ -1,0 +1,94 @@
+import { useCallback, useState } from 'react';
+import type { Message } from '../../../types/chat';
+import type { ReferenceDocument } from './useReferences';
+
+interface UseChatComposerParams {
+  messages: Message[];
+  generateMsgId: () => string;
+  setMessages: (messages: Message[]) => void;
+  currentSessionId: string;
+  selectedKnowledge: string;
+  fetchReferenceDocuments: (query: string) => Promise<ReferenceDocument[]>;
+  setReferenceDocuments: (docs: ReferenceDocument[]) => void;
+  setShowReferences: (show: boolean) => void;
+  send: (text: string, sessionId: string) => void;
+  streamingLoading: boolean;
+}
+
+const useChatComposer = (params: UseChatComposerParams) => {
+  const {
+    messages,
+    generateMsgId,
+    setMessages,
+    currentSessionId,
+    selectedKnowledge,
+    fetchReferenceDocuments,
+    setReferenceDocuments,
+    setShowReferences,
+    send,
+    streamingLoading,
+  } = params;
+
+  const [inputValue, setInputValue] = useState('');
+
+  const formatUserInput = useCallback((text: string) => {
+    const t = text.trim();
+    if (!t) return t;
+    const s = t.replace(/\n{3,}/g, '\n\n').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n');
+    const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__;
+    return s.replace(/\n/g, isTauri ? '<br/>' : '  \n');
+  }, []);
+
+  const sendQuestionByText = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+
+    let references: ReferenceDocument[] = [];
+    if (selectedKnowledge !== 'none') {
+      try {
+        references = await fetchReferenceDocuments(text);
+        setReferenceDocuments(references);
+        if (references.length > 0) setShowReferences(true);
+      } catch {
+      }
+    } else {
+      setReferenceDocuments([]);
+      setShowReferences(false);
+    }
+
+    const userMessage: Message = {
+      id: Date.now(),
+      msg_id: generateMsgId(),
+      content: formatUserInput(text),
+      isUser: true,
+      timestamp: new Date(),
+    };
+
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInputValue('');
+    send(text, currentSessionId);
+  }, [messages, selectedKnowledge, fetchReferenceDocuments, setReferenceDocuments, setShowReferences, generateMsgId, setMessages, formatUserInput, send, currentSessionId]);
+
+  const handleSend = useCallback(async () => {
+    if (!inputValue.trim() || streamingLoading) return;
+    await sendQuestionByText(inputValue);
+  }, [inputValue, streamingLoading, sendQuestionByText]);
+
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }, [handleSend]);
+
+  return {
+    inputValue,
+    setInputValue,
+    formatUserInput,
+    sendQuestionByText,
+    handleSend,
+    handleKeyPress,
+  };
+};
+
+export default useChatComposer;

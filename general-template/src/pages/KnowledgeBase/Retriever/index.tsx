@@ -1,8 +1,6 @@
 /**
  * @fileoverview 文档检索页面
  * @description 用于在知识库中检索相关文档内容
- * @author 开发团队
- * @version 1.0.0
  */
 
 import React, { useState, useRef, useEffect } from 'react';

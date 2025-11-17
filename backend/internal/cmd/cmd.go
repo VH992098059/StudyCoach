@@ -3,6 +3,7 @@ package cmd
 import (
 	"backend/internal/controller/ai_chat"
 	"backend/internal/controller/check_jwt"
+	"backend/internal/controller/file_controller"
 	"backend/internal/controller/login"
 	"backend/internal/controller/rag"
 	"backend/internal/controller/regular_update"
@@ -56,6 +57,7 @@ var (
 				group.Bind(
 					check_jwt.NewV1(),
 					login.CLoginController,
+					file_controller.NewV1(),
 				)
 				////中间件拦截
 				//group.Middleware(middleware.Auth)

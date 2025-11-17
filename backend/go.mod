@@ -6,13 +6,13 @@ toolchain go1.24.2
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.3
-	github.com/bytedance/sonic v1.14.0
+	github.com/bytedance/sonic v1.14.1
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cloudwego/eino v0.4.7
+	github.com/cloudwego/eino v0.5.10
 	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20250822083409-f8d432eea60f
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/recursive v0.0.0-20250822083409-f8d432eea60f
-	github.com/cloudwego/eino-ext/components/retriever/es8 v0.0.0-20250801075622-6721dae36fe9
+	github.com/cloudwego/eino-ext/components/retriever/es8 v0.0.0-20251104133232-721ebd5ef820
 	github.com/elastic/go-elasticsearch/v8 v8.18.1
 	github.com/gogf/gf/contrib/drivers/mysql/v2 v2.9.0
 	github.com/gogf/gf/contrib/nosql/redis/v2 v2.9.0
@@ -29,6 +29,7 @@ require (
 
 require (
 	github.com/VH992098059/chat-history v0.0.0-20250822090229-bff17e0a58c2
+	github.com/cloudwego/eino-ext/components/tool/mcp v0.0.4
 	github.com/goccy/go-json v0.10.5
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sergi/go-diff v1.4.0
@@ -37,7 +38,9 @@ require (
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/eino-contrib/jsonschema v1.0.0 // indirect
+	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/corpix/uarand v0.2.0 // indirect
+	github.com/eino-contrib/jsonschema v1.0.2 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
@@ -51,6 +54,7 @@ require (
 	github.com/tinylib/msgp v1.3.0 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 )
 
 replace studyCoach => ../
@@ -63,16 +67,17 @@ require (
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
-	github.com/cloudwego/base64x v0.1.5 // indirect
+	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cloudwego/eino-ext/components/document/loader/url v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/document/parser/html v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/document/parser/pdf v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20250801075622-6721dae36fe9
 	github.com/cloudwego/eino-ext/components/indexer/es8 v0.0.0-20250818090953-a59b1be0df04
-	github.com/cloudwego/eino-ext/components/model/ark v0.1.27
-	github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250905035413-86dbae6351d5
-	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20250905035413-86dbae6351d5
-	github.com/cloudwego/eino-ext/libs/acl/openai v0.0.0-20250826113018-8c6f6358d4bb // indirect
+	github.com/cloudwego/eino-ext/components/model/ark v0.1.42
+	github.com/cloudwego/eino-ext/components/model/openai v0.1.4
+	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20251111090228-91a10bbc864f
+	github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20251114071555-14756a18ad37
+	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.1 // indirect
 	github.com/dgraph-io/ristretto v0.2.0
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dslipak/pdf v0.0.2 // indirect
@@ -108,7 +113,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
-	github.com/meguminnnnnnnnn/go-openai v0.0.0-20250821095446-07791bea23a0 // indirect
+	github.com/meguminnnnnnnnn/go-openai v0.1.0 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -131,7 +136,7 @@ require (
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/volcengine/volc-sdk-golang v1.0.23 // indirect
-	github.com/volcengine/volcengine-go-sdk v1.1.21 // indirect
+	github.com/volcengine/volcengine-go-sdk v1.1.44 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect

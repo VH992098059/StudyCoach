@@ -4,7 +4,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  // z-index: 1000;
   background: #001529;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   padding: 0;
@@ -271,25 +271,22 @@
   }
 }
 
-@media (max-width: 992px) {
-  .header-content {
-    padding: 0 12px;
-  }
-  
-  .header-nav {
-    margin: 0 16px;
-  }
-  
-  .nav-menu {
-    min-width: 250px;
-  }
-  
-  .logo-title {
-    font-size: 18px;
-  }
-}
-
-@media (max-width: 768px) {
+/* 
+ * 平板和小屏幕设备适配 (≤1100px)
+ * 
+ * 设计说明：
+ * - 1100px是从桌面端向移动端过渡的关键断点
+ * - 在此断点下，导航菜单会被隐藏，改为移动端抽屉菜单
+ * - Header高度从64px调整为56px，节省垂直空间
+ * - Logo和用户区域布局进行优化，适应较小的屏幕宽度
+ * - 登录/注册按钮在移动端隐藏，简化界面
+ * 
+ * 适用设备：
+ * - 平板设备（横屏/竖屏）
+ * - 小尺寸笔记本电脑
+ * - 较大的手机设备
+ */
+@media (max-width: 1100px) {
   .header {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }

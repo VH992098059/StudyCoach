@@ -81,7 +81,14 @@ const KnowledgeBase: React.FC = () => {
   // 显示新建对话框
   const showAddDialog = () => {
     setIsEdit(false);
+    // 重置并确保表单字段全部清空
     resetForm();
+    form.setFieldsValue({
+      name: '',
+      description: '',
+      category: '',
+      isNetwork: undefined,
+    });
     setDialogVisible(true);
   };
 
@@ -157,29 +164,35 @@ const KnowledgeBase: React.FC = () => {
       dataIndex: 'id',
       key: 'id',
       width: 80,
+      responsive: ['md'],
     },
     {
       title: '知识库名称',
       dataIndex: 'name',
       key: 'name',
       width: 180,
+      ellipsis: true,
     },
     {
       title: '描述',
       dataIndex: 'description',
       key: 'description',
+      ellipsis: true,
+      responsive: ['md'],
     },
     {
       title: '分类',
       dataIndex: 'category',
       key: 'category',
       width: 120,
+      responsive: ['sm'],
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
       width: 100,
+      responsive: ['sm'],
       render: (status: KBStatus) => (
         <Tag color={status === KBStatus.OK ? 'success' : 'error'}>
           {status === KBStatus.OK ? '启用' : '禁用'}
@@ -189,7 +202,7 @@ const KnowledgeBase: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 160,
       render: (_, record) => (
         <Space size="middle">
           <Button 
@@ -230,6 +243,8 @@ const KnowledgeBase: React.FC = () => {
           display: 'flex', 
           justifyContent: 'space-between', 
           alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
           marginBottom: '20px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -241,6 +256,7 @@ const KnowledgeBase: React.FC = () => {
             size="small" 
             icon={<PlusOutlined />}
             onClick={showAddDialog}
+            style={{height:"33px"}}
           >
             新建知识库
           </Button>
@@ -254,6 +270,7 @@ const KnowledgeBase: React.FC = () => {
             columns={columns}
             rowKey="id"
             bordered
+            size="small"
             locale={{
               emptyText: (
                 <Empty 
@@ -262,6 +279,7 @@ const KnowledgeBase: React.FC = () => {
                 />
               )
             }}
+            scroll={{ x: 'max-content' }}
           />
         </div>
       </Card>
@@ -270,6 +288,7 @@ const KnowledgeBase: React.FC = () => {
       <Modal
         title={isEdit ? '编辑知识库' : '新建知识库'}
         open={dialogVisible}
+        destroyOnHidden
         onCancel={() => {
           setDialogVisible(false);
           resetForm();
@@ -320,7 +339,7 @@ const KnowledgeBase: React.FC = () => {
           >
             <Input placeholder="请输入知识库分类" />
           </Form.Item>
-          
+      
           {isEdit && (
             <Form.Item
               label="状态"
