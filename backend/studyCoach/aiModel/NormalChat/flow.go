@@ -10,13 +10,12 @@ import (
 
 // newLambda component initialization function of node 'NormalModel' in graph 'NormalChat'
 func newLambda(ctx context.Context) (lba *compose.Lambda, err error) {
-	// TODO Modify component configuration here.
 	config := &react.AgentConfig{}
 	chatModelIns11, err := newChatModel(ctx)
 	if err != nil {
 		return nil, err
 	}
-	config.Model = chatModelIns11
+	config.ToolCallingModel = chatModelIns11
 	toolIns21, err := newTool(ctx)
 	if err != nil {
 		return nil, err

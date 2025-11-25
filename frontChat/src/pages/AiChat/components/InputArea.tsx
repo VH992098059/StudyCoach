@@ -3,8 +3,8 @@
  * @description 负责消息输入与发送、网络开关、上传文件、语音转写及高级检索参数设置。
  */
 import React from 'react';
-import { Button, Form, Row, Col, Slider } from 'antd';
-import { StopOutlined, GlobalOutlined, SettingOutlined } from '@ant-design/icons';
+import { Button, Form, Row, Col, Slider, Switch, Tooltip } from 'antd';
+import { StopOutlined, GlobalOutlined, SettingOutlined , ReadOutlined, MessageOutlined} from '@ant-design/icons';
 import { Sender } from '@ant-design/x';
 import MicRecorderButton from './MicRecorderButton';
 import FileUpload from './FileUpload';
@@ -19,6 +19,7 @@ interface InputAreaProps {
   inputValue: string;
   loading: boolean;
   isNetworkEnabled: boolean;
+  isStudyMode: boolean;
   currentUploadedFiles: UploadedFile[];
   onVoiceTranscript?: (text: string) => void;
 
@@ -29,6 +30,7 @@ interface InputAreaProps {
   onToggleNetwork: () => void;
   onFilesChange: (files: UploadedFile[]) => void;
   onUploadComplete: (files: UploadedFile[]) => void;
+  onToggleStudyMode: () => void;
 }
 
 const InputArea: React.FC<InputAreaProps> = ({
@@ -36,9 +38,11 @@ const InputArea: React.FC<InputAreaProps> = ({
   loading,
   isNetworkEnabled,
   currentUploadedFiles,
+   isStudyMode,
   onVoiceTranscript,
   onInputChange,
   onKeyPress,
+    onToggleStudyMode,
   onSend,
   onStop,
   onToggleNetwork,
@@ -70,7 +74,15 @@ const InputArea: React.FC<InputAreaProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {/* 默认动作（发送/清空/语音按钮等） */}
               {ori}
-              
+              <Tooltip title={isStudyMode ? '学习模式' : '普通模式'}>
+                <Switch
+                  checked={isStudyMode}
+                  onChange={() => onToggleStudyMode()}
+                  checkedChildren={<span><ReadOutlined style={{ fontSize: 14 }} /> 学习</span>}
+                  unCheckedChildren={<span><MessageOutlined style={{ fontSize: 14 }} /> 普通</span>}
+                  
+                />
+              </Tooltip>
               {/* 联网开关 */}
               <Button
                 type="text"
@@ -79,6 +91,7 @@ const InputArea: React.FC<InputAreaProps> = ({
                 title={isNetworkEnabled ? '关闭联网' : '开启联网'}
                 style={{ border: 'none', boxShadow: 'none', color: isNetworkEnabled ? '#1890ff' : '#666' }}
               />
+              
               <FileUpload
                 onFilesChange={onFilesChange}
                 onUploadComplete={onUploadComplete}

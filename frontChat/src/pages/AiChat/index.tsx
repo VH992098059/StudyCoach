@@ -60,7 +60,7 @@ const AIChat: React.FC = () => {
 
   // 联网功能状态
   const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);
-
+  const [isStudyMode, setIsStudyMode] = useState(false);
   // SSE 连接相关状态
   const {
     connectionState,
@@ -160,7 +160,9 @@ const AIChat: React.FC = () => {
   const handleToggleNetwork = () => {
     setIsNetworkEnabled(prev => !prev);
   };
-
+  const handleToggleStudyMode = () => {
+    setIsStudyMode(prev => !prev);
+  };
   /**
    * 复制文档内容到剪贴板
    */
@@ -255,6 +257,7 @@ const AIChat: React.FC = () => {
                 inputValue={inputValue}
                 loading={streamingLoading}
                 isNetworkEnabled={isNetworkEnabled}
+                isStudyMode={isStudyMode}
                 currentUploadedFiles={currentUploadedFiles}
                 onVoiceTranscript={(text) => sendQuestionByText(text)}
                 onInputChange={setInputValue}
@@ -262,6 +265,7 @@ const AIChat: React.FC = () => {
                 onSend={handleSend}
                 onStop={handleStop}
                 onToggleNetwork={handleToggleNetwork}
+                onToggleStudyMode={handleToggleStudyMode}
                 onFilesChange={handleFilesChange}
                 onUploadComplete={handleUploadComplete}
               />
