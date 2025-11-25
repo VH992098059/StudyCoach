@@ -92,8 +92,9 @@ logger:
 # 配置数据库
 database:
   default:
-  - link: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
+#  - link: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
 #  - link: "pgsql:postgres:root@tcp(studycoach-postgres:5432)/postgres"
+  - link: "mysql:root:root@tcp(localhost:3306)/chat_history"
     debug: true
 # database:
 #   分组名称:
@@ -133,27 +134,33 @@ redis:
     db: 1
     idleTimeout: "60s"
 chat:
-  apiKey: "sk-xsozofrlbofcvbxabfpqcybqnhjmlzuztbxotnqyzurdzgaz"
+  apiKey: "sk-*"
   baseURL: "https://api.siliconflow.cn/v1"
-  model: "Pro/deepseek-ai/DeepSeek-R1"
+  model: "deepseek-ai/DeepSeek-V3.2-Exp"
   history: "host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 #  history: "host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-embedding:
-  apiKey: "sk-xsozofrlbofcvbxabfpqcybqnhjmlzuztbxotnqyzurdzgaz"
-  baseURL: "https://api.siliconflow.cn/v1"
-  model: "Qwen/Qwen3-Embedding-8B"
-es:
-#  address: "http://studycoach-elasticsearch:9200"
-  address: "http://localhost:9200"
-  indexName: "niumagame"
-#  username: "elastic"
-#  password: "123456"
-rewrite:
-  apiKey: "sk-xsozofrlbofcvbxabfpqcybqnhjmlzuztbxotnqyzurdzgaz"
+Branch:
+  apiKey: "sk-*"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "Qwen/Qwen3-14B"
+Analysis:
+  apiKey: "sk-*"
+  baseURL: "https://api.siliconflow.cn/v1"
+  model: "Qwen/Qwen3-14B"
+embedding:
+  apiKey: "sk-*"
+  baseURL: "https://api.siliconflow.cn/v1"
+  model: "Qwen/Qwen3-Embedding-8B"
+rewrite:
+  apiKey: "sk-*"
+  baseURL: "https://api.siliconflow.cn/v1"
+  model: "Qwen/Qwen3-14B"
+qa:
+  apiKey: "sk-*"
+  baseURL: "https://api.siliconflow.cn/v1"
+  model: "deepseek-ai/DeepSeek-V3"
 rerank:
-  apiKey: "sk-xsozofrlbofcvbxabfpqcybqnhjmlzuztbxotnqyzurdzgaz"
+  apiKey: "sk-*"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "Qwen/Qwen3-Reranker-8B"
 ark:
@@ -163,5 +170,16 @@ ark:
 minio:
   endpoint: "localhost:9000"
   accessKey: "minioadmin"
-  secretKey: "minioadmin"
-  bucketName: "studyfile"
+  secretKey: "770880520"
+  bucketFile: "studyfile"
+  bucketImages: "images"
+es:
+#  address: "http://studycoach-elasticsearch:9200"
+  address: "http://localhost:9200"
+  indexName: "study"
+#  username: "elastic"
+#  password: "123456"
+cron:
+  apiKey: "sk-*"
+  baseURL: "https://api.siliconflow.cn/v1"
+  model: "zai-org/GLM-4.6"
