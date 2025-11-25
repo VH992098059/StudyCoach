@@ -8,7 +8,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/bytedance/sonic v1.14.1
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cloudwego/eino v0.5.10
+	github.com/cloudwego/eino v0.6.1
 	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20250822083409-f8d432eea60f
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/recursive v0.0.0-20250822083409-f8d432eea60f
@@ -29,8 +29,11 @@ require (
 
 require (
 	github.com/VH992098059/chat-history v0.0.0-20250822090229-bff17e0a58c2
+	github.com/cloudwego/eino-ext/components/document/parser/xlsx v0.0.0-20251121095553-9c4349cc3e46
+	github.com/cloudwego/eino-ext/components/indexer/qdrant v0.0.0-20251121095553-9c4349cc3e46
 	github.com/cloudwego/eino-ext/components/tool/mcp v0.0.4
 	github.com/goccy/go-json v0.10.5
+	github.com/qdrant/go-client v1.15.2
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sergi/go-diff v1.4.0
 )
@@ -50,11 +53,17 @@ require (
 	github.com/minio/crc64nvme v1.0.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
+	github.com/richardlehane/mscfb v1.0.4 // indirect
+	github.com/richardlehane/msoleps v1.0.4 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/tinylib/msgp v1.3.0 // indirect
-	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	github.com/xuri/efp v0.0.0-20240408161823-9ad904a10d6d // indirect
+	github.com/xuri/excelize/v2 v2.9.0 // indirect
+	github.com/xuri/nfp v0.0.0-20240318013403-ab9948c2c4a7 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
+	google.golang.org/grpc v1.66.0 // indirect
+	google.golang.org/protobuf v1.36.10 // indirect
 )
 
 replace studyCoach => ../
@@ -74,10 +83,10 @@ require (
 	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20250801075622-6721dae36fe9
 	github.com/cloudwego/eino-ext/components/indexer/es8 v0.0.0-20250818090953-a59b1be0df04
 	github.com/cloudwego/eino-ext/components/model/ark v0.1.42
-	github.com/cloudwego/eino-ext/components/model/openai v0.1.4
-	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20251111090228-91a10bbc864f
+	github.com/cloudwego/eino-ext/components/model/openai v0.1.5
+	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20251121073121-ca0c0e6f9319
 	github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20251114071555-14756a18ad37
-	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.1 // indirect
+	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.2 // indirect
 	github.com/dgraph-io/ristretto v0.2.0
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dslipak/pdf v0.0.2 // indirect
@@ -87,23 +96,17 @@ require (
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/getkin/kin-openapi v0.118.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/go-openapi/jsonpointer v0.21.1 // indirect
-	github.com/go-openapi/swag v0.23.1 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/gogf/gf/contrib/drivers/pgsql/v2 v2.9.0
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/goph/emperror v0.17.2 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/grokify/html-strip-tags-go v0.1.0 // indirect
-	github.com/invopop/yaml v0.1.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/joho/godotenv v1.5.1
-	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
@@ -123,7 +126,6 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/openai/openai-go v1.10.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/redis/go-redis/v9 v9.12.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect

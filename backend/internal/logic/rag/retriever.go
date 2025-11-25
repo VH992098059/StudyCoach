@@ -2,7 +2,7 @@ package rag
 
 import (
 	"backend/studyCoach/api"
-	"backend/studyCoach/configTool"
+	"backend/studyCoach/common"
 
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gogf/gf/v2/frame/g"
@@ -20,13 +20,12 @@ func init() {
 		g.Log().Errorf(ctx, "NewClient of es8 failed, err=%v", err)
 		return
 	}
-	ragSvr, err = api.NewRagChat(ctx, &configTool.Config{
+	ragSvr, err = api.NewRagChat(ctx, &common.Config{
 		Client:    client,
 		IndexName: g.Cfg().MustGet(ctx, "es.indexName").String(),
-		ApiKey:    g.Cfg().MustGet(ctx, "embedding.apiKey").String(),
+		APIKey:    g.Cfg().MustGet(ctx, "embedding.apiKey").String(),
 		BaseURL:   g.Cfg().MustGet(ctx, "embedding.baseURL").String(),
-		Model:     g.Cfg().MustGet(ctx, "embedding.model").String(),
-		ChatModel: g.Cfg().MustGet(ctx, "chat.model").String(),
+		ChatModel: g.Cfg().MustGet(ctx, "embedding.model").String(),
 	})
 	if err != nil {
 		g.Log().Errorf(ctx, "New of rag failed, err=%v", err)

@@ -1,0 +1,234 @@
+/**
+ * 知识文档管理页面样式
+ */
+
+.documents-container {
+  padding: 24px;
+  height: calc(100vh - 64px);
+  /* 减去header高度 */
+  overflow-y: auto;
+  /* 允许内容滚动 */
+  box-sizing: border-box;
+  color: var(--ant-color-text);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header-icon {
+  font-size: 18px;
+  color: var(--ant-color-primary);
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-container {
+  margin-top: 24px;
+  text-align: right;
+}
+
+/* 表格样式调整 */
+.ant-table {
+  background-color: var(--ant-color-bg-container);
+  border-radius: 8px;
+}
+
+.ant-table-thead>tr>th {
+  background-color: var(--ant-color-fill-secondary);
+  font-weight: 600;
+  color: var(--ant-color-text);
+  border-bottom: 2px solid var(--ant-color-border);
+}
+
+.ant-table-tbody>tr>td {
+  color: var(--ant-color-text-secondary);
+  border-bottom: 1px solid var(--ant-color-border);
+}
+
+.ant-table-tbody>tr:hover>td {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+/* 标签样式 */
+.ant-tag {
+  border-radius: 4px;
+  font-weight: 500;
+  border: none;
+}
+
+.ant-tag-blue {
+  background-color: var(--ant-color-primary-bg);
+  color: var(--ant-color-primary);
+}
+
+.ant-tag-green {
+  background-color: var(--ant-color-success-bg);
+  color: var(--ant-color-success);
+}
+
+.ant-tag-processing {
+  background-color: var(--ant-color-warning-bg);
+  color: var(--ant-color-warning);
+}
+
+.ant-tag-success {
+  background-color: var(--ant-color-success-bg);
+  color: var(--ant-color-success);
+}
+
+.ant-tag-error {
+  background-color: var(--ant-color-error-bg);
+  color: var(--ant-color-error);
+}
+
+/* 按钮样式 */
+.ant-btn-sm {
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.ant-btn-primary {
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
+}
+
+.ant-btn-dangerous {
+  box-shadow: 0 2px 4px rgba(255, 77, 79, 0.2);
+}
+
+/* 空状态样式 */
+.ant-empty {
+  padding: 40px 0;
+}
+
+.ant-empty-description {
+  color: var(--ant-color-text-secondary);
+  font-size: 14px;
+}
+
+/* 分页样式 */
+.ant-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.ant-pagination-total-text {
+  color: var(--ant-color-text-secondary);
+  margin-right: 16px;
+}
+
+/* 选择器样式 */
+.ant-select {
+  border-radius: 6px;
+}
+
+.ant-select-selector {
+  border: 1px solid var(--ant-color-border);
+  transition: all 0.3s ease;
+}
+
+.ant-select-focused .ant-select-selector {
+  border-color: var(--ant-color-primary);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ant-color-primary) 20%, transparent);
+}
+
+/* 模态框样式 */
+.ant-modal-confirm-title {
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+.ant-modal-confirm-content {
+  color: var(--ant-color-text-secondary);
+  margin-top: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .documents-container {
+    padding: 16px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .ant-select {
+    width: 100% !important;
+  }
+
+  .pagination-container {
+    text-align: center;
+  }
+
+  .ant-pagination {
+    justify-content: center;
+  }
+
+  /* 表格在移动端的滚动 */
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 576px) {
+  .documents-container {
+    padding: 12px;
+  }
+
+  .card-header {
+    margin-bottom: 16px;
+  }
+
+  .header-title {
+    font-size: 16px;
+  }
+
+  /* 移动端按钮组合 */
+  .ant-space-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* 加载状态 */
+.ant-spin-container {
+  position: relative;
+
+}
+
+.ant-table-placeholder {
+  padding: 40px 0;
+}
+
+/* 工具提示样式 */
+.ant-tooltip {
+  font-size: 12px;
+}
+
+.ant-tooltip-inner {
+  background-color: rgba(0, 0, 0, 0.85);
+  border-radius: 4px;
+}

@@ -1,8 +1,9 @@
 package studyCoach
 
 import (
+	v1 "backend/api/ai_chat/v1"
 	"backend/studyCoach/api"
-	"backend/studyCoach/configTool"
+	"backend/studyCoach/common"
 	"context"
 	"fmt"
 	"log"
@@ -15,16 +16,13 @@ import (
 )
 
 var ragNew = &api.Rag{}
-var cfg = &configTool.Config{}
+var cfg = &common.Config{}
 
 func init() {
-	// 简单初始化，不尝试设置配置路径
-	// 确保 MySQL 和 PostgreSQL 驱动都已导入
-	log.Println("初始化测试环境...")
+	log.Println("数据库已启动")
 }
 
 func _init() {
-	// 不使用 ctx 变量，避免未使用的变量错误
 	client, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
@@ -33,14 +31,12 @@ func _init() {
 		return
 	}
 
-	// 使用硬编码的配置值，避免依赖配置文件
-	cfg = &configTool.Config{
+	cfg = &common.Config{
 		Client:    client,
-		IndexName: "niumagame",
-		ApiKey:    "sk-hkjdxdzxuggryqehktwxsujcaofpfljfabmqktjmwgkmgyfg",
+		IndexName: "study",
+		APIKey:    "sk-cmtnvcaupuoizcqogdbapkqyvdmyumolprmgwetjmxsxmwtk",
 		BaseURL:   "https://api.siliconflow.cn/v1",
-		Model:     "Qwen/Qwen3-Embedding-8B",
-		ChatModel: "Pro/deepseek-ai/DeepSeek-R1",
+		ChatModel: "Qwen/Qwen3-Embedding-8B",
 	}
 	ragNew, err = api.NewRagChat(context.Background(), cfg)
 	if err != nil {
@@ -70,26 +66,18 @@ func TestIndex(t *testing.T) {
 		for _, id := range ids {
 			t.Log(id)
 		}
-		// QA 是异步的，不sleep后面会直接停掉
 		time.Sleep(time.Second * 3)
 	}
 }
 
-// 新增测试函数：专门测试等待用户输入的逻辑
-func TestWaitingUserInput(t *testing.T) {
-	// 设置waiting_user_input状态来测试循环检测逻辑
-	ctx := context.Background()
-
-	fmt.Println(api.ChatAiModel(ctx, true, "现在我要学习vue，帮我整理核心内容，规划学习路线并说出这些核心组件的详情作用", "12313", "test"))
-}
 func TestRetriever(t *testing.T) {
 	_init()
 	ctx := context.Background()
 	req := &api.RetrieveReq{
-		Query:         "合金装备",
+		Query:         "战地风云6配置",
 		TopK:          5,
-		Score:         1.2,
-		KnowledgeName: "niumahhh",
+		Score:         0.5,
+		KnowledgeName: "测试知识库",
 	}
 	msg, err := ragNew.Retriever(ctx, req)
 	if err != nil {
@@ -98,4 +86,13 @@ func TestRetriever(t *testing.T) {
 	for _, m := range msg {
 		t.Logf("content: %v, score: %v", m.Content, m.Score())
 	}
+}
+
+func TestChat(T *testing.T) {
+	_init()
+	model, err := api.ChatAiModel(context.Background(), &v1.AiChatReq{ID: "123", Question: "战地6配置", KnowledgeName: "测试知识库", TopK: 5, Score: 0.5, IsNetwork: false})
+	if err != nil {
+		return
+	}
+	fmt.Println(model.Recv())
 }

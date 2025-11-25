@@ -42,7 +42,7 @@ func (c *ControllerV1) Retriever(ctx context.Context, req *v1.RetrieverReq) (res
 			document.MetaData["ext"] = m
 		}
 	}
-	// eino 默认是把分高的排在两边，这里我xiu gai
+	// aiModel 默认是把分高的排在两边
 	sort.Slice(msg, func(i, j int) bool {
 		return msg[i].Score() > msg[j].Score()
 	})

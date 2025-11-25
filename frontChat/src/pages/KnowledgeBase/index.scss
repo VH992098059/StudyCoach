@@ -1,0 +1,13 @@
+.knowledge-base-container {
+    height: calc(100vh - 64px);
+    /* 减去header高度 */
+    overflow-y: auto;
+    /* 允许内容滚动 */
+    box-sizing: border-box;
+    padding: 10px;
+}
+
+/* 确保Card不会影响布局 */
+.knowledge-base-container .ant-card {
+    height: auto;
+}

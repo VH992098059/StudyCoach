@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/google/uuid"
 )
 
 // SaveChunksData 批量保存知识块数据
@@ -15,20 +16,60 @@ func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.Know
 		return nil
 	}
 	status := int(v1.StatusIndexing)
-	_, err := dao.KnowledgeChunks.Ctx(ctx).Data(chunks).Save()
-	if err != nil {
-		g.Log().Errorf(ctx, "SaveChunksData err=%+v", err)
-		status = int(v1.StatusFailed)
+	for _, chunk := range chunks {
+		if chunk.KnowledgeDocId == 0 {
+			chunk.KnowledgeDocId = documentsId
+		}
+		if chunk.ChunkId == "" {
+			chunk.ChunkId = uuid.NewString()
+		}
+		// 先尝试查询是否存在
+		var existing entity.KnowledgeChunks
+		err := dao.KnowledgeChunks.Ctx(ctx).Where("chunk_id", chunk.ChunkId).Scan(&existing)
+
+		if err == nil && existing.Id > 0 {
+			// 已存在，更新（排除 id 和 created_at）
+			_, err = dao.KnowledgeChunks.Ctx(ctx).
+				Where("chunk_id", chunk.ChunkId).
+				Data(g.Map{
+					"knowledge_doc_id": chunk.KnowledgeDocId,
+					"content":          chunk.Content,
+					"ext":              chunk.Ext,
+					"status":           chunk.Status,
+				}).
+				Update()
+			if err != nil {
+				g.Log().Errorf(ctx, "SaveChunksData update failed for chunk_id=%s, err=%+v", chunk.ChunkId, err)
+				status = int(v1.StatusFailed)
+			}
+		} else {
+			// 不存在，插入（id 设为 0 让数据库自动分配）
+			chunk.Id = 0
+			_, err = dao.KnowledgeChunks.Ctx(ctx).Data(chunk).OmitEmpty().Insert()
+			if err != nil {
+				g.Log().Errorf(ctx, "SaveChunksData insert failed for chunk_id=%s, err=%+v", chunk.ChunkId, err)
+				status = int(v1.StatusFailed)
+			}
+		}
 	}
+
 	UpdateDocumentsStatus(ctx, documentsId, status)
-	return err
+	return nil
 }
 
 // GetChunksList 查询知识块列表
 func GetChunksList(ctx context.Context, where entity.KnowledgeChunks, page, size int) (list []entity.KnowledgeChunks, total int, err error) {
-	model := dao.KnowledgeChunks.Ctx(ctx)
+	if page < 1 {
+		page = 1
+	}
+	if size < 1 {
+		size = defaultPageSize
+	}
+	if size > maxPageSize {
+		size = maxPageSize
+	}
 
-	// 构建查询条件
+	model := dao.KnowledgeChunks.Ctx(ctx)
 	if where.KnowledgeDocId != 0 {
 		model = model.Where("knowledge_doc_id", where.KnowledgeDocId)
 	}
@@ -36,21 +77,15 @@ func GetChunksList(ctx context.Context, where entity.KnowledgeChunks, page, size
 		model = model.Where("chunk_id", where.ChunkId)
 	}
 
-	// 获取总数
 	total, err = model.Count()
 	if err != nil {
 		return
 	}
-
-	// 分页查询
-	if page > 0 && size > 0 {
-		model = model.Page(page, size)
+	if total == 0 {
+		return nil, 0, nil
 	}
 
-	// 按创建时间倒序
-	model = model.OrderDesc("created_at")
-
-	err = model.Scan(&list)
+	err = model.Page(size, page).Order("created_at desc").Scan(&list)
 	return
 }
 
@@ -60,13 +95,13 @@ func GetChunkById(ctx context.Context, id int64) (chunk entity.KnowledgeChunks, 
 	return
 }
 
-// DeleteChunkByIds 根据ID软删除知识块
+// DeleteChunkById 根据ID软删除知识块
 func DeleteChunkById(ctx context.Context, id int64) error {
 	_, err := dao.KnowledgeChunks.Ctx(ctx).Where("id", id).Delete()
 	return err
 }
 
-// UpdateChunkById 根据ID更新知识块
+// UpdateChunkByIds 根据ID更新知识块
 func UpdateChunkByIds(ctx context.Context, ids []int64, data entity.KnowledgeChunks) error {
 	model := dao.KnowledgeChunks.Ctx(ctx).WhereIn("id", ids)
 	if data.Content != "" {

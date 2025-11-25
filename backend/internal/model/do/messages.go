@@ -11,17 +11,17 @@ import (
 // Messages is the golang structure of table messages for DAO operations like Where/Data.
 type Messages struct {
 	g.Meta         `orm:"table:messages, do:true"`
-	Id             interface{} //
-	MsgId          interface{} //
-	ConversationId interface{} //
-	ParentId       interface{} //
-	Role           interface{} //
-	Content        interface{} //
-	CreatedAt      interface{} //
-	OrderSeq       interface{} //
-	TokenCount     interface{} //
-	Status         interface{} //
-	Metadata       interface{} //
-	IsContextEdge  interface{} //
-	IsVariant      interface{} //
+	Id             any //
+	MsgId          any //
+	ConversationId any //
+	ParentId       any //
+	Role           any //
+	Content        any //
+	CreatedAt      any //
+	OrderSeq       any //
+	TokenCount     any //
+	Status         any //
+	Metadata       any //
+	IsContextEdge  any //
+	IsVariant      any //
 }

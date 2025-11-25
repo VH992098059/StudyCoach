@@ -1,8 +1,8 @@
 package api
 
 import (
+	"backend/studyCoach/aiModel/CoachChat"
 	"backend/studyCoach/common"
-	"backend/studyCoach/eino"
 	"backend/studyCoach/rerank"
 	"context"
 	"sort"
@@ -50,7 +50,7 @@ func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Do
 	if req.rankScore >= 1 {
 		req.rankScore -= 1
 	}
-	rewriteModel, err := eino.RewriteModel(ctx)
+	rewriteModel, err := CoachChat.RewriteModel(ctx)
 	if err != nil {
 		return
 	}
@@ -62,7 +62,7 @@ func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Do
 			optMessages    []*schema.Message
 			rewriteMessage *schema.Message
 		)
-		optMessages, err = eino.GetOptimizedQueryMessages(used, question, req.KnowledgeName)
+		optMessages, err = CoachChat.GetOptimizedQueryMessages(used, question, req.KnowledgeName)
 		if err != nil {
 			return
 		}

@@ -1,16 +1,15 @@
 package api
 
 import (
+	"backend/studyCoach/aiModel/regular_update"
 	"backend/studyCoach/common"
-	"backend/studyCoach/configTool"
-	"backend/studyCoach/eino/regular_update"
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/cloudwego/eino/schema"
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/robfig/cron/v3"
 )
 
@@ -29,10 +28,10 @@ func regularUpdateModel(ctx context.Context, input string) (*schema.Message, err
 	defer cancel()
 	sources = append(sources, SearchConcurrentlyWithCache(searchCtx, input)...)
 	sources = append(sources, input)
-	conf := &configTool.Config{
-		ApiKey:    os.Getenv("Openai_API_Key"),
-		BaseURL:   os.Getenv("base_url"),
-		Model:     os.Getenv("Model_Type"),
+	conf := &common.Config{
+		APIKey:    g.Cfg().MustGet(ctx, "cron.apiKey").String(),
+		BaseURL:   g.Cfg().MustGet(ctx, "cron.baseURL").String(),
+		ChatModel: g.Cfg().MustGet(ctx, "cron.model").String(),
 		IndexName: "NetworkUpdate",
 	}
 	maxRetries := 3

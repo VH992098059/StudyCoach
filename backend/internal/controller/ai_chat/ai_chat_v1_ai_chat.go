@@ -14,8 +14,8 @@ import (
 
 func (c *ControllerV1) AiChat(ctx context.Context, req *v1.AiChatReq) (res *v1.AiChatRes, err error) {
 	var streamReader *schema.StreamReader[*schema.Message]
-	fmt.Println(req.IsNetwork)
-	streamReader, err = api.ChatAiModel(ctx, req.IsNetwork, req.Question, req.ID, req.KnowledgeName)
+	fmt.Printf("使用联网状态：%t，知识库使用：%s\n", req.IsNetwork, req.KnowledgeName)
+	streamReader, err = api.ChatAiModel(ctx, req)
 	if err != nil {
 		g.Log().Error(ctx, err)
 		return nil, err

@@ -1,10 +1,11 @@
 package ws
 
 import (
+	"net/http"
+
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gorilla/websocket"
-	"net/http"
 )
 
 var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}

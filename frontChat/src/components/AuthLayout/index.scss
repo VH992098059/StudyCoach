@@ -1,0 +1,207 @@
+.auth-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #5dc2fc;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.auth-layout::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+.auth-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 600px;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Logo区域 */
+.auth-logo {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.auth-logo-image {
+  height: 48px;
+  margin-bottom: 16px;
+}
+
+.auth-logo-text {
+  color: #1890ff;
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 标题区域 */
+.auth-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.auth-title {
+  color: #262626;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.auth-subtitle {
+  color: #8c8c8c;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 表单容器 */
+.auth-form-container {
+  width: 100%;
+}
+
+/* 加载状态 */
+.auth-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  background: transparent;
+}
+
+.auth-loading-container .ant-spin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.auth-loading-container .ant-spin-text {
+  color: #666;
+  font-size: 14px;
+}
+
+/* 错误边界 */
+.auth-error-boundary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  padding: 24px;
+}
+
+.auth-error-boundary .ant-alert {
+  max-width: 400px;
+  width: 100%;
+}
+
+.auth-error-retry-btn {
+  background: #1890ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s;
+}
+
+.auth-error-retry-btn:hover {
+  background: #40a9ff;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .auth-container {
+    max-width: 350px;
+    padding: 32px 24px;
+    margin: 16px;
+  }
+
+  .auth-logo-text {
+    font-size: 24px;
+  }
+
+  .auth-title {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    max-width: 320px;
+    padding: 24px 20px;
+    margin: 12px;
+  }
+
+  .auth-logo-text {
+    font-size: 20px;
+  }
+
+  .auth-title {
+    font-size: 18px;
+  }
+
+  .auth-subtitle {
+    font-size: 13px;
+  }
+}
+
+/* 动画效果 */
+.auth-container {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 深色主题支持 */
+.auth-layout.dark .auth-container {
+  background: rgba(30, 30, 30, 0.95);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.auth-layout.dark .auth-title {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.auth-layout.dark .auth-subtitle {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.auth-layout.dark .auth-loading-container .ant-spin-text {
+  color: rgba(255, 255, 255, 0.65);
+}

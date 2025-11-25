@@ -1,0 +1,165 @@
+/**
+ * 知识块管理页面样式
+ */
+
+.chunks-container {
+  padding: 24px;
+  height: calc(100vh - 64px);
+  /* 减去header高度 */
+  overflow-y: auto;
+  /* 允许内容滚动 */
+  box-sizing: border-box;
+  color: var(--ant-color-text);
+}
+
+.chunks-container .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ant-color-border);
+}
+
+.header-icon {
+  font-size: 18px;
+  color: var(--ant-color-primary);
+  margin-right: 8px;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pagination-container {
+  margin-top: 24px;
+  text-align: right;
+}
+
+/* 表格样式优化 */
+.chunks-container .ant-table {
+  background: var(--ant-color-bg-container);
+  border-radius: 6px;
+}
+
+.chunks-container .ant-table-thead>tr>th {
+  background-color: var(--ant-color-fill-secondary);
+  font-weight: 600;
+  color: var(--ant-color-text);
+  border-bottom: 2px solid var(--ant-color-border);
+}
+
+.chunks-container .ant-table-tbody>tr:hover>td {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+/* 状态标签样式 */
+.chunks-container .ant-tag {
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* 按钮样式 */
+.chunks-container .ant-btn {
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chunks-container .ant-btn-sm {
+  height: 28px;
+  padding: 0 8px;
+}
+
+/* 选择器样式 */
+.chunks-container .ant-select {
+  border-radius: 4px;
+}
+
+.chunks-container .ant-select-selector {
+  border-radius: 4px !important;
+}
+
+/* 模态框样式 */
+.chunks-container .ant-modal {
+  border-radius: 8px;
+}
+
+.chunks-container .ant-modal-header {
+  border-radius: 8px 8px 0 0;
+}
+
+.chunks-container .ant-modal-content {
+  border-radius: 8px;
+}
+
+/* 文本域样式 */
+.chunks-container .ant-input {
+  border-radius: 4px;
+}
+
+.chunks-container .ant-input:focus,
+.chunks-container .ant-input-focused {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* 开关样式 */
+.chunks-container .ant-switch {
+  border-radius: 10px;
+}
+
+/* 空状态样式 */
+.chunks-container .ant-empty {
+  margin: 40px 0;
+}
+
+.chunks-container .ant-empty-description {
+  color: var(--ant-color-text-secondary);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .chunks-container {
+    padding: 16px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .pagination-container {
+    text-align: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .chunks-container {
+    padding: 12px;
+  }
+
+  .header-actions .ant-select {
+    width: 100% !important;
+  }
+}

@@ -7,17 +7,18 @@ const (
 	FieldQAContentVector = "qa_content_vector"
 	FieldExtra           = "ext"
 	KnowledgeName        = "_knowledge_name"
-	DocExtra             = "location"
-	RetrieverFieldKey    = "_retriever_field"
+
+	RetrieverFieldKey = "_retriever_field"
 
 	Title1 = "h1"
 	Title2 = "h2"
 	Title3 = "h3"
-	//新增图片向量
+
 	ImageURL      = "image_url"      //minio图片URL
 	ImageVector   = "image_vector"   //图片向量
 	ImageFeatures = "image_features" //图片特征描述
 
+	XlsxRow = "_row"
 )
 
 var (

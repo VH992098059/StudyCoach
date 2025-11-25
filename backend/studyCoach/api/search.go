@@ -1,8 +1,8 @@
 package api
 
 import (
+	"backend/studyCoach/aiModel/CoachChat"
 	"backend/studyCoach/configTool"
-	eino2 "backend/studyCoach/eino"
 	"context"
 	"crypto/md5"
 	"encoding/hex"
@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudwego/eino-ext/components/tool/duckduckgo"
+	duckduckgoV2 "github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2"
 	"github.com/dgraph-io/ristretto"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
@@ -108,6 +108,7 @@ func fetchURLContentWithCache(ctx context.Context, url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fmt.Println(result.(string))
 	return result.(string), err
 }
 
@@ -130,7 +131,11 @@ func SearchConcurrentlyWithCache(ctx context.Context, input string) []string {
 
 	// 缓存搜索结果，TTL 30分钟
 	if len(sources) > 0 {
-		searchCache.SetWithTTL(cacheKey, sources, 0, 30*time.Minute)
+		total := 0
+		for _, r := range sources {
+			total += len(r)
+		}
+		searchCache.SetWithTTL(cacheKey, sources, int64(total), 30*time.Minute)
 	}
 
 	return sources
@@ -138,14 +143,14 @@ func SearchConcurrentlyWithCache(ctx context.Context, input string) []string {
 
 // 执行实际搜索
 func PerformSearch(ctx context.Context, input string) ([]string, error) {
-	searchTool, err := eino2.NewTool(ctx)
+	// 使用 aiModel.NewTool(ctx) 构建 DuckDuckGo V2 搜索工具（带配置）
+	searchTool, err := CoachChat.NewTool(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("搜索工具初始化失败: %w", err)
 	}
 	// 使用ddg获取网页信息
-	searchReq := &duckduckgo.SearchRequest{
+	searchReq := &duckduckgoV2.TextSearchRequest{
 		Query: input,
-		Page:  10,
 	}
 	jsonReq, err := json.Marshal(searchReq)
 	if err != nil {
@@ -161,9 +166,13 @@ func PerformSearch(ctx context.Context, input string) ([]string, error) {
 		return nil, fmt.Errorf("搜索返回无效JSON: %s", resp)
 	}
 
-	var searchResp duckduckgo.SearchResponse
+	var searchResp duckduckgoV2.TextSearchResponse
 	if err := json.Unmarshal([]byte(resp), &searchResp); err != nil {
 		return nil, fmt.Errorf("搜索结果解析失败: %w", err)
+	}
+	log.Printf("搜索到 %d 条链接", len(searchResp.Results))
+	for i, r := range searchResp.Results {
+		log.Printf("链接[%d]: %s", i+1, r.URL)
 	}
 
 	// 使用 errgroup 进行并发抓取
@@ -175,8 +184,8 @@ func PerformSearch(ctx context.Context, input string) ([]string, error) {
 	results := make([]string, 0, len(searchResp.Results))
 	resultsMu := sync.Mutex{}
 
-	for _, result := range searchResp.Results {
-		result := result // 避免闭包问题
+	for _, resultRes := range searchResp.Results {
+		result := resultRes // 避免闭包问题
 
 		gErr.Go(func() error {
 			select {
@@ -186,9 +195,9 @@ func PerformSearch(ctx context.Context, input string) ([]string, error) {
 				return gCtx.Err()
 			}
 
-			content, err := fetchURLContentWithCache(gCtx, result.Link)
+			content, err := fetchURLContentWithCache(gCtx, result.URL)
 			if err != nil {
-				log.Printf("获取URL内容失败 %s: %v", result.Link, err)
+				log.Printf("获取URL内容失败 %s: %v", result.URL, err)
 				return nil // 不中断其他请求
 			}
 

@@ -4,9 +4,11 @@ import (
 	"backend/internal/controller/ai_chat"
 	"backend/internal/controller/check_jwt"
 	"backend/internal/controller/file_controller"
+	"backend/internal/controller/files"
 	"backend/internal/controller/login"
 	"backend/internal/controller/rag"
 	"backend/internal/controller/regular_update"
+	"backend/internal/controller/voice"
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -65,6 +67,8 @@ var (
 					ai_chat.NewV1(),
 					rag.NewV1(),
 					regular_update.NewV1(),
+					files.NewV1(),
+					voice.NewV1(),
 				)
 
 				// Add WebSocket endpoint

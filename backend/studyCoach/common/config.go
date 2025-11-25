@@ -2,11 +2,13 @@ package common
 
 import (
 	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/qdrant/go-client/qdrant"
 )
 
 type Config struct {
-	Client    *elasticsearch.Client
-	IndexName string // es index name
+	Client       *elasticsearch.Client
+	QdrantClient *qdrant.Client // Qdrant 客户端
+	IndexName    string         // es index name
 	// embedding 时使用
 	APIKey         string
 	BaseURL        string
@@ -16,8 +18,9 @@ type Config struct {
 
 func (c *Config) Copy() *Config {
 	return &Config{
-		Client:    c.Client,
-		IndexName: c.IndexName,
+		Client:       c.Client,
+		QdrantClient: c.QdrantClient,
+		IndexName:    c.IndexName,
 		// embedding 时使用
 		APIKey:         c.APIKey,
 		BaseURL:        c.BaseURL,

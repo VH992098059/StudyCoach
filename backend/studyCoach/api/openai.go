@@ -1,17 +1,16 @@
 package api
 
 import (
+	v1 "backend/api/ai_chat/v1"
+	"backend/studyCoach/aiModel/CoachChat"
+	"backend/studyCoach/aiModel/indexer"
+	"backend/studyCoach/aiModel/retriever"
 	"backend/studyCoach/common"
-	"backend/studyCoach/configTool"
-	eino2 "backend/studyCoach/eino"
-	"backend/studyCoach/eino/indexer"
-	"backend/studyCoach/eino/retriever"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/VH992098059/chat-history/eino"
@@ -23,9 +22,9 @@ import (
 )
 
 const (
-	scoreThreshold = 1.05 // 设置一个很小的阈值
-	esTopK         = 50
-	esTryFindDoc   = 10
+	//scoreThreshold = 1.05 // 设置一个很小的阈值
+	esTopK       = 50
+	esTryFindDoc = 10
 )
 
 type Rag struct {
@@ -37,74 +36,97 @@ type Rag struct {
 	cm         model.BaseChatModel
 
 	//grader *grader.Grader // 暂时先弃用，使用 grader 会严重影响rag的速度
-	conf *configTool.Config
+	conf *common.Config
+}
+type StreamType struct {
+	Conf          *common.Config
+	Question      string
+	Knowledge     []*schema.Document
+	Id            string
+	Eh            *eino.History
+	NetworkSearch []string
 }
 
-func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName string) (*schema.StreamReader[*schema.Message], error) {
-	log.Printf("[ChatAiModel] 开始处理请求 - ID: %s, 网络搜索: %v, 知识库: %s", id, isNetWork, KnowledgeName)
-	//var eh = eino.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
+func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*schema.Message], error) {
+	var rag *Rag
+	var documents []*schema.Document
+	var networkSearch []string
+	log.Printf("[ChatAiModel] 开始处理请求 - ID: %s, 网络搜索: %v, 知识库: %s", req.ID, req.IsNetwork, req.KnowledgeName)
+	//var eh = aiModel.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
 	var eh = eino.NewEinoHistory(g.Cfg().MustGet(ctx, "chat.history").String())
+	//var eh = aiModel.NewEinoHistory("host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
 
-	//var eh = eino.NewEinoHistory("host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
+	log.Println("用户内容：", req.Question)
 
-	var sources []string
-	log.Println("用户内容：", input)
-	//知识库检索
-	/*if KnowledgeName != "" {
-		log.Printf("[ChatAiModel] 开始知识库检索 - ID: %s, 知识库: %s", id, KnowledgeName)
-		knowledgeSources, err := retrieverFronKnowledgeBase(ctx, input, KnowledgeName)
-		if err != nil {
-			log.Printf("知识库检索失败: %v", err)
-		} else {
-			sources = append(sources, knowledgeSources...)
-			log.Printf("[ChatAiModel] 知识库检索完成 - ID: %s, 结果数量: %d", id, len(knowledgeSources))
-		}
-	}*/
-
-	//网络搜索
-	if isNetWork {
-		// 为网络搜索添加30秒超时控制，给URL抓取留出足够时间
-		log.Printf("[ChatAiModel] 开始网络搜索 - ID: %s", id)
-		searchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-		sources = append(sources, SearchConcurrentlyWithCache(searchCtx, input)...)
-		log.Printf("[ChatAiModel] 网络搜索完成 - ID: %s, 结果数量: %d", id, len(sources))
-	}
-	sources = append(sources, input)
 	client, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{g.Cfg().MustGet(ctx, "es.address").String()},
 	})
-	conf := &configTool.Config{
+	esConf := &common.Config{
 		Client:    client,
-		ApiKey:    g.Cfg().MustGet(ctx, "chat.apiKey").String(),
+		APIKey:    g.Cfg().MustGet(ctx, "embedding.apiKey").String(),
+		BaseURL:   g.Cfg().MustGet(ctx, "embedding.baseURL").String(),
+		ChatModel: g.Cfg().MustGet(ctx, "embedding.model").String(),
+		IndexName: g.Cfg().MustGet(ctx, "es.indexName").String(),
+	}
+	conf := &common.Config{
+		APIKey:    g.Cfg().MustGet(ctx, "chat.apiKey").String(),
 		BaseURL:   g.Cfg().MustGet(ctx, "chat.baseURL").String(),
-		Model:     g.Cfg().MustGet(ctx, "chat.model").String(),
-		IndexName: KnowledgeName,
+		ChatModel: g.Cfg().MustGet(ctx, "chat.model").String(),
+	}
+	// 初始化 RAG 组件，避免后续调用空指针
+	rag, err = NewRagChat(ctx, esConf)
+	if err != nil {
+		return nil, fmt.Errorf("init rag failed: %w", err)
+	}
+	// 知识库检索
+	if req.KnowledgeName != "" {
+		log.Printf("[ChatAiModel] 开始知识库检索 - ID: %s, 知识库: %s", req.ID, req.KnowledgeName)
+		documents, err = rag.Retriever(ctx, &RetrieveReq{
+			Query:         req.Question,
+			TopK:          req.TopK,
+			Score:         req.Score,
+			KnowledgeName: req.KnowledgeName,
+		})
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("[ChatAiModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
+		log.Printf("\n知识库内容：%s", documents)
+	} else {
+		log.Println("知识库未启用")
 	}
 
-	// 确保检索用的索引存在且映射正确，避免 all shards failed
-	if err := common.CreateIndexIfNotExists(ctx, client, KnowledgeName); err != nil {
-		log.Printf("确保索引创建失败 %s: %v", KnowledgeName, err)
-		return nil, fmt.Errorf("索引初始化失败: %w", err)
+	//网络搜索
+	if req.IsNetwork {
+		// 为网络搜索添加30秒超时控制，给URL抓取留出足够时间
+		log.Printf("[ChatAiModel] 开始网络搜索 - ID: %s", req.ID)
+		searchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		defer cancel()
+		networkSearch = SearchConcurrentlyWithCache(searchCtx, req.Question)
+		log.Printf("[ChatAiModel] 网络搜索完成 - ID: %s, 结果数量: %d", req.ID, len(networkSearch))
 	}
-
+	streamType := StreamType{
+		Conf:          conf,
+		Question:      req.Question,
+		Knowledge:     documents,
+		Id:            req.ID,
+		Eh:            eh,
+		NetworkSearch: networkSearch,
+	}
 	// 将isNetwork参数添加到上下文中，传递给stream函数
-	ctxWithNetwork := context.WithValue(ctx, "isNetwork", isNetWork)
-
-	log.Printf("[ChatAiModel] 开始调用stream函数 - ID: %s", id)
-	streamData, err := stream(ctxWithNetwork, conf, sources, id, eh)
-	log.Printf("[ChatAiModel] stream函数调用完成 - ID: %s, 错误: %v", id, err)
+	ctxWithNetwork := context.WithValue(ctx, "isNetwork", req.IsNetwork)
+	log.Printf("[ChatAiModel] 开始调用stream函数 - ID: %s", req.ID)
+	streamData, err := stream(ctxWithNetwork, &streamType)
+	log.Printf("[ChatAiModel] stream函数调用完成 - ID: %s, 错误: %v", req.ID, err)
 	if err != nil {
 		return nil, fmt.Errorf("生成答案失败：%w", err)
 	}
 	srs := streamData.Copy(2)
 	go func() {
 		defer srs[1].Close()
-
 		fullMsgs := make([]*schema.Message, 0)
 		msgChan := make(chan *schema.Message, 10) //添加缓冲
 		errChan := make(chan error, 1)
-
 		go func() {
 			defer close(msgChan)
 			for {
@@ -140,7 +162,7 @@ func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName s
 						fmt.Printf("error concatenating messages: %v\n", err)
 						return
 					}
-					err = eh.SaveMessage(fullMsg, id)
+					err = eh.SaveMessage(fullMsg, req.ID)
 					if err != nil {
 						fmt.Printf("save assistant message err: %v\n", err)
 						return
@@ -155,63 +177,35 @@ func ChatAiModel(ctx context.Context, isNetWork bool, input, id, KnowledgeName s
 				return
 
 			case <-ctx.Done():
-				log.Printf("[ChatAiModel] 上下文取消 - ID: %s, 错误: %v", id, ctx.Err())
+				log.Printf("[ChatAiModel] 上下文取消 - ID: %s, 错误: %v", req.ID, ctx.Err())
 				return
 			}
 		}
 	}()
 	return srs[0], nil
 }
-func stream(ctx context.Context, conf *configTool.Config, question []string, id string, eh *eino.History) (res *schema.StreamReader[*schema.Message], err error) {
-	//var eh = eino.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
-	history, err := eh.GetHistory(id, 50)
+func stream(ctx context.Context, streamType *StreamType) (res *schema.StreamReader[*schema.Message], err error) {
+	//var eh = aiModel.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
+	history, err := streamType.Eh.GetHistory(streamType.Id, 50)
 	if err != nil {
 		log.Printf("获取历史记录失败: %v", err)
 		return nil, fmt.Errorf("get history failed: %v", err)
 	}
 	log.Printf("历史记录数量: %d", len(history))
-	/*	for i, msg := range history {
-		log.Printf("历史记录[%d]: Role=%s, Content=%s", i, msg.Role, msg.Content)
-	}*/
 
 	// 构建模型，只构建一次
-	modelStream, err := eino2.BuildstudyCoachFor(ctx, conf)
+	modelStream, err := CoachChat.BuildstudyCoachFor(ctx, streamType.Conf)
 	if err != nil {
 		log.Printf("构建模型失败: %v", err)
 		return nil, fmt.Errorf("构建模型失败: %v", err)
 	}
 
-	// 分类处理不同来源的内容
-	var knowledgeContent []string
-	var networkContent []string
-	var userQuery string
-
-	// 先进行分类处理
-	for _, q := range question {
-		if strings.HasPrefix(q, "[知识库-") {
-			knowledgeContent = append(knowledgeContent, q)
-		} else if strings.Contains(q, "https") || strings.Contains(q, "http") || len(q) > 500 {
-			networkContent = append(networkContent, q)
-		} else {
-			userQuery = q
-		}
-	}
-
-	log.Printf("分类结果 - 用户查询: %s, 知识库内容数量: %d, 网络内容数量: %d", userQuery, len(knowledgeContent), len(networkContent))
-
 	output := common.GetSafeTemplateParams()
 	// 构建结构化的输入
-	output["user_query"] = userQuery
-	output["knowledge_base"] = knowledgeContent
-	output["network_search"] = networkContent
-	output["question"] = question // 保持兼容性
+	output["question"] = streamType.Question // 保持兼容性
 	output["chat_history"] = history
-	output["has_knowledge"] = len(knowledgeContent) > 0
-	output["has_network"] = len(networkContent) > 0
-
-	log.Printf("传递给模型的参数 - user_query: %s, has_knowledge: %v, has_network: %v, chat_history长度: %d",
-		output["user_query"], output["has_knowledge"], output["has_network"], len(history))
-
+	output["knowledge"] = streamType.Knowledge
+	output["network"] = streamType.NetworkSearch
 	// 添加重试机制，最多重试3次，但只重试Stream调用
 	maxRetries := 3
 	for attempt := 0; attempt < maxRetries; attempt++ {
@@ -252,56 +246,7 @@ func stream(ctx context.Context, conf *configTool.Config, question []string, id 
 	return nil, fmt.Errorf("流式生成失败，已重试%d次", maxRetries)
 }
 
-/*func searchConcurrently(ctx context.Context, input string) []string {
-	return searchConcurrentlyWithCache(ctx, input)
-}
-
-// GetHTTPClient returns the shared HTTP client with tuned timeouts and pooling
-func GetHTTPClient() *http.Client {
-	initCaches()
-	return httpClient
-}
-*/
-
-func retrieverFronKnowledgeBase(ctx context.Context, query, indexName string) ([]string, error) {
-	client, err := elasticsearch.NewClient(elasticsearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("创建ES客户端失败: %w", err)
-	}
-	conf := &configTool.Config{
-		Client:    client,
-		ApiKey:    g.Cfg().MustGet(ctx, "embedding.apiKey").String(),
-		BaseURL:   g.Cfg().MustGet(ctx, "embedding.baseURL").String(),
-		Model:     g.Cfg().MustGet(ctx, "embedding.model").String(),
-		IndexName: indexName,
-	}
-	// 确保索引存在
-	if err = common.CreateIndexIfNotExists(ctx, client, indexName); err != nil {
-		return nil, fmt.Errorf("索引初始化失败: %w", err)
-	}
-	buildRetriever, err := retriever.BuildRetriever(ctx, conf)
-	if err != nil {
-		return nil, err
-	}
-	docs, err := buildRetriever.Invoke(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("检索失败: %w", err)
-	}
-	//转换文档为字符串
-	var results []string
-	for _, doc := range docs {
-		if doc.Content != "" {
-			formatContent := fmt.Sprintf("[知识库-%s],%s", indexName, doc.Content)
-			results = append(results, formatContent)
-		}
-	}
-	log.Printf("知识库检索完成，共找到 %d 个相关文档", len(results))
-	return results, nil
-}
-
-func NewRagChat(ctx context.Context, conf *configTool.Config) (*Rag, error) {
+func NewRagChat(ctx context.Context, conf *common.Config) (*Rag, error) {
 	if len(conf.IndexName) == 0 {
 		return nil, fmt.Errorf("indexName is empty")
 	}
@@ -327,7 +272,7 @@ func NewRagChat(ctx context.Context, conf *configTool.Config) (*Rag, error) {
 	if err != nil {
 		return nil, err
 	}
-	cm, err := eino2.QaModel(ctx)
+	cm, err := CoachChat.QaModel(ctx)
 	if err != nil {
 		g.Log().Error(ctx, "GetChatModel failed, err=%v", err)
 		return nil, err

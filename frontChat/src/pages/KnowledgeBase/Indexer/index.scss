@@ -1,0 +1,215 @@
+/**
+ * 文档索引页面样式
+ */
+
+.indexer-container {
+  padding: 24px;
+  height: calc(100vh - 64px);
+  /* 减去header高度 */
+  overflow-y: auto;
+  /* 允许内容滚动 */
+  box-sizing: border-box;
+  color: var(--ant-color-text);
+}
+
+.indexer-card {
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.indexer-info-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.header-icon {
+  font-size: 18px;
+  color: var(--ant-color-primary);
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indexer-tabs {
+  margin: 24px 0;
+}
+
+.upload-area {
+  margin: 24px 0;
+}
+
+.upload-actions {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.url-area {
+  margin: 24px 0;
+}
+
+.url-actions {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.url-tips {
+  margin-top: 24px;
+}
+
+.process-info {
+  margin-top: 24px;
+}
+
+/* 上传组件样式调整 */
+.ant-upload-drag {
+  border: 2px dashed var(--ant-color-border);
+  border-radius: 8px;
+  background-color: var(--ant-color-fill-secondary);
+  transition: all 0.3s ease;
+}
+
+.ant-upload-drag:hover {
+  border-color: var(--ant-color-primary);
+  background-color: color-mix(in oklab, var(--ant-color-primary) 10%, var(--ant-color-fill-secondary));
+}
+
+.ant-upload-drag-icon {
+  font-size: 48px;
+  color: var(--ant-color-primary);
+}
+
+.ant-upload-text {
+  font-size: 16px;
+  color: var(--ant-color-text-secondary);
+  margin: 16px 0 8px;
+}
+
+.ant-upload-hint {
+  color: var(--ant-color-text-tertiary);
+  font-size: 14px;
+}
+
+/* 文件列表样式 */
+.ant-upload-list {
+  margin-top: 16px;
+}
+
+.ant-upload-list-item {
+  border: 1px solid var(--ant-color-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.ant-upload-list-item:hover {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+/* 描述列表样式 */
+.ant-descriptions-item-label {
+  font-weight: 600;
+  color: var(--ant-color-text);
+  background-color: var(--ant-color-fill-secondary);
+}
+
+.ant-descriptions-item-content {
+  color: var(--ant-color-text-secondary);
+}
+
+/* 标签页样式 */
+.ant-tabs-tab {
+  font-weight: 500;
+}
+
+.ant-tabs-tab-active {
+  font-weight: 600;
+}
+
+/* URL输入框样式 */
+.ant-input-affix-wrapper {
+  border-radius: 8px;
+}
+
+.ant-input-affix-wrapper:focus,
+.ant-input-affix-wrapper-focused {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* 表单样式 */
+.ant-form-item-label>label {
+  font-weight: 600;
+  color: var(--ant-color-text);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .indexer-container {
+    padding: 16px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .ant-select {
+    width: 100% !important;
+  }
+
+  .url-area .ant-input {
+    font-size: 16px;
+  }
+}
+
+/* 加载状态样式 */
+.ant-btn-loading {
+  pointer-events: none;
+}
+
+/* 标签样式 */
+.ant-tag {
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* 警告框样式 */
+.ant-alert {
+  border-radius: 8px;
+}
+
+.ant-alert-success {
+  background-color: var(--ant-color-success-bg);
+  border: 1px solid color-mix(in oklab, var(--ant-color-success) 40%, transparent);
+}
+
+.ant-alert-error {
+  background-color: var(--ant-color-error-bg);
+  border: 1px solid color-mix(in oklab, var(--ant-color-error) 40%, transparent);
+}
+
+.ant-alert-info {
+  background-color: var(--ant-color-info-bg);
+  border: 1px solid color-mix(in oklab, var(--ant-color-info) 40%, transparent);
+}

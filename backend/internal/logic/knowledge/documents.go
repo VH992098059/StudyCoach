@@ -24,7 +24,7 @@ func SaveDocumentsInfo(ctx context.Context, documents entity.KnowledgeDocuments)
 		"status":              documents.Status,
 	}
 
-	result, err := dao.KnowledgeDocuments.Ctx(ctx).Data(data).Insert()
+	result, err := dao.KnowledgeDocuments.Ctx(ctx).Data(data).Save()
 	if err != nil {
 		g.Log().Errorf(ctx, "保存文档信息失败: %+v, 错误: %v", documents, err)
 		return 0, fmt.Errorf("保存文档信息失败: %w", err)
