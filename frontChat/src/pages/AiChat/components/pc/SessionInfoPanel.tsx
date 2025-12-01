@@ -101,12 +101,12 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
             size={isTablet ? 'small' : 'middle'}
           />
         </div>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: isTablet ? 11 : 12, color: '#666' }}>
+        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap',flexDirection:"column", fontSize: isTablet ? 11 : 12, color: '#666' }}>
           <div>会话ID: {currentSessionId || '未开始'}</div>
           <div>消息数: {messagesCount}</div>
           <div>参考文档: {referenceDocuments.length} 条</div>
         </div>
-        <div style={{ marginTop: 8 }}>
+        <div style={{ marginTop: 8}}>
           <div style={{ fontSize: isTablet ? 11 : 12, color: '#333', marginBottom: 6 }}>高级选项</div>
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
@@ -132,7 +132,7 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
             </Space>
           }
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,flexDirection:"column"}}>
             <Input
               allowClear
               size={isTablet ? 'small' : 'middle'}
@@ -159,7 +159,7 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
               overflowY: 'auto',
               scrollbarWidth: 'thin',
               scrollbarColor: isReferenceScrolling ? '#d4d4d4 transparent' : 'transparent transparent',
-              paddingRight: 4,
+              paddingRight: 4,height:"calc(400px - 37px)",
             }}
             className={`custom-scrollbar ${isReferenceScrolling ? 'scrolling' : ''}`}
             onScroll={onReferenceScroll}

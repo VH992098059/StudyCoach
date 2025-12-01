@@ -4,6 +4,7 @@
  * references 面板显隐及滚动状态节流。
  */
 import { useCallback, useRef, useState } from 'react';
+import { RetrieverService, type RetrievalDocument } from '../../../services/retriever';
 
 export interface ReferenceDocument {
   id: string;
@@ -55,38 +56,36 @@ const useReferences = () => {
   };
 
   const fetchReferenceDocuments = useCallback(async (query: string): Promise<ReferenceDocument[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const mockReferences: ReferenceDocument[] = [
-      {
-        id: '1',
-        title: '相关文档片段 1',
-        content: `这是与查询"${query}"相关的文档内容。包含了详细的技术说明和实现方案。`,
-        similarity: 0.95,
-        source: '技术文档.pdf',
-        url: '/docs/tech-doc.pdf',
-      },
-      {
-        id: '2',
-        title: '相关文档片段 2',
-        content: `另一个相关的文档片段，提供了补充信息和最佳实践建议。`,
-        similarity: 0.87,
-        source: '最佳实践.md',
-        url: '/docs/best-practices.md',
-      },
-      {
-        id: '3',
-        title: '相关文档片段 3',
-        content: `第三个相关文档，包含了具体的代码示例和配置说明。`,
-        similarity: 0.82,
-        source: '配置指南.txt',
-        url: '/docs/config-guide.txt',
-      },
-    ];
-    const filtered = mockReferences.filter((ref) => ref.similarity >= advancedSettings.score).slice(0, advancedSettings.topK);
-    setReferenceDocuments(filtered);
-    setShowReferences(filtered.length > 0);
-    return filtered;
-  }, [advancedSettings]);
+    if (!selectedKnowledge || selectedKnowledge === 'none') return [];
+
+    try {
+      const res = await RetrieverService.retrieve({
+        question: query,
+        knowledge_name: selectedKnowledge,
+        top_k: advancedSettings.topK,
+        score: advancedSettings.score,
+      });
+
+      const docs = res.document || [];
+      const references: ReferenceDocument[] = docs.map((doc: RetrievalDocument, index: number) => ({
+        id: doc.id || String(index),
+        title: doc.meta_data?.ext?._file_name || `文档片段 ${index + 1}`,
+        content: doc.content,
+        similarity: doc.score || doc.meta_data?._score || 0,
+        source: doc.meta_data?.ext?._file_name || '未知来源',
+        url: '',
+      }));
+
+      setReferenceDocuments(references);
+      setShowReferences(references.length > 0);
+      return references;
+    } catch (error) {
+      console.error('获取参考文档失败:', error);
+      setReferenceDocuments([]);
+      setShowReferences(false);
+      return [];
+    }
+  }, [selectedKnowledge, advancedSettings]);
 
   return {
     selectedKnowledge,

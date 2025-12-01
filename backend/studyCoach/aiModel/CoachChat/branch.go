@@ -13,9 +13,8 @@ import (
 // newBranch branch initialization method of node 'AnalysisChatModel' in graph 'studyCoachFor'
 func newBranch(ctx context.Context, input *schema.Message) (endNode string, err error) {
 	// 为分支判断添加15秒超时控制
-	branchCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	branchCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-
 	content := strings.ToLower(input.Content)
 	log.Printf("[newBranch] 开始分支判断")
 	log.Println("AnalysisChatModel分支输出")

@@ -19,10 +19,11 @@ interface UseSSEChatParams {
   isNetworkEnabled: boolean;
   generateMsgId: () => string;
   setMessages: (updater: (prev: Message[]) => Message[]) => void;
+  isStudyMode: boolean;
 }
 
 const useSSEChat = (params: UseSSEChatParams) => {
-  const { selectedKnowledge, advancedSettings, isNetworkEnabled, generateMsgId, setMessages } = params;
+  const { selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, generateMsgId, setMessages } = params;
 
   const abortCtrlRef = useRef<AbortController | null>(null);
   const [connectionState, setConnectionState] = useState<SSEConnectionState>(SSEConnectionState.DISCONNECTED);
@@ -91,6 +92,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
           top_k: advancedSettings.topK,
           score: advancedSettings.score,
           is_network: isNetworkEnabled,
+          is_study_mode: isStudyMode,
         }),
       });
 
@@ -209,6 +211,17 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
   const stop = () => {
     stoppedByUserRef.current = true;
+    // 如果有已生成的内容，在停止时保存为一条消息
+    if (accumulatedMessageRef.current.trim()) {
+      const aiMessage: Message = {
+        id: Date.now(),
+        msg_id: generateMsgId(),
+        content: accumulatedMessageRef.current.trim(),
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    }
     cleanup();
     setLoading(false);
     setCurrentAiMessage('');

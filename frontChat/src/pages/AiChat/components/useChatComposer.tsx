@@ -47,19 +47,6 @@ const useChatComposer = (params: UseChatComposerParams) => {
   const sendQuestionByText = useCallback(async (text: string) => {
     if (!text.trim()) return;
 
-    let references: ReferenceDocument[] = [];
-    if (selectedKnowledge !== 'none') {
-      try {
-        references = await fetchReferenceDocuments(text);
-        setReferenceDocuments(references);
-        if (references.length > 0) setShowReferences(true);
-      } catch {
-      }
-    } else {
-      setReferenceDocuments([]);
-      setShowReferences(false);
-    }
-
     const userMessage: Message = {
       id: Date.now(),
       msg_id: generateMsgId(),
@@ -71,7 +58,28 @@ const useChatComposer = (params: UseChatComposerParams) => {
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputValue('');
+    
+    // 立即发送消息，不等待引用检索
     send(text, currentSessionId);
+
+    // 异步获取引用文档
+    if (selectedKnowledge !== 'none') {
+      // 清空旧的引用
+      setReferenceDocuments([]);
+      setShowReferences(false);
+      
+      fetchReferenceDocuments(text)
+        .then(references => {
+          setReferenceDocuments(references);
+          if (references.length > 0) setShowReferences(true);
+        })
+        .catch(() => {
+          // 忽略错误，已经在 fetchReferenceDocuments 中处理了
+        });
+    } else {
+      setReferenceDocuments([]);
+      setShowReferences(false);
+    }
   }, [messages, selectedKnowledge, fetchReferenceDocuments, setReferenceDocuments, setShowReferences, generateMsgId, setMessages, formatUserInput, send, currentSessionId]);
 
   const handleSend = useCallback(async () => {

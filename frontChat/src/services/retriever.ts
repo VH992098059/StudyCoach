@@ -31,7 +31,9 @@ export interface DocumentMetadata {
  * 检索结果文档接口
  */
 export interface RetrievalDocument {
+  id?: string;
   content: string;
+  score?: number;
   meta_data: DocumentMetadata;
 }
 

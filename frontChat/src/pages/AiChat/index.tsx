@@ -75,6 +75,7 @@ const AIChat: React.FC = () => {
     selectedKnowledge,
     advancedSettings,
     isNetworkEnabled,
+    isStudyMode,
     generateMsgId,
     setMessages,
   });

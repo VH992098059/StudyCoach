@@ -20,7 +20,6 @@ type ChatTemplateConfig struct {
 
 // newChatTemplate component initialization function of node 'CustomChatTemplate1' in graph 'RegularUpdate'
 func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
-	// TODO Modify component configuration here.
 	config := &ChatTemplateConfig{
 		Templates: []schema.MessagesTemplate{
 			schema.MessagesPlaceholder("chat_history", true),

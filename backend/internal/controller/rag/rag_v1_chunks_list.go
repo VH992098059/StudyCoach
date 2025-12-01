@@ -5,7 +5,7 @@ import (
 	"backend/internal/model/entity"
 	"context"
 
-	"backend/api/rag/v1"
+	v1 "backend/api/rag/v1"
 )
 
 func (c *ControllerV1) ChunksList(ctx context.Context, req *v1.ChunksListReq) (res *v1.ChunksListRes, err error) {

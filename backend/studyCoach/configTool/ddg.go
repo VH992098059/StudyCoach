@@ -1,4 +1,4 @@
-package NormalChat
+package configTool
 
 import (
 	"backend/studyCoach/common"
@@ -10,9 +10,10 @@ import (
 	"github.com/cloudwego/eino/components/tool"
 )
 
-func newTool(ctx context.Context) (bt tool.InvokableTool, err error) {
+func DdgNewTool(ctx context.Context) (bt tool.InvokableTool, err error) {
 	config := &duckduckgo.Config{
 		ToolName:   "web_search",
+		ToolDesc:   "这是用于搜索内容的工具",
 		MaxResults: 10,
 		Region:     duckduckgo.Region(ddgsearch.RegionWT),
 		HTTPClient: common.ClientProxy(),

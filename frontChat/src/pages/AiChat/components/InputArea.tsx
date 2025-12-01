@@ -10,10 +10,6 @@ import MicRecorderButton from './MicRecorderButton';
 import FileUpload from './FileUpload';
 import type { UploadedFile } from '@/types/chat';
 
-interface AdvancedSettings {
-  topK: number;
-  score: number;
-}
 
 interface InputAreaProps {
   inputValue: string;
@@ -53,6 +49,7 @@ const InputArea: React.FC<InputAreaProps> = ({
     <>
       <div style={{ 
         borderRadius: '8px',
+        
       }}>
 
         {/* 输入区：使用 Ant Design X Sender */}
@@ -60,7 +57,7 @@ const InputArea: React.FC<InputAreaProps> = ({
           value={inputValue}
           onChange={(val) => onInputChange(val)}
           placeholder={"输入你的消息..."}
-          autoSize={{ minRows: 3, maxRows: 5 }}
+          autoSize={{ minRows: 2, maxRows: 5 }}
           loading={loading}
           submitType={'enter'}
           allowSpeech={true}
@@ -107,7 +104,7 @@ const InputArea: React.FC<InputAreaProps> = ({
               
             </div>
           )}
-          styles={{ content: { backgroundColor: 'transparent' } }}
+          styles={{ content: { backgroundColor: 'transparent',flexDirection: 'column'} }}
         />
         
       </div>

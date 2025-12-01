@@ -1,4 +1,4 @@
-package regular_update
+package cron
 
 import (
 	"backend/internal/dao"
@@ -6,7 +6,7 @@ import (
 	"context"
 )
 
-func RuCreate(ctx context.Context, knowledgeBaseId int64, CronExpression string) (id int64, err error) {
+func RuCronCreate(ctx context.Context, knowledgeBaseId int64, CronExpression string) (id int64, err error) {
 	id, err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Data(do.KnowledgeBaseCronSchedule{
 		KnowledgeBaseId: knowledgeBaseId,
 		CronExpression:  CronExpression,
@@ -17,7 +17,7 @@ func RuCreate(ctx context.Context, knowledgeBaseId int64, CronExpression string)
 	return id, nil
 }
 
-func RuDelete(ctx context.Context, id int64) (isOk string, err error) {
+func RuCronDelete(ctx context.Context, id int64) (isOk string, err error) {
 	_, err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Data(do.KnowledgeBaseCronSchedule{
 		Id: id,
 	}).Delete()

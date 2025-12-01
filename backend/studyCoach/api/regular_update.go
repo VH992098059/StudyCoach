@@ -44,7 +44,7 @@ func regularUpdateModel(ctx context.Context, input string) (*schema.Message, err
 			}
 			continue
 		}
-		output := common.OutputTemplate
+		output := common.CronTemplate
 		output["question"] = sources // 保持兼容性
 		invoke, err := model.Invoke(ctx, output)
 		if err != nil {

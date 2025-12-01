@@ -1,7 +1,6 @@
 package api
 
 import (
-	"backend/studyCoach/aiModel/CoachChat"
 	"backend/studyCoach/configTool"
 	"context"
 	"crypto/md5"
@@ -141,10 +140,9 @@ func SearchConcurrentlyWithCache(ctx context.Context, input string) []string {
 	return sources
 }
 
-// 执行实际搜索
+// PerformSearch 执行实际搜索
 func PerformSearch(ctx context.Context, input string) ([]string, error) {
-	// 使用 aiModel.NewTool(ctx) 构建 DuckDuckGo V2 搜索工具（带配置）
-	searchTool, err := CoachChat.NewTool(ctx)
+	searchTool, err := configTool.DdgNewTool(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("搜索工具初始化失败: %w", err)
 	}

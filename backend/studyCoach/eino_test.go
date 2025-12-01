@@ -90,7 +90,7 @@ func TestRetriever(t *testing.T) {
 
 func TestChat(T *testing.T) {
 	_init()
-	model, err := api.ChatAiModel(context.Background(), &v1.AiChatReq{ID: "123", Question: "战地6配置", KnowledgeName: "测试知识库", TopK: 5, Score: 0.5, IsNetwork: false})
+	model, err := api.ChatAiModel(context.Background(), &v1.AiChatReq{ID: "123", Question: "搜索今天的新闻", KnowledgeName: "", TopK: 5, Score: 0.5, IsNetwork: true, IsStudyMode: false})
 	if err != nil {
 		return
 	}

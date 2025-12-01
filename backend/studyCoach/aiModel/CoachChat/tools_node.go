@@ -15,9 +15,9 @@ import (
 )
 
 func NewTool(ctx context.Context) (bt tool.InvokableTool, err error) {
-	// TODO Modify component configuration here.
 	config := &duckduckgoV2.Config{
-		MaxResults: 5,
+		ToolName:   "web_search",
+		MaxResults: 10,
 		Region:     duckduckgoV2.Region(ddgsearch.RegionWT),
 		HTTPClient: common.ClientProxy(),
 	}
@@ -29,7 +29,8 @@ func NewTool(ctx context.Context) (bt tool.InvokableTool, err error) {
 }
 func newTool1(ctx context.Context) (bt tool.InvokableTool, err error) {
 	config := &duckduckgoV2.Config{
-		MaxResults: 5,
+		ToolName:   "web_search",
+		MaxResults: 10,
 		Region:     duckduckgoV2.RegionWT,
 		HTTPClient: common.ClientProxy(),
 	}
@@ -41,6 +42,7 @@ func newTool1(ctx context.Context) (bt tool.InvokableTool, err error) {
 }
 func newTool2(ctx context.Context) (bt tool.InvokableTool, err error) {
 	config := &duckduckgoV2.Config{
+		ToolName:   "web_search",
 		MaxResults: 5,
 		Region:     duckduckgoV2.RegionWT,
 		HTTPClient: common.ClientProxy(),

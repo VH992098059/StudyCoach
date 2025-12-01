@@ -12,6 +12,7 @@ type AiChatReq struct {
 	TopK          int     `json:"top_k"` // 默认为5
 	Score         float64 `json:"score"` // 默认为0.2
 	IsNetwork     bool    `json:"is_network"`
+	IsStudyMode   bool    `json:"is_study_mode"`
 }
 type AiChatRes struct {
 	g.Meta `mime:"text/event-stream"`

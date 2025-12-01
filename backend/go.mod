@@ -82,9 +82,9 @@ require (
 	github.com/cloudwego/eino-ext/components/document/parser/pdf v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20250801075622-6721dae36fe9
 	github.com/cloudwego/eino-ext/components/indexer/es8 v0.0.0-20250818090953-a59b1be0df04
-	github.com/cloudwego/eino-ext/components/model/ark v0.1.42
+	github.com/cloudwego/eino-ext/components/model/ark v0.1.51
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.5
-	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20251121073121-ca0c0e6f9319
+	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20251127071721-056a8f881c64
 	github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20251114071555-14756a18ad37
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.2 // indirect
 	github.com/dgraph-io/ristretto v0.2.0
@@ -124,7 +124,6 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/nikolalohinski/gonja v1.5.3 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/openai/openai-go v1.10.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/redis/go-redis/v9 v9.12.1 // indirect
@@ -132,13 +131,9 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/slongfield/pyfmt v0.0.0-20220222012616-ea85ff4c361f // indirect
 	github.com/spf13/cast v1.7.1 // indirect
-	github.com/tidwall/gjson v1.14.4 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.1 // indirect
-	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/volcengine/volc-sdk-golang v1.0.23 // indirect
-	github.com/volcengine/volcengine-go-sdk v1.1.44 // indirect
+	github.com/volcengine/volcengine-go-sdk v1.1.49
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
