@@ -9,6 +9,6 @@ import (
 	"backend/api/cron/v1"
 )
 
-func (c *ControllerV1) RegularUpdateDelete(ctx context.Context, req *v1.RegularUpdateDeleteReq) (res *v1.RegularUpdateDeleteRes, err error) {
+func (c *ControllerV1) CronUpdateOne(ctx context.Context, req *v1.CronUpdateOneReq) (res *v1.CronUpdateOneRes, err error) {
 	return nil, gerror.NewCode(gcode.CodeNotImplemented)
 }

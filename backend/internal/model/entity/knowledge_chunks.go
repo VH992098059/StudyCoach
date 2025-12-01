@@ -10,7 +10,7 @@ import (
 
 // KnowledgeChunks is the golang structure for table knowledge_chunks.
 type KnowledgeChunks struct {
-	Id             int         `json:"id"             orm:"id"               description:""` //
+	Id             int64       `json:"id"             orm:"id"               description:""` //
 	KnowledgeDocId int64       `json:"knowledgeDocId" orm:"knowledge_doc_id" description:""` //
 	ChunkId        string      `json:"chunkId"        orm:"chunk_id"         description:""` //
 	Content        string      `json:"content"        orm:"content"          description:""` //

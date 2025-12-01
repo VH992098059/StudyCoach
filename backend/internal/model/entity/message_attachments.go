@@ -6,7 +6,7 @@ package entity
 
 // MessageAttachments is the golang structure for table message_attachments.
 type MessageAttachments struct {
-	Id           int64  `json:"id"           orm:"id"            description:""` //
+	Id           uint64 `json:"id"           orm:"id"            description:""` //
 	MessageId    string `json:"messageId"    orm:"message_id"    description:""` //
 	AttachmentId string `json:"attachmentId" orm:"attachment_id" description:""` //
 }

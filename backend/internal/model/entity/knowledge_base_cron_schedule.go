@@ -10,9 +10,13 @@ import (
 
 // KnowledgeBaseCronSchedule is the golang structure for table knowledge_base_cron_schedule.
 type KnowledgeBaseCronSchedule struct {
-	Id              int64       `json:"id"              orm:"id"                description:""` //
-	KnowledgeBaseId int64       `json:"knowledgeBaseId" orm:"knowledge_base_id" description:""` //
-	CronExpression  string      `json:"cronExpression"  orm:"cron_expression"   description:""` //
-	CreatedAt       *gtime.Time `json:"createdAt"       orm:"created_at"        description:""` //
-	UpdatedAt       *gtime.Time `json:"updatedAt"       orm:"updated_at"        description:""` //
+	Id              int         `json:"id"              orm:"id"                description:""`                     //
+	CronName        string      `json:"cronName"        orm:"cron_name"         description:"定时任务名"`                // 定时任务名
+	KnowledgeBaseId int64       `json:"knowledgeBaseId" orm:"knowledge_base_id" description:"知识库id"`                // 知识库id
+	CronExpression  string      `json:"cronExpression"  orm:"cron_expression"   description:"cron表达式"`              // cron表达式
+	Status          int         `json:"status"          orm:"status"            description:"使用状态 1启用，2暂停，0停止"`     // 使用状态 1启用，2暂停，0停止
+	ContentType     int         `json:"contentType"     orm:"content_type"      description:"更新内容状态 1为全量更新，2为增量更新"` // 更新内容状态 1为全量更新，2为增量更新
+	CreatedAt       *gtime.Time `json:"createdAt"       orm:"created_at"        description:""`                     //
+	UpdatedAt       *gtime.Time `json:"updatedAt"       orm:"updated_at"        description:""`                     //
+	DeletedAt       *gtime.Time `json:"deletedAt"       orm:"deleted_at"        description:""`                     //
 }
