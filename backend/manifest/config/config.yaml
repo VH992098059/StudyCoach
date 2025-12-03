@@ -185,7 +185,7 @@ ark:
 minio:
   endpoint: "localhost:9000"
   accessKey: "minioadmin"
-  secretKey: "1234"
+  secretKey: "123456"
   bucketFile: "studyfile"
   bucketImages: "images"
 
