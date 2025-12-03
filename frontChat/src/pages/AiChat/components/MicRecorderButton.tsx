@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Button, Tooltip, message } from 'antd';
-import { AudioOutlined, StopOutlined, LoadingOutlined } from '@ant-design/icons';
+import { AudioOutlined, StopOutlined, LoadingOutlined, PhoneOutlined } from '@ant-design/icons';
 import { MicVAD } from '@ricky0123/vad-web';
 import ApiClient from '@/utils/axios';
 import { blobToDataURI } from '@/services/asr';
@@ -16,6 +16,8 @@ interface MicRecorderButtonProps {
   disabled?: boolean;
   language?: string; // e.g., 'auto' | 'zh' | 'en'
   size?: 'small' | 'middle' | 'large';
+  style?: React.CSSProperties;
+  type?: 'primary' | 'ghost' | 'dashed' | 'link' | 'text' | 'default';
 }
 
 /**
@@ -26,6 +28,8 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
   disabled,
   language = 'auto',
   size = 'middle',
+  style,
+  type = 'default',
 }) => {
   const [recording, setRecording] = useState(false);
   const [working, setWorking] = useState(false);
@@ -192,7 +196,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     message.info('通话已结束');
   };
 
-  const icon = working ? <LoadingOutlined spin /> : recording ? <StopOutlined /> : <AudioOutlined />;
+  const icon = working ? <LoadingOutlined spin /> : recording ? <StopOutlined /> : <PhoneOutlined />;
   const color = working ? '#1890ff' : recording ? '#ff4d4f' : '#444';
   const computeStatus = (): CallStatus => { if (!overlayVisible) return 'dialing'; if (working) return 'processing'; if (recording) return 'recording'; return hasStarted ? 'ended' : 'dialing'; };
 
@@ -200,7 +204,6 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     <>
       <Tooltip title={recording ? '停止录音' : '开始语音通话'}>
         <Button
-          type="default"
           icon={icon}
           onClick={() => {
             // 点击按钮仅打开叠层，真正的开始在叠层中触发
@@ -213,14 +216,16 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
             height: 36,
             minWidth: 36,
             borderRadius: 8,
-            background: '#f5f5f5',
-            border: '1px solid #e5e6eb',
+            // Only apply default background/border if type is default to avoid clashing with text buttons
+            background: type === 'default' ? '#f5f5f5' : 'transparent',
+            border: type === 'default' ? '1px solid #e5e6eb' : 'none',
             color,
             boxShadow: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: 0,
+            ...style,
           }}
         />
       </Tooltip>

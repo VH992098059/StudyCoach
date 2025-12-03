@@ -12,7 +12,9 @@
     "tauri:build": "bun run build && tauri build"
   },
   "dependencies": {
-    "@ant-design/x": "^1.6.1",
+    "@ant-design/x": "^2.0.0",
+    "@ant-design/x-markdown": "^2.0.0",
+    "@ant-design/x-sdk": "^2.0.0",
     "@reduxjs/toolkit": "^2.8.2",
     "@ricky0123/vad-web": "^0.0.28",
     "@tauri-apps/plugin-http": "^2.5.1",
@@ -21,7 +23,7 @@
     "@uiw/react-markdown-preview": "^5.1.5",
     "@uiw/react-md-editor": "^4.0.8",
     "ai": "^5.0.41",
-    "antd": "^5.26.2",
+    "antd": "^6.0.0",
     "axios": "^1.10.0",
     "clsx": "^2.1.1",
     "electron": "^37.2.6",

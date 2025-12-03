@@ -13,12 +13,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/VH992098059/chat-history/eino"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/wangle201210/chat-history/eino"
 )
 
 const (
@@ -26,6 +26,10 @@ const (
 	esTopK       = 50
 	esTryFindDoc = 10
 )
+
+var client *elasticsearch.Client
+var esConf *common.Config
+var eh *eino.History
 
 type Rag struct {
 	idxer      compose.Runnable[any, []string]
@@ -46,9 +50,6 @@ type StreamType struct {
 	IsStudyMode bool
 }
 
-var client *elasticsearch.Client
-var esConf *common.Config
-
 func init() {
 	ctx := context.Background()
 	client, _ = elasticsearch.NewClient(elasticsearch.Config{
@@ -61,14 +62,12 @@ func init() {
 		ChatModel: g.Cfg().MustGet(ctx, "embedding.model").String(),
 		IndexName: g.Cfg().MustGet(ctx, "es.indexName").String(),
 	}
+	eh = eino.NewEinoHistory(g.Cfg().MustGet(context.Background(), "db.mysql").String())
 }
 func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*schema.Message], error) {
 	var rag *Rag
 	var documents []*schema.Document
 	log.Printf("[ChatAiModel] 开始处理请求 - ID: %s, 网络搜索: %v, 知识库: %s", req.ID, req.IsNetwork, req.KnowledgeName)
-	//var eh = aiModel.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
-	var eh = eino.NewEinoHistory(g.Cfg().MustGet(ctx, "chat.history").String())
-	//var eh = aiModel.NewEinoHistory("host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
 
 	log.Println("用户内容：", req.Question)
 	conf := &common.Config{
@@ -107,9 +106,9 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 		IsStudyMode: req.IsStudyMode,
 	}
 	// 将isNetwork参数添加到上下文中，传递给stream函数
-	ctxWithNetwork := context.WithValue(ctx, "isNetwork", req.IsNetwork)
+	ctxNew := context.WithValue(ctx, "isNetwork", req.IsNetwork)
 	g.Log().Infof(ctx, "[ChatAiModel] 开始调用stream函数 - ID: %s", req.ID)
-	streamData, err := stream(ctxWithNetwork, &streamType, common.GetSafeTemplateParams())
+	streamData, err := stream(ctxNew, &streamType, common.GetSafeTemplateParams())
 	g.Log().Infof(ctx, "[ChatAiModel] stream函数调用完成 - ID: %s, 错误: %v", req.ID, err)
 	if err != nil {
 		return nil, fmt.Errorf("生成答案失败：%w", err)
@@ -121,7 +120,6 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*schema.Message], error) {
 	var rag *Rag
 	var documents []*schema.Document
-	var eh = eino.NewEinoHistory(g.Cfg().MustGet(ctx, "chat.history").String())
 	g.Log().Info(ctx, "用户内容：", req.Question)
 	// 初始化 RAG 组件，避免后续调用空指针
 	rag, err := NewRagChat(ctx, esConf)
@@ -146,10 +144,11 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 	}
 
 	streamType := StreamType{
-		Question:  req.Question,
-		Knowledge: documents,
-		Id:        req.ID,
-		Eh:        eh,
+		Question:    req.Question,
+		Knowledge:   documents,
+		Id:          req.ID,
+		Eh:          eh,
+		IsStudyMode: req.IsStudyMode,
 	}
 	// 将isNetwork参数添加到上下文中，传递给stream函数
 	ctxWithNetwork := context.WithValue(ctx, "isNetwork", req.IsNetwork)
@@ -207,12 +206,13 @@ func chanOutput(ctx context.Context, srs []*schema.StreamReader[*schema.Message]
 
 // 流式输出
 func stream(ctx context.Context, streamType *StreamType, output map[string]interface{}) (res *schema.StreamReader[*schema.Message], err error) {
-	//var eh = aiModel.NewEinoHistory("host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai")
-	history, err := streamType.Eh.GetHistory(streamType.Id, 50)
+	history, err := streamType.Eh.GetHistory(streamType.Id, 30)
 	if err != nil {
 		g.Log().Errorf(ctx, "获取历史记录失败: %v", err)
 		return nil, fmt.Errorf("get history failed: %v", err)
 	}
+	ctx = context.WithValue(ctx, "chat_history", history)
+	ctx = context.WithValue(ctx, "history", streamType.Knowledge)
 	log.Printf("历史记录数量: %d", len(history))
 	var modelStream compose.Runnable[map[string]any, *schema.Message]
 	if streamType.IsStudyMode == false {

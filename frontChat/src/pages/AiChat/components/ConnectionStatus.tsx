@@ -56,7 +56,9 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
       color: statusColor,
       display: 'flex',
       alignItems: 'center',
-      gap: '6px'
+      gap: '6px',
+      position:'fixed',
+      zIndex:"1000"
     }}>
       <div style={{
         width: '6px',

@@ -1,0 +1,47 @@
+/* Override XMarkdown table width issue */
+.x-markdown table:not(pre) {
+  display: block;
+  width: 100vh;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
+  margin-bottom: 1em;
+  border-collapse: collapse;
+  white-space: nowrap; /* Prevent wrapping inside cells to force horizontal scroll */
+}
+
+/* Optional: Ensure table cells have padding for readability */
+.x-markdown table:not(pre) th,
+.x-markdown table:not(pre) td {
+  padding: 8px 12px;
+  border: 1px solid var(--ant-color-border-secondary); /* Use Ant Design token if available, or fallback */
+}
+
+/* Optional: Adjust max-width for images inside bubbles to prevent overflow */
+.x-markdown img {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width:1024px) {
+  .x-markdown table:not(pre) {
+    display: block;
+    width: 50vh;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
+    margin-bottom: 1em;
+    border-collapse: collapse;
+    white-space: nowrap; /* Prevent wrapping inside cells to force horizontal scroll */
+  }
+}
+
+@media (max-width:600px) {
+  .x-markdown table:not(pre) {
+    display: block;
+    width: 30vh;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
+    margin-bottom: 1em;
+    border-collapse: collapse;
+    white-space: nowrap; /* Prevent wrapping inside cells to force horizontal scroll */
+  }
+}

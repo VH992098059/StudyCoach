@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"testing"
 	"time"
 
@@ -90,9 +91,40 @@ func TestRetriever(t *testing.T) {
 
 func TestChat(T *testing.T) {
 	_init()
-	model, err := api.ChatAiModel(context.Background(), &v1.AiChatReq{ID: "123", Question: "搜索今天的新闻", KnowledgeName: "", TopK: 5, Score: 0.5, IsNetwork: true, IsStudyMode: false})
-	if err != nil {
-		return
+	const userCount = 10
+	var wg sync.WaitGroup
+	wg.Add(userCount)
+	fmt.Printf("开始模拟 %d 个并发用户...\n", userCount)
+	for i := 0; i < userCount; i++ {
+		go func(userIndex int) {
+			defer wg.Done()
+			reqID := fmt.Sprintf("123-user-%d", userIndex)
+			req := &v1.AiChatReq{
+				ID:            reqID,
+				Question:      "你好",
+				KnowledgeName: "",
+				TopK:          5,
+				Score:         0.5,
+				IsNetwork:     false,
+				IsStudyMode:   false,
+			}
+			model, err := api.ChatAiModel(context.Background(), req)
+			if err != nil {
+				// 注意：在并发测试中，建议用 t.Log 或 fmt 打印错误，而不是直接 return 整个 Test
+				fmt.Printf("[User %d] Error: %v\n", userIndex, err)
+				return
+			}
+			// 获取结果
+			// 假设 Recv() 可能会阻塞直到获得结果
+			resp, err := model.Recv() // 如果 Recv 返回 (response, error)
+			if err != nil {
+				fmt.Printf("[User %d] Recv Error: %v\n", userIndex, err)
+				return
+			}
+
+			fmt.Printf("[User %d] Response: %v\n", userIndex, resp.Content)
+		}(i)
 	}
-	fmt.Println(model.Recv())
+	wg.Wait()
+	fmt.Println("所有用户请求测试完毕。")
 }

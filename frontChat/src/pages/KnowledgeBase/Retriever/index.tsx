@@ -262,7 +262,7 @@ const Retriever: React.FC = () => {
 
         {!loading && searchResults.length > 0 && (
           <div className="result-area">
-            <Divider orientation="left">
+            <Divider >
               <Space>
                 <FileTextOutlined />
                 <span>检索结果</span>

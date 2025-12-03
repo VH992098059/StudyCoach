@@ -1,8 +1,5 @@
 /**
  * @fileoverview SSE (Server-Sent Events) 封装工具类
- * @description 提供SSE连接管理、事件监听、错误处理和自动重连等功能
- * @author 开发团队
- * @version 1.0.0
  */
 
 /**

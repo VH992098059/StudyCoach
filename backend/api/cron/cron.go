@@ -16,4 +16,5 @@ type ICronV1 interface {
 	CronList(ctx context.Context, req *v1.CronListReq) (res *v1.CronListRes, err error)
 	CronGetOne(ctx context.Context, req *v1.CronGetOneReq) (res *v1.CronGetOneRes, err error)
 	CronUpdateOne(ctx context.Context, req *v1.CronUpdateOneReq) (res *v1.CronUpdateOneRes, err error)
+	CronUpdateStatus(ctx context.Context, req *v1.CronUpdateStatusReq) (res *v1.CronUpdateStatusRes, err error)
 }

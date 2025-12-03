@@ -42,12 +42,12 @@ func newChatModel1(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 }
 
 func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
-	config := &openai.ChatModelConfig{
+	config := &ark.ChatModelConfig{
 		Model:   conf.ChatModel,
 		APIKey:  conf.APIKey,
 		BaseURL: conf.BaseURL,
 	}
-	cm, err = openai.NewChatModel(ctx, config)
+	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("ReAct模型分析")
 	if err != nil {
 		return nil, err
@@ -97,12 +97,16 @@ func QaModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 }
 
 func BranchNewChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
-	config := &openai.ChatModelConfig{
-		APIKey:  g.Cfg().MustGet(ctx, "Branch.apiKey").String(),
-		BaseURL: g.Cfg().MustGet(ctx, "Branch.baseURL").String(),
-		Model:   g.Cfg().MustGet(ctx, "Branch.model").String(),
+	var topP float32 = 0.1
+	var temperature float32 = 0.1
+	config := &ark.ChatModelConfig{
+		APIKey:      g.Cfg().MustGet(ctx, "Branch.apiKey").String(),
+		BaseURL:     g.Cfg().MustGet(ctx, "Branch.baseURL").String(),
+		Model:       g.Cfg().MustGet(ctx, "Branch.model").String(),
+		TopP:        &topP,
+		Temperature: &temperature,
 	}
-	cm, err = openai.NewChatModel(ctx, config)
+	cm, err = ark.NewChatModel(ctx, config)
 	if err != nil {
 		return nil, err
 	}

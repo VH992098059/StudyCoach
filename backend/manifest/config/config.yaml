@@ -133,53 +133,71 @@ redis:
     pass: "123456"
     db: 1
     idleTimeout: "60s"
-chat:
-  apiKey: "sk-*"
-  baseURL: "https://api.siliconflow.cn/v1"
-  model: "deepseek-ai/DeepSeek-V3.2-Exp"
-  history: "host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+
+db:
+  mysql: "root:root@tcp(127.0.0.1:3306)/chat_history"
+#  history: "host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 #  history: "host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+
+voice:
+  apiKey: "*"
+
 Branch:
-  apiKey: "sk-*"
-  baseURL: "https://api.siliconflow.cn/v1"
-  model: "Qwen/Qwen3-14B"
+  apiKey: "*"
+  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
+  model: "doubao-1-5-pro-32k-character-250715"
+
 Analysis:
-  apiKey: "sk-*"
+  apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "Qwen/Qwen3-14B"
+
 embedding:
-  apiKey: "sk-*"
+  apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "Qwen/Qwen3-Embedding-8B"
+
+embeddingArk:
+  apiKey: "*"
+  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
+  model: "doubao-embedding-vision-250615"
+
 rewrite:
-  apiKey: "sk-*"
+  apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
-  model: "Qwen/Qwen3-14B"
+  model: "MiniMaxAI/MiniMax-M2"
+
 qa:
-  apiKey: "sk-*"
+  apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "deepseek-ai/DeepSeek-V3"
+
 rerank:
-  apiKey: "sk-*"
+  apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "Qwen/Qwen3-Reranker-8B"
+
 ark:
-  apiKey: "1f**"
+  apiKey: "*"
   baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-seed-1-6-250615"
+  model: "doubao-seed-1-6-251015"
+
 minio:
   endpoint: "localhost:9000"
   accessKey: "minioadmin"
-  secretKey: "770880520"
+  secretKey: "1234"
   bucketFile: "studyfile"
   bucketImages: "images"
+
 es:
 #  address: "http://studycoach-elasticsearch:9200"
   address: "http://localhost:9200"
   indexName: "study"
 #  username: "elastic"
 #  password: "123456"
+
 cron:
-  apiKey: "sk-*"
+  apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "zai-org/GLM-4.6"
+

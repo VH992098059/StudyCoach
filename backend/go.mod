@@ -24,11 +24,9 @@ require (
 	github.com/wangle201210/chat-history v0.0.0-20250402104704-5eec15d5419e
 	go.mongodb.org/mongo-driver v1.17.4
 	golang.org/x/crypto v0.40.0
-	gorm.io/driver/postgres v1.5.9 // indirect
 )
 
 require (
-	github.com/VH992098059/chat-history v0.0.0-20250822090229-bff17e0a58c2
 	github.com/cloudwego/eino-ext/components/document/parser/xlsx v0.0.0-20251121095553-9c4349cc3e46
 	github.com/cloudwego/eino-ext/components/indexer/qdrant v0.0.0-20251121095553-9c4349cc3e46
 	github.com/cloudwego/eino-ext/components/tool/mcp v0.0.4
@@ -45,10 +43,6 @@ require (
 	github.com/corpix/uarand v0.2.0 // indirect
 	github.com/eino-contrib/jsonschema v1.0.2 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/pgx/v5 v5.5.5 // indirect
-	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/minio/crc64nvme v1.0.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
@@ -84,7 +78,7 @@ require (
 	github.com/cloudwego/eino-ext/components/indexer/es8 v0.0.0-20250818090953-a59b1be0df04
 	github.com/cloudwego/eino-ext/components/model/ark v0.1.51
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.5
-	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20251127071721-056a8f881c64
+	github.com/cloudwego/eino-ext/components/tool/duckduckgo v0.0.0-20251201051757-182503179fca
 	github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20251114071555-14756a18ad37
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.2 // indirect
 	github.com/dgraph-io/ristretto v0.2.0

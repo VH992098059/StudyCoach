@@ -1,11 +1,11 @@
 import React from 'react';
 import { Card, List, Button, Tag, Space, Typography, theme } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
 
 export interface CronTask {
   id: string;
   cronName: string; // 对应数据库的 cron_name
-  knowledgeBaseId: string;
+  knowledgeBasename: string;
   cronExpression: string;
   status: 0 | 1 | 2; // 0: Stopped, 1: Running/Enabled, 2: Paused
   contentType: 1 | 2; // 1: Full Update, 2: Incremental Update
@@ -14,6 +14,8 @@ export interface CronTask {
   kbName?: string;
   lastRunTime?: number;
   execStatus?: 'idle' | 'running' | 'success' | 'failed';
+  // Config storage for UI state (not in DB directly but needed for editing)
+  config?: any;
 }
 
 interface TaskListCardProps {
@@ -22,6 +24,7 @@ interface TaskListCardProps {
   onSelectTask: (taskId: string) => void;
   onAddTask: () => void;
   onDeleteTask: (taskId: string) => void;
+  onRefresh?: () => void;
 }
 
 const TaskListCard: React.FC<TaskListCardProps> = ({
@@ -30,6 +33,7 @@ const TaskListCard: React.FC<TaskListCardProps> = ({
   onSelectTask,
   onAddTask,
   onDeleteTask,
+  onRefresh,
 }) => {
   const { token } = theme.useToken();
 
@@ -47,13 +51,17 @@ const TaskListCard: React.FC<TaskListCardProps> = ({
       className="section-card"
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
       extra={
-        <Button type="primary" icon={<PlusOutlined />} size="small" onClick={onAddTask}>
-          新建
-        </Button>
+        <Space>
+            <Button icon={<ReloadOutlined />} size="small" onClick={onRefresh} />
+            <Button type="primary" icon={<PlusOutlined />} size="small" onClick={onAddTask}>
+            新建
+            </Button>
+        </Space>
       }
       bodyStyle={{ padding: 0, flex: 1, overflowY: 'auto' }}
     >
       <List
+        rowKey="id"
         itemLayout="horizontal"
         dataSource={tasks}
         renderItem={(item) => (
@@ -91,7 +99,7 @@ const TaskListCard: React.FC<TaskListCardProps> = ({
                     {item.cronExpression}
                   </Typography.Text>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    知识库: {item.kbName || item.knowledgeBaseId || '未选择'}
+                    知识库: {item.kbName || item.knowledgeBasename || '未选择'}
                   </Typography.Text>
                 </Space>
               }

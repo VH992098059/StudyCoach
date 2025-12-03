@@ -3,12 +3,13 @@
  * @description 负责消息输入与发送、网络开关、上传文件、语音转写及高级检索参数设置。
  */
 import React from 'react';
-import { Button, Form, Row, Col, Slider, Switch, Tooltip } from 'antd';
-import { StopOutlined, GlobalOutlined, SettingOutlined , ReadOutlined, MessageOutlined} from '@ant-design/icons';
+import { Button, Switch, Tooltip, Flex, Divider, theme } from 'antd';
+import { GlobalOutlined } from '@ant-design/icons';
 import { Sender } from '@ant-design/x';
 import MicRecorderButton from './MicRecorderButton';
 import FileUpload from './FileUpload';
 import type { UploadedFile } from '@/types/chat';
+import { useBreakpoints } from '@/hooks/useMediaQuery';
 
 
 interface InputAreaProps {
@@ -37,78 +38,116 @@ const InputArea: React.FC<InputAreaProps> = ({
    isStudyMode,
   onVoiceTranscript,
   onInputChange,
-  onKeyPress,
-    onToggleStudyMode,
+  onToggleStudyMode,
   onSend,
   onStop,
   onToggleNetwork,
   onFilesChange,
   onUploadComplete,
 }) => {
-  return (
-    <>
-      <div style={{ 
-        borderRadius: '8px',
-        
-      }}>
+  const { token } = theme.useToken();
+  const { isMobile } = useBreakpoints();
 
-        {/* 输入区：使用 Ant Design X Sender */}
-        <Sender
-          value={inputValue}
-          onChange={(val) => onInputChange(val)}
-          placeholder={"输入你的消息..."}
-          autoSize={{ minRows: 2, maxRows: 5 }}
-          loading={loading}
-          submitType={'enter'}
-          allowSpeech={true}
-          onSubmit={(message) => {
-            if (!message?.trim()) return;
-            onInputChange(message);
-            setTimeout(() => onSend(), 0);
-          }}
-          onCancel={() => onStop()}
-          actions={(ori) => (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* 默认动作（发送/清空/语音按钮等） */}
-              {ori}
-              <Tooltip title={isStudyMode ? '学习模式' : '普通模式'}>
-                <Switch
-                  checked={isStudyMode}
-                  onChange={() => onToggleStudyMode()}
-                  checkedChildren={<span><ReadOutlined style={{ fontSize: 14 }} /> 学习</span>}
-                  unCheckedChildren={<span><MessageOutlined style={{ fontSize: 14 }} /> 普通</span>}
+  const iconStyle = {
+    fontSize: 18,
+    color: token.colorText,
+  };
+
+  return (
+    <div style={{ 
+      borderRadius: '8px',
+    }}>
+
+      {/* 输入区：使用 Ant Design X Sender */}
+      <Sender
+        value={inputValue}
+        onChange={(val) => onInputChange(val)}
+        placeholder={"输入你的消息..."}
+        autoSize={{ minRows: 2, maxRows: 6 }}
+        loading={loading}
+        submitType={'enter'}
+        allowSpeech={true}
+        onSubmit={(message) => {
+          if (!message?.trim() && currentUploadedFiles.length === 0) return;
+          // 如果有文本，触发 input change 确保状态同步（虽然 onChange 已经触发）
+          if (message) onInputChange(message);
+          setTimeout(() => onSend(), 0);
+        }}
+        onCancel={() => onStop()}
+        footer={(_, { components }) => {
+            const { SendButton, LoadingButton, SpeechButton } = components;
+            return (
+              <Flex justify="space-between" align="center" wrap="wrap" gap="small">
+                <Flex gap="small" align="center" style={{ flex: 1, overflow: 'hidden' }}>
+                  {/* 文件上传 / 附件 */}
+                  <FileUpload
+                    onFilesChange={onFilesChange}
+                    onUploadComplete={onUploadComplete}
+                    disabled={loading}
+                    style={{ marginBottom: 0 }} // Override default marginBottom
+                  />
                   
-                />
-              </Tooltip>
-              {/* 联网开关 */}
-              <Button
-                type="text"
-                icon={<GlobalOutlined />}
-                onClick={onToggleNetwork}
-                title={isNetworkEnabled ? '关闭联网' : '开启联网'}
-                style={{ border: 'none', boxShadow: 'none', color: isNetworkEnabled ? '#1890ff' : '#666' }}
-              />
-              
-              <FileUpload
-                onFilesChange={onFilesChange}
-                onUploadComplete={onUploadComplete}
-                disabled={loading}
-                style={{ marginBottom: currentUploadedFiles.length > 0 ? '8px' : '0' }}
-              />
-              {/* 语音通话（VAD） */}
-              <MicRecorderButton
-                disabled={loading}
-                language={'auto'}
-                onTranscript={(text) => onVoiceTranscript?.(text)}
-              />
-              
-            </div>
-          )}
-          styles={{ content: { backgroundColor: 'transparent',flexDirection: 'column'} }}
-        />
-        
-      </div>
-    </>
+                  <Divider orientation="vertical" style={{ margin: '0 4px' }} />
+                  
+                  {/* 深度思考 / 学习模式 */}
+                  {!isMobile && <span style={{ fontSize: 12, color: token.colorTextSecondary }}>学习模式</span>}
+                  <Switch
+                    size="small"
+                    checked={isStudyMode}
+                    onChange={() => onToggleStudyMode()}
+                    checkedChildren={isMobile ? "学" : undefined}
+                    unCheckedChildren={isMobile ? "学" : undefined}
+                  />
+                  
+                  <Divider orientation="vertical" style={{ margin: '0 4px' }} />
+                  
+                  {/* 联网搜索 */}
+                  <Button 
+                    type={isNetworkEnabled ? 'primary' : 'text'}
+                    ghost={isNetworkEnabled}
+                    size="small"
+                    icon={<GlobalOutlined />} 
+                    onClick={onToggleNetwork}
+                    style={{
+                        color: isNetworkEnabled ? token.colorPrimary : token.colorText,
+                        padding: isMobile ? '0 4px' : undefined
+                    }}
+                  >
+                    {isMobile ? (isNetworkEnabled ? '联网' : '') : (isNetworkEnabled ? '联网开启' : '联网搜索')}
+                  </Button>
+                </Flex>
+                
+                <Flex align="center" gap="small" style={{ flexShrink: 0 }}>
+                  {/* 语音通话 (MicRecorderButton) - 使用 PhoneOutlined (Text Type) */}
+                  <MicRecorderButton
+                    disabled={loading}
+                    language={'auto'}
+                    onTranscript={(text) => onVoiceTranscript?.(text)}
+                    type="text"
+                    style={iconStyle}
+                  />
+                  
+                  <Divider orientation="vertical" style={{ margin: '0 4px' }} />
+                  
+                  {/* 语音输入 (Sender Built-in) */}
+                  <SpeechButton style={iconStyle} />
+                  
+                  <Divider orientation="vertical" style={{ margin: '0 4px' }} />
+                  
+                  {/* 发送按钮 */}
+                  {loading ? (
+                    <LoadingButton type="default" />
+                  ) : (
+                    <SendButton type="primary" disabled={!inputValue && currentUploadedFiles.length === 0} />
+                  )}
+                </Flex>
+              </Flex>
+            );
+        }}
+        suffix={false}
+      />
+      
+    </div>
   );
 };
 

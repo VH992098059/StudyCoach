@@ -40,19 +40,6 @@ func newTool1(ctx context.Context) (bt tool.InvokableTool, err error) {
 	}
 	return bt, nil
 }
-func newTool2(ctx context.Context) (bt tool.InvokableTool, err error) {
-	config := &duckduckgoV2.Config{
-		ToolName:   "web_search",
-		MaxResults: 5,
-		Region:     duckduckgoV2.RegionWT,
-		HTTPClient: common.ClientProxy(),
-	}
-	bt, err = duckduckgoV2.NewTextSearchTool(ctx, config)
-	if err != nil {
-		return nil, err
-	}
-	return bt, nil
-}
 
 // CreateMarkDownPlan 生成学习计划文件
 func CreateMarkDownPlan(ctx context.Context, message *schema.Message) (bt tool.InvokableTool, err error) {

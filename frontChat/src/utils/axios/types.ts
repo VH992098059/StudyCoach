@@ -33,6 +33,8 @@ export interface RequestConfig {
   responseType?: 'json' | 'blob' | 'arraybuffer' | 'text';
   // 可选的中止信号，用于取消 fetch 请求
   signal?: AbortSignal;
+  // Axios request body for DELETE/GET/HEAD requests
+  data?: any;
 }
 
 /**

@@ -28,7 +28,8 @@ const CronPage: React.FC = () => {
     enabled,
     paused,
     nextRun,
-    createNewTask,
+    handleStartCreate,
+    isCreating,
     handleDeleteTask,
     handleSave,
     handleRunNow,
@@ -36,17 +37,19 @@ const CronPage: React.FC = () => {
     handlePauseResume,
     handleKnowledgeChange,
     setSelectedTaskId,
+    handleSelectTask,
+    refreshTasks,
   } = useCronState();
 
   // When a task is selected on mobile, show the drawer
   const onSelectTask = (id: string) => {
-    setSelectedTaskId(id);
+    handleSelectTask(id);
     if (isMobile) {
       setDrawerVisible(true);
     }
   };
 
-  const rightContentNode = selectedTaskId ? (
+  const rightContentNode = selectedTaskId || isCreating ? (
       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, height: '100%', alignItems: 'stretch' }}>
         <div style={{ flex: 1, height: isMobile ? 'auto' : '100%', minHeight: isMobile ? 500 : 0 }}>
           <ConfigPanel
@@ -68,6 +71,7 @@ const CronPage: React.FC = () => {
           />
         </div>
         
+        {!isCreating && (
         <div style={{ width: isMobile ? '100%' : 450, flexShrink: 0, height: isMobile ? 400 : '100%' }}>
           <StatusLogsCard
             status={execStatus}
@@ -80,6 +84,7 @@ const CronPage: React.FC = () => {
             onShowDetail={(content?: string) => setDetail({ open: true, content })}
           />
         </div>
+        )}
       </div>
     ) : (
       <div style={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -96,8 +101,9 @@ const CronPage: React.FC = () => {
             tasks={tasks}
             selectedTaskId={selectedTaskId}
             onSelectTask={onSelectTask}
-            onAddTask={createNewTask}
+            onAddTask={handleStartCreate}
             onDeleteTask={handleDeleteTask}
+            onRefresh={refreshTasks}
           />
         </Col>
         

@@ -1,14 +1,16 @@
 package cron
 
 import (
+	"backend/internal/logic/cron"
 	"context"
-
-	"github.com/gogf/gf/v2/errors/gcode"
-	"github.com/gogf/gf/v2/errors/gerror"
 
 	"backend/api/cron/v1"
 )
 
 func (c *ControllerV1) CronDelete(ctx context.Context, req *v1.CronDeleteReq) (res *v1.CronDeleteRes, err error) {
-	return nil, gerror.NewCode(gcode.CodeNotImplemented)
+	cronDelete, err := cron.RuCronDelete(ctx, req.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.CronDeleteRes{IsOK: cronDelete}, nil
 }

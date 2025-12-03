@@ -14,10 +14,12 @@ func newLambda(ctx context.Context, input *schema.Message) (output map[string]an
 	if input == nil {
 		return nil, fmt.Errorf("EmotionAndCompanionShipLambda input message is nil")
 	}
-	output = common.GetSafeTemplateParams()
 	log.Printf("EmotionAndCompanionShipLambda 处理消息: %s", input.Content)
+	//获取内容
+	output = common.GetSafeTemplateParams()
 	output["question"] = input.Content
-	//log.Printf("生成模板变量: %+v", output["chat_history"])
+	output["chat_history"] = ctx.Value("chat_history")
+	output["knowledge"] = ctx.Value("knowledge")
 	log.Println("EmotionAndCompanionShipLambda已处理消息")
 	return output, nil
 }
@@ -27,10 +29,12 @@ func newLambda1(ctx context.Context, input *schema.Message) (output map[string]a
 	if input == nil {
 		return nil, fmt.Errorf("ChatLambda input message is nil")
 	}
-	output = common.GetSafeTemplateParams()
 	log.Printf("ChatLambda 处理消息: %s", input.Content)
+	//获取内容
+	output = common.GetSafeTemplateParams()
 	output["question"] = input.Content
-	//log.Printf("生成模板变量: %+v", output["chat_history"])
+	output["chat_history"] = ctx.Value("chat_history")
+	output["knowledge"] = ctx.Value("knowledge")
 	log.Println("ChatLambda已处理消息")
 	return output, nil
 }
@@ -40,8 +44,11 @@ func newLambda2(ctx context.Context, input *schema.Message) (output map[string]a
 	if input == nil {
 		return nil, fmt.Errorf("ToStudyLambda input message is nil")
 	}
-	templateParams := common.GetSafeTemplateParams()
-	templateParams["question"] = input.Content
+	//获取内容
+	output = common.GetSafeTemplateParams()
+	output["question"] = input.Content
+	output["chat_history"] = ctx.Value("chat_history")
+	output["knowledge"] = ctx.Value("knowledge")
 	log.Println("ToStudyLambda不使用Es搜索引擎分支内容输出")
-	return templateParams, nil
+	return output, nil
 }

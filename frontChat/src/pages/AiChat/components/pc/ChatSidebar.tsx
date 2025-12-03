@@ -80,6 +80,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    margin:"10px 0"
                   }}
                 >
                   <div style={{ overflow: 'hidden' }}>

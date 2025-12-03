@@ -45,12 +45,10 @@ const AIChat: React.FC = () => {
     selectedKnowledge,
     advancedSettings,
     referenceDocuments,
-    showAdvancedSettings,
     showReferences,
     isReferenceScrolling,
     handleKnowledgeChange,
     handleAdvancedSettingsChange,
-    handleToggleAdvancedSettings,
     handleReferenceScroll,
     fetchReferenceDocuments,
     setReferenceDocuments,
@@ -86,10 +84,6 @@ const AIChat: React.FC = () => {
   // 朗读功能相关状态 - 使用语音服务
   const { voiceState, readAloudMessage, stopReading } = useVoiceService();
 
-  // 面板隐藏状态
-
-
-
   // 响应式断点
   const { isMobile, isTablet } = useBreakpoints();
 
@@ -115,7 +109,13 @@ const AIChat: React.FC = () => {
 
   // 聊天记录滚动事件处理
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // 使用 setTimeout 确保在 DOM 更新后执行滚动
+    // 直接操作容器的 scrollTop 属性，确保滚动到底部
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   useEffect(() => {
@@ -128,7 +128,6 @@ const AIChat: React.FC = () => {
   const {
     inputValue,
     setInputValue,
-    formatUserInput,
     sendQuestionByText,
     handleSend,
     handleKeyPress,
@@ -227,13 +226,12 @@ const AIChat: React.FC = () => {
           {/* 连接错误提示 */}
           {connectionError && (
             <Alert
-              message={connectionError}
+              title={connectionError}
               type={reconnectAttempts >= MAX_RECONNECT_ATTEMPTS ? 'error' : 'warning'}
               icon={<ExclamationCircleOutlined />}
               style={{ marginBottom: '16px' }}
               showIcon
-              closable
-              onClose={() => setConnectionError(null)}
+              closable={{onClose:() => setConnectionError(null)}}
             />
           )}
 

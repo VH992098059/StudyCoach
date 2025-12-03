@@ -21,28 +21,30 @@ type KnowledgeBaseCronScheduleDao struct {
 
 // KnowledgeBaseCronScheduleColumns defines and stores column names for the table knowledge_base_cron_schedule.
 type KnowledgeBaseCronScheduleColumns struct {
-	Id              string //
-	CronName        string // 定时任务名
-	KnowledgeBaseId string // 知识库id
-	CronExpression  string // cron表达式
-	Status          string // 使用状态 1启用，2暂停，0停止
-	ContentType     string // 更新内容状态 1为全量更新，2为增量更新
-	CreatedAt       string //
-	UpdatedAt       string //
-	DeletedAt       string //
+	Id                string //
+	CronName          string // 定时任务名
+	KnowledgeBaseName string // 知识库id
+	SchedulingMethod  string // 调度方式
+	CronExpression    string // cron表达式
+	Status            string // 使用状态 1启用，2暂停，0停止
+	ContentType       string // 更新内容状态 1为全量更新，2为增量更新
+	CreatedAt         string //
+	UpdatedAt         string //
+	DeletedAt         string //
 }
 
 // knowledgeBaseCronScheduleColumns holds the columns for the table knowledge_base_cron_schedule.
 var knowledgeBaseCronScheduleColumns = KnowledgeBaseCronScheduleColumns{
-	Id:              "id",
-	CronName:        "cron_name",
-	KnowledgeBaseId: "knowledge_base_id",
-	CronExpression:  "cron_expression",
-	Status:          "status",
-	ContentType:     "content_type",
-	CreatedAt:       "created_at",
-	UpdatedAt:       "updated_at",
-	DeletedAt:       "deleted_at",
+	Id:                "id",
+	CronName:          "cron_name",
+	KnowledgeBaseName: "knowledge_base_name",
+	SchedulingMethod:  "scheduling_method",
+	CronExpression:    "cron_expression",
+	Status:            "status",
+	ContentType:       "content_type",
+	CreatedAt:         "created_at",
+	UpdatedAt:         "updated_at",
+	DeletedAt:         "deleted_at",
 }
 
 // NewKnowledgeBaseCronScheduleDao creates and returns a new DAO object for table data access.

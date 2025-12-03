@@ -103,6 +103,8 @@ type BranchChatTemplateImpl struct {
 }
 
 type BranchChatTemplateConfig struct {
+	Role       schema.RoleType
+	System     schema.RoleType
 	FormatType schema.FormatType
 	Templates  []schema.MessagesTemplate
 }
@@ -110,6 +112,8 @@ type BranchChatTemplateConfig struct {
 // BranchChatTemplate 分支判断模版
 func BranchChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	config := &BranchChatTemplateConfig{
+		Role:       schema.User,
+		System:     schema.System,
 		FormatType: schema.FString,
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.BranchSystemTemplate),
@@ -138,6 +142,8 @@ type ChatTemplate2Impl struct {
 }
 
 type ChatTemplate2Config struct {
+	Role       schema.RoleType
+	System     schema.RoleType
 	FormatType schema.FormatType
 	Templates  []schema.MessagesTemplate
 }
@@ -145,6 +151,8 @@ type ChatTemplate2Config struct {
 // newChatTemplate2 component initialization function of node 'ToStudyChatTemplate' in graph 'studyCoachFor'
 func newChatTemplate2(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	config := &ChatTemplate2Config{
+		Role:       schema.User,
+		System:     schema.System,
 		FormatType: schema.FString,
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.SystemCoachTemplate),
@@ -174,6 +182,8 @@ type ChatTemplate3Impl struct {
 }
 
 type ChatTemplate3Config struct {
+	Role       schema.RoleType
+	System     schema.RoleType
 	FormatType schema.FormatType
 	Templates  []schema.MessagesTemplate
 }
@@ -181,6 +191,8 @@ type ChatTemplate3Config struct {
 // newChatTemplate3 component initialization function of node 'EmotionAndCompanionShipTemplate' in graph 'studyCoachFor'
 func newChatTemplate3(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	config := &ChatTemplate3Config{
+		Role:       schema.User,
+		System:     schema.System,
 		FormatType: schema.FString,
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.EmotionAndCompanionShipTemplate),
@@ -199,9 +211,9 @@ func (impl *ChatTemplate3Impl) Format(ctx context.Context, vs map[string]any, op
 		return nil, fmt.Errorf("提示工程构建失败: %w", err)
 	}
 	if len(format) == 0 {
-		return nil, fmt.Errorf("NormalChatTemplate消息格式化结果为空")
+		return nil, fmt.Errorf("EmotionAndCompanionShipTemplate消息格式化结果为空")
 	}
-	log.Println("NormalChatTemplate初始化模版输出")
+	log.Println("EmotionAndCompanionShipTemplate初始化模版输出")
 	return format, nil
 }
 

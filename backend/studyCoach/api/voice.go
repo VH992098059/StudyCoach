@@ -43,7 +43,7 @@ func TextToSpeech(ctx context.Context, input string) ([]byte, error) {
 	}
 
 	// 获取API密钥
-	apiKey := g.Cfg().MustGet(ctx, "chat.apiKey").String()
+	apiKey := g.Cfg().MustGet(ctx, "voice.apiKey").String()
 	if apiKey == "" {
 		return nil, fmt.Errorf("API key not found in configuration")
 	}

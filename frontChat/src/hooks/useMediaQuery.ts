@@ -57,8 +57,8 @@ export const useMediaQuery = (query: string): boolean => {
  * 预定义的断点Hook
  */
 export const useBreakpoints = () => {
-  const isMobile = useMediaQuery('(max-width: 1023px)');
-  const isTablet = useMediaQuery('(min-width: 1024px) and (max-width: 1199px)');
+  const isMobile = useMediaQuery('(max-width: 1024px)');
+  const isTablet = useMediaQuery('(min-width: 1025px) and (max-width: 1199px)');
   const isDesktop = useMediaQuery('(min-width: 1200px)');
   const isLargeDesktop = useMediaQuery('(min-width: 1400px)');
   

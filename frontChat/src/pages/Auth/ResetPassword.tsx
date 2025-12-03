@@ -5,7 +5,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../../components/AuthLayout';
 import './ResetPassword.scss';
 
-const { Step } = Steps;
 
 interface ResetPasswordFormData {
   email?: string;
@@ -15,7 +14,7 @@ interface ResetPasswordFormData {
 }
 
 const ResetPassword: React.FC = () => {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<ResetPasswordFormData>();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [countdown, setCountdown] = useState(0);
@@ -23,7 +22,8 @@ const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
 
   // 发送验证码
-  const handleSendCode = async (values: { email: string }) => {
+  const handleSendCode = async (values: ResetPasswordFormData) => {
+    if (!values.email) return;
     setLoading(true);
     try {
       // 模拟发送验证码API调用
@@ -55,7 +55,8 @@ const ResetPassword: React.FC = () => {
   };
 
   // 验证验证码
-  const handleVerifyCode = async (values: { verificationCode: string }) => {
+  const handleVerifyCode = async (values: ResetPasswordFormData) => {
+    if (!values.verificationCode) return;
     setLoading(true);
     try {
       // 模拟验证码验证API调用
@@ -79,7 +80,8 @@ const ResetPassword: React.FC = () => {
   };
 
   // 重置密码
-  const handleResetPassword = async (values: { newPassword: string; confirmPassword: string }) => {
+  const handleResetPassword = async (values: ResetPasswordFormData) => {
+    if (!values.newPassword || !values.confirmPassword) return;
     setLoading(true);
     try {
       // 模拟重置密码API调用
@@ -308,11 +310,11 @@ const ResetPassword: React.FC = () => {
     >
       <div className="reset-password-container">
         {currentStep < 3 && (
-          <Steps current={currentStep} className="reset-password-steps">
-            <Step title="验证邮箱" description="输入邮箱地址" />
-            <Step title="验证身份" description="输入验证码" />
-            <Step title="重置密码" description="设置新密码" />
-          </Steps>
+          <Steps current={currentStep} className="reset-password-steps" items={[
+            { title: "验证邮箱", description: "输入邮箱地址" },
+            { title: "验证身份", description: "输入验证码" },
+            { title: "重置密码", description: "设置新密码" },
+          ]} />
         )}
         
         <div className="step-content">
