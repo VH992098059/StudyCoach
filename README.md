@@ -176,9 +176,10 @@ npm run dev
 
 ## 🙏 致谢 (Acknowledgements)
 
-本项目在 RAG (检索增强生成) 模块的实现过程中，深入参考并部分使用了以下开源项目的优秀设计：
+本项目在 RAG (检索增强生成) 模块的实现过程中，深入参考并使用了以下开源项目的优秀设计：
 
 * **[wangle201210/go-rag](https://github.com/wangle201210/go-rag)**: 感谢该项目在 Go 语言环境下 RAG 链路构建提供的宝贵思路与实现参考。
+* **[wangle201210/chat-history](https://github.com/wangle201210/chat-history)**: 感谢该项目为 Eino 框架提供了便捷的聊天历史记录管理功能。
 
 ---
 
