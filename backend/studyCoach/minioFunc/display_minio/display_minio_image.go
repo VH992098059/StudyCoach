@@ -1,7 +1,7 @@
 package display_minio
 
 import (
-	"backend/studyCoach/minIO/config_minio"
+	"backend/studyCoach/minioFunc/config_minio"
 	"context"
 	"fmt"
 	"log"
