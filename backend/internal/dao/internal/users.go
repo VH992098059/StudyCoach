@@ -21,30 +21,32 @@ type UsersDao struct {
 
 // UsersColumns defines and stores column names for the table users.
 type UsersColumns struct {
-	Id           string //
-	Uuid         string //
-	Username     string //
-	Email        string //
-	PasswordHash string //
-	AvatarUrl    string //
-	CreatedAt    string //
-	UpdatedAt    string //
-	LastLoginAt  string //
-	Status       string //
+	Id          string // 用户ID，主键
+	Uuid        string // 用户UUID
+	Username    string // 用户名，唯一标识
+	Email       string // 用户邮箱，用于登录和通知
+	Password    string // 密码哈希值，使用bcrypt等安全算法
+	AvatarUrl   string // 用户头像URL地址
+	CreatedAt   string // 账户创建时间
+	UpdatedAt   string // 最后更新时间
+	LastLoginAt string // 最后登录时间
+	LogoutAt    string // 退出时间
+	Status      string // 账户状态：active-活跃，inactive-未激活，banned-封禁
 }
 
 // usersColumns holds the columns for the table users.
 var usersColumns = UsersColumns{
-	Id:           "id",
-	Uuid:         "uuid",
-	Username:     "username",
-	Email:        "email",
-	PasswordHash: "password_hash",
-	AvatarUrl:    "avatar_url",
-	CreatedAt:    "created_at",
-	UpdatedAt:    "updated_at",
-	LastLoginAt:  "last_login_at",
-	Status:       "status",
+	Id:          "id",
+	Uuid:        "uuid",
+	Username:    "username",
+	Email:       "email",
+	Password:    "password",
+	AvatarUrl:   "avatar_url",
+	CreatedAt:   "created_at",
+	UpdatedAt:   "updated_at",
+	LastLoginAt: "last_login_at",
+	LogoutAt:    "logout_at",
+	Status:      "status",
 }
 
 // NewUsersDao creates and returns a new DAO object for table data access.

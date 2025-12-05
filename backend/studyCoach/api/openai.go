@@ -211,11 +211,12 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 		g.Log().Errorf(ctx, "获取历史记录失败: %v", err)
 		return nil, fmt.Errorf("get history failed: %v", err)
 	}
-	ctx = context.WithValue(ctx, "chat_history", history)
-	ctx = context.WithValue(ctx, "history", streamType.Knowledge)
+
 	log.Printf("历史记录数量: %d", len(history))
 	var modelStream compose.Runnable[map[string]any, *schema.Message]
 	if streamType.IsStudyMode == false {
+		ctx = context.WithValue(ctx, "chat_history", history)
+		ctx = context.WithValue(ctx, "history", streamType.Knowledge)
 		modelStream, err = NormalChat.BuildNormalChat(ctx)
 		if err != nil {
 			g.Log().Errorf(ctx, "构建模型失败: %v", err)

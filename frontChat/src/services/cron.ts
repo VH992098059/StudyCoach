@@ -82,7 +82,7 @@ export interface CronUpdateOneStatusRes {
     is_ok: string;
 }
 
-export const cronService = {
+export const CronService = {
     create: (data: CronCreateReq) => {
         return http.post<CronCreateRes>('/gateway/v1/cronCreate', data);
     },

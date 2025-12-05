@@ -38,7 +38,9 @@ const LoadingComponent: React.FC = ()=> (
     alignItems: 'center', 
     height: '200px' 
   }}>
-    <Spin size="large" tip="页面加载中..." />
+    <Spin tip="页面加载中..." spinning={true} style={{ height: '100vh',width:'100px' }}>
+<div></div>
+    </Spin>
   </div>
 );
 

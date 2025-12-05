@@ -2,76 +2,145 @@ package login
 
 import (
 	"backend/internal/dao"
+	"backend/internal/model/do"
 	"backend/internal/model/entity"
 	"backend/utility"
 	"backend/utility/consts"
 	"context"
+	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
-func Login(ctx context.Context, username, password string) (id, uuid, token string, err error) {
-
+func Login(ctx context.Context, username, password string) (id uint64, uuid, token string, err error) {
 	var user entity.Users
-	if username != "" {
-		err = dao.Users.Ctx(ctx).Fields("id", "uuid", "username", "password_hash").Where("username", username).Scan(&user)
+	err = dao.Users.Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		/*用户查询*/
+		err = tx.Model(entity.Users{}).Fields("id", "uuid", "username", "password").Where("username", username).WhereOr("email", username).Scan(&user)
 		if err != nil {
-			return "", "", "", gerror.NewCode(gcode.New(401, "用户名不存在", ""))
+			return gerror.NewCode(gcode.New(401, "用户名不存在或查询失败", ""))
 		}
+		// 检查是否查到了数据（防止 scan 没报错但也没查到数据的情况）
+		if user.Id == 0 {
+			return gerror.NewCode(gcode.New(401, "用户名不存在", ""))
+		}
+
+		/*密码验证*/
+		passwordComparison := utility.Verify(password, user.Password)
+		if !passwordComparison {
+			return gerror.NewCode(gcode.New(401, "用户名或密码错误", ""))
+		}
+		// 更新最后登录时间
+		_, err = tx.Model(entity.Users{}).Where("id", user.Id).Fields("last_login_at", "status").Data(
+			do.Users{
+				LastLoginAt: gtime.Now(),
+				Status:      "active",
+			}).Unscoped().Update()
+		return err
+
+	})
+
+	if err != nil {
+		return 0, "", "", err
 	}
-	passwordComparison := utility.Verify(password, user.PasswordHash)
-	if !passwordComparison {
-		return "", "", "", gerror.NewCode(gcode.New(401, "用户名或密码错误", ""))
-	}
+
+	/*JWT生成*/
 	us := &utility.JwtClaims{
-		Id:       uint(user.Id),
+		Id:       user.Id,
 		Username: user.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 		},
 	}
-	//jwt加密
 	signedString, err := jwt.NewWithClaims(jwt.SigningMethodHS512, us).SignedString([]byte(consts.JwtKey))
 	if err != nil {
 		log.Println(err)
-		return "", "", "", err
+		return 0, "", "", err
 	}
-	//存储Redis
+
+	/*JWT存储Redis*/
 	err = utility.SetJWT(ctx, user.Username, signedString, 3600*24) //设置24小时
 	if err != nil {
-		log.Println("出错啦！")
-		return "", "", "", gerror.New("缓存存储失败！")
+		log.Println("redis出错！")
+		return 0, "", "", gerror.New("缓存存储失败！")
 	}
-	return strconv.FormatUint(uint64(user.Id), 10), user.Uuid, signedString, nil
+	return user.Id, user.Uuid, signedString, nil
 }
-func RegisterUser(ctx context.Context, in *entity.Users) (id int, err error) {
+func RegisterUser(ctx context.Context, in *entity.Users) (id int64, err error) {
+	/*查询用户是否注册*/
 	isExistUser, err := dao.Users.Ctx(ctx).Where("username", in.Username).Count()
 	if err != nil {
 		return 0, err
 	}
 	if isExistUser > 0 {
-		return 0, gerror.NewCode(gcode.New(409, "用户已存在", ""))
+		return 0, gerror.New("用户已存在")
 	}
-	encryptPassword, _ := utility.Encrypt(in.PasswordHash)
-	uuidUser := strings.ReplaceAll(uuid.New().String(), "-", "")
 
+	isExistEmail, err := dao.Users.Ctx(ctx).Where("email", in.Email).Count()
+	if err != nil {
+		return 0, err
+	}
+	if isExistEmail > 0 {
+		return 0, gerror.NewCode(gcode.New(409, "邮箱已存在", ""))
+	}
+
+	/*用户注册*/
+	encryptPassword, _ := utility.Encrypt(in.Password)
+	uuidUser := strings.ReplaceAll(uuid.New().String(), "-", "")
 	getId, err := dao.Users.Ctx(ctx).Data(entity.Users{
-		Username:     in.Username,
-		PasswordHash: encryptPassword,
-		Uuid:         uuidUser,
-		Email:        in.Email,
-		Status:       "inactive",   //默认未激活
-		AvatarUrl:    "avatar.png", //默认头像
+		Username:  in.Username,
+		Password:  encryptPassword,
+		Uuid:      uuidUser,
+		Email:     in.Email,
+		Status:    "inactive",   //默认未激活
+		AvatarUrl: "avatar.png", //默认头像
 	}).InsertAndGetId()
 	if err != nil {
 		return 0, err
 	}
-	return int(getId), nil
+	return getId, nil
+}
+
+func LogoutUser(ctx context.Context) (msg string, err error) {
+	/*获取JWT字段*/ jwtMap, err := utility.JWTMap(ctx)
+	if err != nil {
+		return "", gerror.NewCode(gcode.New(500, "token有误，退出失败", ""))
+	}
+	fmt.Println("jwt的ID：", jwtMap["Id"].(float64))
+	_, err = dao.Users.Ctx(ctx).Fields("logout_at").Where("id", jwtMap["Id"].(float64)).Data(do.Users{LogoutAt: gtime.Now()}).Update()
+	if err != nil {
+		return "", gerror.NewCode(gcode.New(500, "退出失败", ""))
+	}
+
+	/*检查JWT是否存在*/
+	userKey := fmt.Sprintf("user:%s", jwtMap["Username"].(string))
+	checkJWT, err := utility.CheckJWT(ctx, userKey, utility.GetJWT(ctx))
+	if err != nil {
+		return "", gerror.NewCode(gcode.New(500, "token检查失败，退出失败", ""))
+	}
+
+	/*JWT实现黑名单*/
+	checkJWTBlack, err := utility.CheckBlackTokens(ctx, jwtMap["Username"].(string), utility.GetJWT(ctx))
+	if err != nil {
+		return "", gerror.NewCode(gcode.New(500, "退出失败", ""))
+	}
+	if !checkJWT || checkJWTBlack {
+		return "", gerror.NewCode(gcode.CodeInvalidParameter, "token已失效或不存在")
+	}
+	err = utility.AddBlackTokens(ctx, jwtMap["Username"].(string), utility.GetJWT(ctx))
+	if err != nil {
+		return "", gerror.NewCode(gcode.CodeInvalidParameter, "退出失败")
+	}
+
+	/*Redis删除token*/
+	utility.DeleteJWT(ctx, jwtMap["Username"].(string))
+	return "退出成功", nil
 }

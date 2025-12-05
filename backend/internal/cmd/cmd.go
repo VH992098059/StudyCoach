@@ -4,6 +4,7 @@ import (
 	"backend/internal/controller/ai_chat"
 	"backend/internal/controller/check_jwt"
 	"backend/internal/controller/cron"
+	"backend/internal/controller/cron_execute"
 	"backend/internal/controller/file_controller"
 	"backend/internal/controller/files"
 	"backend/internal/controller/login"
@@ -58,17 +59,19 @@ var (
 				group.Middleware(ghttp.MiddlewareHandlerResponse)
 				group.Bind(
 					check_jwt.NewV1(),
-					login.CLoginController,
+					login.NewV1(),
 					file_controller.NewV1(),
 				)
-				////中间件拦截
+				//中间件拦截
 				//group.Middleware(middleware.Auth)
+
 				group.Bind(
 					ai_chat.NewV1(),
 					rag.NewV1(),
 					cron.NewV1(),
 					files.NewV1(),
 					voice.NewV1(),
+					cron_execute.NewV1(),
 				)
 
 				// Add WebSocket endpoint

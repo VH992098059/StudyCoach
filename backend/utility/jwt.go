@@ -4,6 +4,7 @@ import (
 	"backend/utility/consts"
 	"context"
 	"fmt"
+
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
@@ -14,7 +15,7 @@ import (
 
 // JwtClaims 定义自定义 JWT 载荷结构
 type JwtClaims struct {
-	Id       uint
+	Id       uint64
 	Username string
 	jwt.RegisteredClaims
 }
@@ -45,4 +46,21 @@ func GetJWT(ctx context.Context) (token string) {
 		token = strings.TrimPrefix(token, "Bearer ")
 	}
 	return
+}
+
+func JWTMap(ctx context.Context) (claims jwt.MapClaims, err error) {
+	getJwt := GetJWT(ctx)
+	if getJwt == "" {
+		err = gerror.NewCode(gcode.CodeInvalidParameter, "token is empty")
+		return nil, err
+	}
+	//解密JWT
+	token, err := jwt.Parse(getJwt, func(token *jwt.Token) (interface{}, error) {
+		//验证
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(consts.JwtKey), nil
+	})
+	return token.Claims.(jwt.MapClaims), nil
 }

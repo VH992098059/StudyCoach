@@ -46,47 +46,47 @@ export interface KBGetListRes {
   list: KnowledgeBase[];
 }
 
+const BASE_PATH = '/gateway/v1/kb';
+
 /**
  * 知识库 API 服务
  */
-export class KnowledgeBaseService {
-  private static readonly BASE_PATH = '/gateway/v1/kb';
-
+export const KnowledgeBaseService = {
   /**
    * 创建知识库
    */
-  static async create(data: KBCreateReq): Promise<KBCreateRes> {
-    return ApiClient.post<KBCreateRes>(this.BASE_PATH, data);
-  }
+  create: async (data: KBCreateReq): Promise<KBCreateRes> => {
+    return ApiClient.post<KBCreateRes>(BASE_PATH, data);
+  },
 
   /**
    * 更新知识库
    */
-  static async update(data: KBUpdateReq): Promise<void> {
+  update: async (data: KBUpdateReq): Promise<void> => {
     const { id, ...updateData } = data;
-    return ApiClient.put<void>(`${this.BASE_PATH}/${id}`, updateData);
-  }
+    return ApiClient.put<void>(`${BASE_PATH}/${id}`, updateData);
+  },
 
   /**
    * 删除知识库
    */
-  static async delete(id: number): Promise<void> {
-    return ApiClient.delete<void>(`${this.BASE_PATH}/${id}`);
-  }
+  delete: async (id: number): Promise<void> => {
+    return ApiClient.delete<void>(`${BASE_PATH}/${id}`);
+  },
 
   /**
    * 获取单个知识库
    */
-  static async getOne(id: number): Promise<KnowledgeBase> {
-    return ApiClient.get<KnowledgeBase>(`${this.BASE_PATH}/${id}`);
-  }
+  getOne: async (id: number): Promise<KnowledgeBase> => {
+    return ApiClient.get<KnowledgeBase>(`${BASE_PATH}/${id}`);
+  },
 
   /**
    * 获取知识库列表
    */
-  static async getList(params?: KBGetListReq): Promise<KBGetListRes> {
-    return ApiClient.get<KBGetListRes>(this.BASE_PATH, params);
+  getList: async (params?: KBGetListReq): Promise<KBGetListRes> => {
+    return ApiClient.get<KBGetListRes>(BASE_PATH, params);
   }
-}
+};
 
 export default KnowledgeBaseService;

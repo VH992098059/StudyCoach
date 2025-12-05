@@ -74,12 +74,12 @@ func CheckBlackTokens(ctx context.Context, userKey, token string) (bool, error) 
 }
 
 // DeleteJWT 从白名单移除 token
-func DeleteJWT(ctx context.Context, key string) error {
-	del, err := g.Redis().Del(ctx, key)
+func DeleteJWT(ctx context.Context, userKey string) error {
+	del, err := g.Redis().Del(ctx, "user:"+userKey)
 	if err != nil {
 		return err
 	}
-	log.Println(del)
+	log.Println("redis白名单已删除：", del)
 	return nil
 }
 
@@ -92,7 +92,7 @@ func DeleteBlackJWT(ctx context.Context, userKey string) error {
 	return nil
 }
 
-// 文件存储到redis
+// StoreFileToRedis 文件存储到redis
 func StoreFileToRedis(ctx context.Context, fileKey string, fileData []byte) error {
 	return g.Redis().SetEX(ctx, fileKey, fileData, 3600*24)
 }

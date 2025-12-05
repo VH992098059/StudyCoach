@@ -7,12 +7,7 @@ import (
 	"context"
 )
 
-var CLoginController = cLoginInfo{}
-
-type cLoginInfo struct {
-}
-
-func (c *cLoginInfo) Login(ctx context.Context, req *v1.LoginReq) (res *v1.LoginRes, err error) {
+func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.LoginRes, err error) {
 	id, uuid, token, err := login.Login(ctx, req.Username, req.Password)
 	if err != nil {
 		return nil, err
@@ -23,11 +18,12 @@ func (c *cLoginInfo) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Login
 		Token: token,
 	}, nil
 }
-func (c *cLoginInfo) Register(ctx context.Context, req *v1.RegisterReq) (res *v1.RegisterRes, err error) {
+
+func (c *ControllerV1) Register(ctx context.Context, req *v1.RegisterReq) (res *v1.RegisterRes, err error) {
 	id, err := login.RegisterUser(ctx, &entity.Users{
-		Username:     req.Username,
-		PasswordHash: req.Password,
-		Email:        req.Email,
+		Username: req.Username,
+		Password: req.Password,
+		Email:    req.Email,
 	})
 	if err != nil {
 		return nil, err

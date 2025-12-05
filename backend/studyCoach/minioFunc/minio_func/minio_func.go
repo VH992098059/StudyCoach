@@ -1,7 +1,7 @@
 package minio_func
 
 import (
-	"backend/studyCoach/minIO/config_minio"
+	"backend/studyCoach/minioFunc/config_minio"
 	"context"
 	"fmt"
 	"io"

@@ -252,7 +252,7 @@ const Header: React.FC<HeaderProps> = ({
         onClose={() => setMobileMenuVisible(false)}
         open={mobileMenuVisible}
         className="mobile-drawer"
-        width={280}
+        size={280}
       >
         <Menu
           mode="vertical"

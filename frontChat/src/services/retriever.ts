@@ -45,15 +45,15 @@ export interface RetrieverRes {
 }
 
 /**
- * 文档检索服务类
+ * 文档检索服务
  */
-export class RetrieverService {
+export const RetrieverService = {
   /**
    * 检索文档
    * @param params 检索参数
    * @returns 检索结果
    */
-  static async retrieve(params: RetrieverReq): Promise<RetrieverRes> {
+  retrieve: async (params: RetrieverReq): Promise<RetrieverRes> => {
     const requestData = {
       question: params.question,
       top_k: params.top_k || 5,
@@ -63,6 +63,6 @@ export class RetrieverService {
 
     return ApiClient.post('/gateway/v1/retriever', requestData);
   }
-}
+};
 
 export default RetrieverService;

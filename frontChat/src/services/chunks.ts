@@ -46,44 +46,44 @@ export interface UpdateChunkContentReq {
   content: string;
 }
 
+const BASE_PATH = '/gateway/v1';
+
 /**
  * 知识块 API 服务
  */
-export class ChunksService {
-  private static readonly BASE_PATH = '/gateway/v1';
-
+export const ChunksService = {
   /**
    * 获取知识块列表
    */
-  static async getList(params: ChunksListReq): Promise<ChunksListRes> {
+  getList: async (params: ChunksListReq): Promise<ChunksListRes> => {
     const queryParams = {
       knowledge_doc_id: params.knowledge_doc_id,
       page: params.page || 1,
       size: params.size || 10
     };
-    return ApiClient.get<ChunksListRes>(`${this.BASE_PATH}/chunksList`, queryParams);
-  }
+    return ApiClient.get<ChunksListRes>(`${BASE_PATH}/chunksList`, queryParams);
+  },
 
   /**
    * 删除知识块
    */
-  static async delete(params: ChunkDeleteReq): Promise<void> {
-    return ApiClient.delete<void>(`${this.BASE_PATH}/chunksDelete?id=${params.id}`);
-  }
+  delete: async (params: ChunkDeleteReq): Promise<void> => {
+    return ApiClient.delete<void>(`${BASE_PATH}/chunksDelete?id=${params.id}`);
+  },
 
   /**
    * 批量更新知识块状态
    */
-  static async updateStatus(data: UpdateChunkReq): Promise<void> {
-    return ApiClient.put<void>(`${this.BASE_PATH}/chunksPut`, data);
-  }
+  updateStatus: async (data: UpdateChunkReq): Promise<void> => {
+    return ApiClient.put<void>(`${BASE_PATH}/chunksPut`, data);
+  },
 
   /**
    * 更新知识块内容
    */
-  static async updateContent(data: UpdateChunkContentReq): Promise<void> {
-    return ApiClient.put<void>(`${this.BASE_PATH}/chunks_content`, data);
+  updateContent: async (data: UpdateChunkContentReq): Promise<void> => {
+    return ApiClient.put<void>(`${BASE_PATH}/chunks_content`, data);
   }
-}
+};
 
 export default ChunksService;

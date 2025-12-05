@@ -6,7 +6,6 @@
  */
 
 import ApiClient from '../utils/axios/index';
-import type { ApiResponse } from '../utils/axios/types';
 
 /**
  * 文档状态枚举
@@ -56,35 +55,35 @@ export interface DocumentDeleteReq {
   document_id: number;
 }
 
+const BASE_PATH = '/gateway/v1';
+
 /**
  * 文档 API 服务
  */
-export class DocumentsService {
-  private static readonly BASE_PATH = '/gateway/v1';
-
+export const DocumentsService = { 
   /**
    * 获取文档列表
    */
-  static async getList(params: DocumentsListReq): Promise<DocumentsListRes> {
+  getList: async (params: DocumentsListReq): Promise<DocumentsListRes> => {
     const queryParams = {
       knowledge_name: params.knowledge_name,
       page: params.page || 1,
       size: params.size || 10
     };
-    return ApiClient.get<DocumentsListRes>(`${this.BASE_PATH}/documents`, queryParams);
-  }
+    return ApiClient.get<DocumentsListRes>(`${BASE_PATH}/documents`, queryParams);
+  },
 
   /**
    * 删除文档
    */
-  static async delete(params: DocumentDeleteReq): Promise<void> {
-    return ApiClient.delete<void>(`${this.BASE_PATH}/documentsDelete?document_id=${params.document_id}`);
-  }
+  delete: async (params: DocumentDeleteReq): Promise<void> => {
+    return ApiClient.delete<void>(`${BASE_PATH}/documentsDelete?document_id=${params.document_id}`);
+  },
 
   /**
    * 获取状态文本
    */
-  static getStatusText(status: DocumentStatus): string {
+  getStatusText: (status: DocumentStatus): string => {
     switch (status) {
       case DocumentStatus.PENDING:
         return '待处理';
@@ -97,12 +96,12 @@ export class DocumentsService {
       default:
         return '未知';
     }
-  }
+  },
 
   /**
    * 获取状态标签类型
    */
-  static getStatusType(status: DocumentStatus): 'processing' | 'success' | 'error' | 'default' {
+  getStatusType: (status: DocumentStatus): 'processing' | 'success' | 'error' | 'default' => {
     switch (status) {
       case DocumentStatus.PENDING:
         return 'default';
@@ -116,6 +115,6 @@ export class DocumentsService {
         return 'default';
     }
   }
-}
+};
 
 export default DocumentsService;

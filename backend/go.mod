@@ -44,6 +44,7 @@ require (
 	github.com/eino-contrib/jsonschema v1.0.2 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
+	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/minio/crc64nvme v1.0.1 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
@@ -58,6 +59,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
 	google.golang.org/grpc v1.66.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
+	gorm.io/driver/sqlite v1.6.0 // indirect
 )
 
 replace studyCoach => ../

@@ -1,8 +1,8 @@
 package file_controller
 
 import (
-	"backend/studyCoach/minIO/config_minio"
-	"backend/studyCoach/minIO/minio_func"
+	"backend/studyCoach/minioFunc/minio_func"
+	"backend/utility"
 	"context"
 	"fmt"
 	"os"
@@ -14,12 +14,7 @@ import (
 )
 
 func (c *ControllerV1) UploadFile(ctx context.Context, req *v1.UploadFileReq) (res *v1.UploadFileRes, err error) {
-	config := config_minio.MinIOConfig{
-		EndpointAddr:    g.Cfg().MustGet(ctx, "minio.endpoint").String(),
-		AccessKeyID:     g.Cfg().MustGet(ctx, "minio.accessKey").String(),
-		SecretAccessKey: g.Cfg().MustGet(ctx, "minio.secretKey").String(),
-		BucketName:      g.Cfg().MustGet(ctx, "minio.bucketFile").String(),
-	}
+	config := utility.MinioConfig(ctx)
 	if minio_func.GetContentType(filepath.Ext(req.UploadFile.Filename)) != "application/octet-stream" {
 		config.BucketName = g.Cfg().MustGet(ctx, "minio.bucketImages").String()
 	}
