@@ -33,7 +33,7 @@ func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.AnalysisSystemTemplate), // 专门的意图分析提示词
 			schema.MessagesPlaceholder("chat_history", true),
-			schema.UserMessage(common.UserTemplate),
+			schema.UserMessage(common.UserQuestion),
 		},
 	}
 	ctp = &ChatTemplateImpl{config: config}
@@ -76,7 +76,7 @@ func newChatTemplate1(ctx context.Context) (ctp prompt.ChatTemplate, err error) 
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.SystemCoachTemplate),
 			schema.MessagesPlaceholder("chat_history", true),
-			schema.UserMessage(common.UserTemplate),
+			schema.UserMessage(common.UserQuestion),
 		},
 	}
 	ctp = &ChatTemplate1Impl{config: config}
@@ -118,7 +118,7 @@ func BranchChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.BranchSystemTemplate),
 			schema.MessagesPlaceholder("chat_history", true),
-			schema.UserMessage(common.UserMessageTemplate),
+			schema.UserMessage(common.BranchAsrQuestion),
 		},
 	}
 	ctp = &BranchChatTemplateImpl{config: config}
@@ -157,7 +157,7 @@ func newChatTemplate2(ctx context.Context) (ctp prompt.ChatTemplate, err error) 
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.SystemCoachTemplate),
 			schema.MessagesPlaceholder("chat_history", true),
-			schema.UserMessage(common.UserTemplate),
+			schema.UserMessage(common.UserQuestion),
 		},
 	}
 	ctp = &ChatTemplate2Impl{config: config}
@@ -197,7 +197,7 @@ func newChatTemplate3(ctx context.Context) (ctp prompt.ChatTemplate, err error) 
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.EmotionAndCompanionShipTemplate),
 			schema.MessagesPlaceholder("chat_history", true),
-			schema.UserMessage(common.UserTemplate),
+			schema.UserMessage(common.UserQuestion),
 		},
 	}
 	ctp = &ChatTemplate3Impl{config: config}

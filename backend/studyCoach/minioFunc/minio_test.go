@@ -1,8 +1,8 @@
 package test
 
 import (
-	"backend/studyCoach/minIO/config_minio"
-	"backend/studyCoach/minIO/minio_func"
+	"backend/studyCoach/minioFunc/config_minio"
+	"backend/studyCoach/minioFunc/minio_func"
 	"fmt"
 	"log"
 	"testing"

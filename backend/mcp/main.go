@@ -2,11 +2,17 @@ package main
 
 import (
 	"backend/mcp/clock_time"
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/cloudwego/eino/components/tool"
 )
 
 func main() {
 	clock_time.StartMCPServer()
-	/*time.Sleep(1 * time.Second)
+	time.Sleep(1 * time.Second)
 	ctx := context.Background()
 
 	mcpTools := clock_time.GetMCPTool(ctx)
@@ -23,5 +29,6 @@ func main() {
 
 		mcpTool.(tool.InvokableTool).InvokableRun(ctx, formatTime)
 		fmt.Println()
-	}*/
+	}
+
 }

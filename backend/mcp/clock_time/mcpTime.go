@@ -16,28 +16,6 @@ import (
 	mcpp "github.com/cloudwego/eino-ext/components/tool/mcp"
 )
 
-func main() {
-	StartMCPServer()
-	time.Sleep(1 * time.Second)
-	ctx := context.Background()
-
-	mcpTools := GetMCPTool(ctx)
-
-	for _, mcpTool := range mcpTools {
-		info, err := mcpTool.Info(ctx)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("Name:", info.Name)
-		fmt.Println("Desc:", info.Desc)
-		// 测试不同的时间格式
-		formatTime := `{"format":"readable", "timezone":"Asia/Shanghai"}`
-
-		mcpTool.(tool.InvokableTool).InvokableRun(ctx, formatTime)
-		fmt.Println()
-	}
-}
-
 func GetMCPTool(ctx context.Context) []tool.BaseTool {
 	host := os.Getenv("MCP_HOST")
 	if host == "" {
@@ -59,7 +37,7 @@ func GetMCPTool(ctx context.Context) []tool.BaseTool {
 	initRequest := mcp.InitializeRequest{}
 	initRequest.Params.ProtocolVersion = mcp.LATEST_PROTOCOL_VERSION
 	initRequest.Params.ClientInfo = mcp.Implementation{
-		Name:    "example-client",
+		Name:    "MCP_time",
 		Version: "1.0.0",
 	}
 
@@ -72,14 +50,14 @@ func GetMCPTool(ctx context.Context) []tool.BaseTool {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(tools)
+	log.Println("获取时间工具成功")
 	return tools
 }
 
 func StartMCPServer() {
 	svr := server.NewMCPServer("demo", mcp.LATEST_PROTOCOL_VERSION)
 	svr.AddTool(mcp.NewTool("get_current_time",
-		mcp.WithDescription("get current time"),
+		mcp.WithDescription("获取本地时间"),
 		mcp.WithString("format",
 			mcp.Required(),
 			mcp.Description("time format readable"),
@@ -103,7 +81,7 @@ func StartMCPServer() {
 		}
 		now := time.Now().In(loc)
 		result := now.Format("2006-01-02 15:04:05 Monday")
-		log.Println(result, loc.String())
+		log.Println("本地时间：", result, loc.String())
 		return mcp.NewToolResultText(result), nil
 	})
 	go func() {

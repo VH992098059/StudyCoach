@@ -4,7 +4,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import type { CronConfig, LogEntry } from '../types';
 import type { CronTask } from '../components/TaskListCard';
 import { type KnowledgeSelectorRef } from '@/components/KnowledgeSelector';
-import { cronService, type CronCreateReq } from '@/services/cron';
+import { CronService, type CronCreateReq } from '@/services/cron';
 
 function clampDayOfMonth(year: number, monthIndexZero: number, day: number) {
   const end = dayjs(new Date(year, monthIndexZero + 1, 0)).date();
@@ -128,7 +128,7 @@ export const useCronState = () => {
   // Initialize tasks from API
   const fetchTasks = async () => {
     try {
-      const res = await cronService.list({ page: 1, size: 100 });
+      const res = await CronService.list({ page: 1, size: 100 });
       if (res && res.list) {
         const apiTasks: CronTask[] = res.list.map(item => ({
           id: String(item.id),
@@ -253,7 +253,7 @@ export const useCronState = () => {
                 status: 0, // 默认未启用
                 content_type: values.updateType === 'full' ? 1 : 2
             };
-            const res = await cronService.create(createData);
+            const res = await CronService.create(createData);
             if (res && res.id) {
                 const newTask: CronTask = {
                     id: String(res.id),
@@ -289,7 +289,7 @@ export const useCronState = () => {
                 status: currentTask?.status || 0, // Include current status
             };
             
-            await cronService.updateOne(updateData);
+            await CronService.updateOne(updateData);
 
             setTasks(prev => prev.map(t => {
                 if (t.id === selectedTaskId) {
@@ -349,7 +349,7 @@ export const useCronState = () => {
 
     if (!enabled) {
       // Update task enabled state
-      cronService.updateOneStatus({ id: parseInt(selectedTaskId), status: 1 }).catch(console.error);
+      CronService.updateOneStatus({ id: parseInt(selectedTaskId), status: 1 }).catch(console.error);
       setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, status: 1 } : t));
       message.info('已开启定时：将按配置自动调度');
     }
@@ -360,7 +360,7 @@ export const useCronState = () => {
     
     const nextStatus = enabled ? 0 : 1;
     try {
-        await cronService.updateOneStatus({ id: parseInt(selectedTaskId), status: nextStatus });
+        await CronService.updateOneStatus({ id: parseInt(selectedTaskId), status: nextStatus });
         setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, status: nextStatus } : t));
         message.info(nextStatus !== 0 ? '已开启定时' : '已关闭定时');
     } catch (error) {
@@ -373,7 +373,7 @@ export const useCronState = () => {
     if (!selectedTaskId) return;
     const nextStatus = paused ? 1 : 2;
     try {
-        await cronService.updateOneStatus({ id: parseInt(selectedTaskId), status: nextStatus });
+        await CronService.updateOneStatus({ id: parseInt(selectedTaskId), status: nextStatus });
         setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, status: nextStatus } : t));
         message.info(nextStatus === 1 ? '已恢复任务调度' : '已暂停任务调度');
     } catch (error) {
@@ -401,7 +401,7 @@ export const useCronState = () => {
 
   const handleDeleteTask = async (id: string) => {
     try {
-        await cronService.delete({ id: parseInt(id) });
+        await CronService.delete({ id: parseInt(id) });
         setTasks(prev => prev.filter(t => t.id !== id));
         if (selectedTaskId === id) {
             setSelectedTaskId(undefined);

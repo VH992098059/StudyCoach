@@ -30,7 +30,7 @@ func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 		Templates: []schema.MessagesTemplate{
 			schema.SystemMessage(common.SystemCoachTemplate),
 			schema.MessagesPlaceholder("chat_history", true),
-			schema.UserMessage(common.UserMessageTemplate),
+			schema.UserMessage(common.BranchAsrQuestion),
 		},
 	}
 	ctp = &ChatTemplateImpl{config: config}
