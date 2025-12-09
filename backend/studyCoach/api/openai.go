@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"time"
 
 	"github.com/cloudwego/eino/components/model"
@@ -67,9 +66,9 @@ func init() {
 func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*schema.Message], error) {
 	var rag *Rag
 	var documents []*schema.Document
-	log.Printf("[ChatAiModel] 开始处理请求 - ID: %s, 网络搜索: %v, 知识库: %s", req.ID, req.IsNetwork, req.KnowledgeName)
+	g.Log().Infof(ctx, "[ChatAiModel] 开始处理请求 - ID: %s, 网络搜索: %v, 知识库: %s", req.ID, req.IsNetwork, req.KnowledgeName)
 
-	log.Println("用户内容：", req.Question)
+	g.Log().Infof(ctx, "用户内容：", req.Question)
 	conf := &common.Config{
 		APIKey:    g.Cfg().MustGet(ctx, "ark.apiKey").String(),
 		BaseURL:   g.Cfg().MustGet(ctx, "ark.baseURL").String(),
@@ -82,7 +81,7 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 	}
 	// 知识库检索
 	if req.KnowledgeName != "" {
-		log.Printf("[ChatAiModel] 开始知识库检索 - ID: %s, 知识库: %s", req.ID, req.KnowledgeName)
+		g.Log().Infof(ctx, "[ChatAiModel] 开始知识库检索 - ID: %s, 知识库: %s", req.ID, req.KnowledgeName)
 		documents, err = rag.Retriever(ctx, &RetrieveReq{
 			Query:         req.Question,
 			TopK:          req.TopK,
@@ -92,9 +91,9 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("[ChatAiModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
+		g.Log().Infof(ctx, "[ChatAiModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
 	} else {
-		log.Println("知识库未启用")
+		g.Log().Infof(ctx, "知识库未启用")
 	}
 
 	streamType := StreamType{
@@ -128,7 +127,7 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 	}
 	// 知识库检索
 	if req.KnowledgeName != "" {
-		log.Printf("[ChatNormalModel] 开始知识库检索 - ID: %s, 知识库: %s", req.ID, req.KnowledgeName)
+		g.Log().Infof(ctx, "[ChatNormalModel] 开始知识库检索 - ID: %s, 知识库: %s", req.ID, req.KnowledgeName)
 		documents, err = rag.Retriever(ctx, &RetrieveReq{
 			Query:         req.Question,
 			TopK:          req.TopK,
@@ -138,9 +137,9 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 		if err != nil {
 			return nil, err
 		}
-		log.Printf("[ChatNormalModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
+		g.Log().Infof(ctx, "[ChatNormalModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
 	} else {
-		log.Println("知识库未启用")
+		g.Log().Infof(ctx, "知识库未启用")
 	}
 
 	streamType := StreamType{
@@ -162,48 +161,6 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 	return chanOutput(ctx, srs, req, eh)
 }
 
-// 输出管道
-func chanOutput(ctx context.Context, srs []*schema.StreamReader[*schema.Message], req *v1.AiChatReq, eh *eino.History) (*schema.StreamReader[*schema.Message], error) {
-	go func() {
-		defer srs[1].Close()
-		fullMsgs := make([]*schema.Message, 0)
-		for {
-			// 监听上下文取消，防止泄露
-			select {
-			case <-ctx.Done():
-				g.Log().Infof(ctx, "上下文取消 - ID: %s, 错误: %v", req.ID, ctx.Err())
-				return
-			default:
-				// 继续执行
-			}
-			chunk, err := srs[1].Recv()
-			if err == io.EOF {
-				// 流结束，保存完整消息
-				fullMsg, err := schema.ConcatMessages(fullMsgs)
-				if err != nil {
-					fmt.Printf("error concatenating messages: %v\n", err)
-					return
-				}
-				err = eh.SaveMessage(fullMsg, req.ID)
-				if err != nil {
-					fmt.Printf("save assistant message err: %v\n", err)
-					return
-				}
-				GetMsg(fullMsg)
-				return
-			}
-			if err != nil {
-				fmt.Printf("message processing error: %v\n", err)
-				return
-			}
-
-			// 收集分块
-			fullMsgs = append(fullMsgs, chunk)
-		}
-	}()
-	return srs[0], nil
-}
-
 // 流式输出
 func stream(ctx context.Context, streamType *StreamType, output map[string]interface{}) (res *schema.StreamReader[*schema.Message], err error) {
 	history, err := streamType.Eh.GetHistory(streamType.Id, 30)
@@ -212,7 +169,7 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 		return nil, fmt.Errorf("get history failed: %v", err)
 	}
 
-	log.Printf("历史记录数量: %d", len(history))
+	g.Log().Infof(ctx, "历史记录数量: %d", len(history))
 	var modelStream compose.Runnable[map[string]any, *schema.Message]
 	if streamType.IsStudyMode == false {
 		modelStream, err = NormalChat.BuildNormalChat(ctx)
@@ -272,6 +229,48 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 	}
 
 	return nil, fmt.Errorf("流式生成失败，已重试%d次", maxRetries)
+}
+
+// 输出管道
+func chanOutput(ctx context.Context, srs []*schema.StreamReader[*schema.Message], req *v1.AiChatReq, eh *eino.History) (*schema.StreamReader[*schema.Message], error) {
+	go func() {
+		defer srs[1].Close()
+		fullMsgs := make([]*schema.Message, 0)
+		for {
+			// 监听上下文取消，防止泄露
+			select {
+			case <-ctx.Done():
+				g.Log().Infof(ctx, "上下文取消 - ID: %s, 错误: %v", req.ID, ctx.Err())
+				return
+			default:
+				// 继续执行
+			}
+			chunk, err := srs[1].Recv()
+			if err == io.EOF {
+				// 流结束，保存完整消息
+				fullMsg, err := schema.ConcatMessages(fullMsgs)
+				if err != nil {
+					fmt.Printf("error concatenating messages: %v\n", err)
+					return
+				}
+				err = eh.SaveMessage(fullMsg, req.ID)
+				if err != nil {
+					fmt.Printf("save assistant message err: %v\n", err)
+					return
+				}
+				GetMsg(fullMsg)
+				return
+			}
+			if err != nil {
+				fmt.Printf("message processing error: %v\n", err)
+				return
+			}
+
+			// 收集分块
+			fullMsgs = append(fullMsgs, chunk)
+		}
+	}()
+	return srs[0], nil
 }
 
 func NewRagChat(ctx context.Context, conf *common.Config) (*Rag, error) {
