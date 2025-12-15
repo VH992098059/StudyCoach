@@ -83,11 +83,11 @@ graph TD
 - **Database**: MySQL 8.0+, Redis
 - **AI Infrastructure**: 
   - **Vector DB**: Qdrant / Elasticsearch 8
-  - **Object Storage**: MinIO
+  - **Object Storage**: SeaweedFS
 
 ### Frontend
 - **Framework**: React 19, TypeScript, Vite
-- **UI/UX**: Ant Design 5, **Ant Design X** (AI Components)
+- **UI/UX**: Ant Design 6, **Ant Design X** (AI Components)
 - **AI Interaction**: 
   - **VAD**: `@ricky0123/vad-web` (Client-side Voice Detection)
   - **Markdown**: `react-markdown`, `katex` (Math Formulas), `mermaid` (Charts)
@@ -124,13 +124,14 @@ studyCoach/
 ### Prerequisites
 - Go 1.24+
 - Node.js 20+
+- Bun 1.0+
 - Docker & Docker Compose
 
 ### 1. Start Infrastructure
 ```bash
 cd docker
 docker-compose up -d
-# This will start MySQL, Redis, MinIO, Qdrant, Elasticsearch
+# This will start MySQL, Redis, SeaweedFS, Qdrant, Elasticsearch
 ```
 
 ### 2. Start Backend
@@ -145,8 +146,8 @@ go run main.go
 ### 3. Start Frontend
 ```bash
 cd frontChat
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Visit `http://localhost:5173` to start experiencing.
@@ -154,6 +155,9 @@ Visit `http://localhost:5173` to start experiencing.
 ---
 
 ## 🔮 Future Plans
+
+### 📦 Storage Architecture Upgrade
+- **SeaweedFS Migration**: Completed migration from MinIO to SeaweedFS (Filer Mode) to support more efficient small file storage and directory management.
 
 ### 🌐 MCP (Model Context Protocol) Ecosystem Integration
 We plan to fully integrate the **MCP Protocol** to achieve greater tool interoperability:

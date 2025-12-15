@@ -87,12 +87,12 @@ graph TD
 - **数据库**: MySQL 8.0+, Redis
 - **AI 基础设施**:
   - **向量库**: Qdrant / Elasticsearch 8
-  - **对象存储**: MinIO
+  - **对象存储**: SeaweedFS
 
 ### 前端 (Frontend)
 
 - **框架**: React 19, TypeScript, Vite
-- **UI/UX**: Ant Design 5, **Ant Design X** (AI Components)
+- **UI/UX**: Ant Design 6, **Ant Design X** (AI Components)
 - **AI 交互**:
   - **VAD**: `@ricky0123/vad-web` (端侧语音检测)
   - **Markdown**: `react-markdown`, `katex` (数学公式), `mermaid` (图表)
@@ -130,6 +130,7 @@ studyCoach/
 
 - Go 1.24+
 - Node.js 20+
+- Bun 1.0+
 - Docker & Docker Compose
 
 ### 1. 启动基础设施
@@ -137,7 +138,7 @@ studyCoach/
 ```bash
 cd docker
 docker-compose up -d
-# 这将启动 MySQL, Redis, MinIO, Qdrant, Elasticsearch
+# 这将启动 MySQL, Redis, SeaweedFS, Qdrant, Elasticsearch
 ```
 
 ### 2. 启动后端
@@ -154,8 +155,8 @@ go run main.go
 
 ```bash
 cd frontChat
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 访问 `http://localhost:5173` 即可开始体验。
@@ -163,6 +164,9 @@ npm run dev
 ---
 
 ## 🔮 未来计划
+
+### 📦 存储架构升级
+- **SeaweedFS 迁移**: 已完成从 MinIO 到 SeaweedFS (Filer Mode) 的迁移，以支持更高效的小文件存储与目录管理。
 
 ### 🌐 MCP (Model Context Protocol) 生态集成
 
