@@ -4,6 +4,7 @@ import (
 	"backend/internal/cmd"
 	_ "backend/internal/logic"
 	_ "backend/internal/packed"
+	"backend/studyCoach/seaweedFS/FilerMode"
 
 	"github.com/gogf/gf/v2/os/gctx"
 
@@ -11,6 +12,10 @@ import (
 	_ "github.com/gogf/gf/contrib/drivers/pgsql/v2"
 	_ "github.com/gogf/gf/contrib/nosql/redis/v2"
 )
+
+func init() {
+	FilerMode.NewFilerClient("http://localhost:8888")
+}
 
 func main() {
 

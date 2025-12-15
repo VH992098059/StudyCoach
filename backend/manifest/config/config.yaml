@@ -1,19 +1,19 @@
 server:
-    # 基本配置
-    address:             ":8000"                      # 本地监听地址。默认":80"，多个地址以","号分隔。例如："192.168.2.3:8000,10.0.3.10:8001"
-    # httpsAddr:           ":443"                           # TLS/HTTPS配置，同时需要配置证书和密钥。默认关闭。配置格式同上。
-    # httpsCertPath:       ""                           # TLS/HTTPS证书文件本地路径，建议使用绝对路径。默认关闭
-    # httpsKeyPath:        ""                           # TLS/HTTPS密钥文件本地路径，建议使用绝对路径。默认关闭
-    # readTimeout:         "60s"                        # 请求读取超时时间，一般不需要配置。默认为60秒
-    # writeTimeout:        "0"                          # 数据返回写入超时时间，一般不需要配置。默认不超时（0）
-    # idleTimeout:         "60s"                        # 仅当Keep-Alive开启时有效，请求闲置时间。默认为60秒
-    # maxHeaderBytes:      "10240"                      # 请求Header大小限制（Byte）。默认为10KB
-    # keepAlive:           true                         # 是否开启Keep-Alive功能。默认true
-    # serverAgent:         "GoFrame HTTP Server"        # 服务端Agent信息。默认为"GoFrame HTTP Server"
+  # 基本配置
+  address:             ":8000"                      # 本地监听地址。默认":80"，多个地址以","号分隔。例如："192.168.2.3:8000,10.0.3.10:8001"
+  # httpsAddr:           ":443"                           # TLS/HTTPS配置，同时需要配置证书和密钥。默认关闭。配置格式同上。
+  # httpsCertPath:       ""                           # TLS/HTTPS证书文件本地路径，建议使用绝对路径。默认关闭
+  # httpsKeyPath:        ""                           # TLS/HTTPS密钥文件本地路径，建议使用绝对路径。默认关闭
+  # readTimeout:         "60s"                        # 请求读取超时时间，一般不需要配置。默认为60秒
+  # writeTimeout:        "0"                          # 数据返回写入超时时间，一般不需要配置。默认不超时（0）
+  # idleTimeout:         "60s"                        # 仅当Keep-Alive开启时有效，请求闲置时间。默认为60秒
+  # maxHeaderBytes:      "10240"                      # 请求Header大小限制（Byte）。默认为10KB
+  # keepAlive:           true                         # 是否开启Keep-Alive功能。默认true
+  # serverAgent:         "GoFrame HTTP Server"        # 服务端Agent信息。默认为"GoFrame HTTP Server"
 
-    # 接口文档
-    openapiPath: "/api.json" # OpenAPI接口文档地址
-    swaggerPath: "/swagger"  # 内置SwaggerUI展示地址
+  # 接口文档
+  openapiPath: "/api.json" # OpenAPI接口文档地址
+  swaggerPath: "/swagger"  # 内置SwaggerUI展示地址
 
 #     # 静态服务配置
 #     indexFiles:          ["index.html","index.htm"]   # 自动首页静态文件检索。默认为["index.html", "index.htm"]
@@ -92,10 +92,10 @@ logger:
 # 配置数据库
 database:
   default:
-#  - link: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
-#  - link: "pgsql:postgres:root@tcp(studycoach-postgres:5432)/postgres"
-  - link: "mysql:root:root@tcp(localhost:3306)/chat_history"
-    debug: true
+    #  - link: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
+    #  - link: "pgsql:postgres:root@tcp(studycoach-postgres:5432)/postgres"
+    - link: "mysql:root:root@tcp(localhost:3306)/chat_history?loc=Local&parseTime=true"
+      debug: true
 # database:
 #   分组名称:
 #     host:                  "地址"
@@ -129,13 +129,13 @@ database:
 redis:
   default:
     address: "localhost:6379"
-#    address: "studycoach-redis:6379"
+    #    address: "studycoach-redis:6379"
     pass: "123456"
     db: 1
     idleTimeout: "60s"
 
 db:
-  mysql: "root:root@tcp(127.0.0.1:3306)/chat_history"
+  mysql: "root:root@tcp(127.0.0.1:3306)/chat_history?loc=Local&parseTime=true"
 #  history: "host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 #  history: "host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 
@@ -182,15 +182,20 @@ ark:
   baseURL: "https://ark.cn-beijing.volces.com/api/v3"
   model: "doubao-seed-1-6-251015"
 
+siliconflow:
+  apiKey: "*"
+  baseURL: "https://api.siliconflow.cn/v1"
+  model: "deepseek-ai/DeepSeek-V3.2"
+
 minio:
   endpoint: "localhost:9000"
   accessKey: "minioadmin"
-  secretKey: "123456"
+  secretKey: "770880520"
   bucketFile: "studyfile"
   bucketImages: "images"
 
 es:
-#  address: "http://studycoach-elasticsearch:9200"
+  #  address: "http://studycoach-elasticsearch:9200"
   address: "http://localhost:9200"
   indexName: "study"
 #  username: "elastic"

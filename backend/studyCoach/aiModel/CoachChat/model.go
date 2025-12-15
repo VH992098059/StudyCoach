@@ -11,6 +11,11 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
+var (
+	FrequencyPenalty float32 = 0.6 // 提高重复惩罚，避免无限复读
+	PresencePenalty  float32 = 0.4
+)
+
 // newChatModel component initialization function of node 'AnalysisChatModel' in graph 'StudyCoachFor'
 func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
 	config := &openai.ChatModelConfig{
@@ -29,9 +34,11 @@ func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallin
 // NewChatModel1 component initialization function of node 'EmotionAndCompanionChatModel' in graph 'studyCoachFor'
 func newChatModel1(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
 	config := &ark.ChatModelConfig{
-		Model:   conf.ChatModel,
-		APIKey:  conf.APIKey,
-		BaseURL: conf.BaseURL,
+		Model:            conf.ChatModel,
+		APIKey:           conf.APIKey,
+		BaseURL:          conf.BaseURL,
+		FrequencyPenalty: &FrequencyPenalty,
+		PresencePenalty:  &PresencePenalty,
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 
@@ -43,9 +50,11 @@ func newChatModel1(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 
 func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
 	config := &ark.ChatModelConfig{
-		Model:   conf.ChatModel,
-		APIKey:  conf.APIKey,
-		BaseURL: conf.BaseURL,
+		Model:            conf.ChatModel,
+		APIKey:           conf.APIKey,
+		BaseURL:          conf.BaseURL,
+		FrequencyPenalty: &FrequencyPenalty,
+		PresencePenalty:  &PresencePenalty,
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("ReAct模型分析")
@@ -58,9 +67,11 @@ func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 // newChatModel3 component initialization function of node 'ToStudyChatModel' in graph 'studyCoachFor'
 func newChatModel3(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
 	config := &ark.ChatModelConfig{
-		Model:   conf.ChatModel,
-		APIKey:  conf.APIKey,
-		BaseURL: conf.BaseURL,
+		Model:            conf.ChatModel,
+		APIKey:           conf.APIKey,
+		BaseURL:          conf.BaseURL,
+		FrequencyPenalty: &FrequencyPenalty,
+		PresencePenalty:  &PresencePenalty,
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("ReAct模型分析")

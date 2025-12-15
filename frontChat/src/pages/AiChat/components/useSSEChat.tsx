@@ -183,6 +183,33 @@ const useSSEChat = (params: UseSSEChatParams) => {
               // 非 JSON，当做纯文本
             }
 
+            // 检查内容是否包含 [DONE] 标记，有时它会附在最后一条消息中
+            if (contentSegment.includes('[DONE]')) {
+                const parts = contentSegment.split('[DONE]');
+                contentSegment = parts[0];
+                accumulatedMessageRef.current += contentSegment;
+                setCurrentAiMessage(accumulatedMessageRef.current);
+
+                // 触发结束逻辑
+                const finalMsg = accumulatedMessageRef.current.trim();
+                if (finalMsg) {
+                  const aiMessage: Message = {
+                    id: Date.now(),
+                    msg_id: generateMsgId(),
+                    content: finalMsg,
+                    isUser: false,
+                    timestamp: new Date(),
+                  };
+                  setMessages((prev) => [...prev, aiMessage]);
+                }
+                
+                setCurrentAiMessage('');
+                accumulatedMessageRef.current = '';
+                setLoading(false);
+                setConnectionState(SSEConnectionState.DISCONNECTED);
+                return;
+            }
+
             accumulatedMessageRef.current += contentSegment;
             setCurrentAiMessage(accumulatedMessageRef.current);
           },
