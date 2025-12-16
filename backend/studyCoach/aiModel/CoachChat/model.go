@@ -14,6 +14,8 @@ import (
 var (
 	FrequencyPenalty float32 = 0.6 // 提高重复惩罚，避免无限复读
 	PresencePenalty  float32 = 0.4
+	Temperature      float32 = 0.1
+	TopP             float32 = 0.1
 )
 
 // newChatModel component initialization function of node 'AnalysisChatModel' in graph 'StudyCoachFor'
@@ -39,6 +41,8 @@ func newChatModel1(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 		BaseURL:          conf.BaseURL,
 		FrequencyPenalty: &FrequencyPenalty,
 		PresencePenalty:  &PresencePenalty,
+		Temperature:      &Temperature,
+		TopP:             &TopP,
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 
@@ -55,6 +59,8 @@ func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 		BaseURL:          conf.BaseURL,
 		FrequencyPenalty: &FrequencyPenalty,
 		PresencePenalty:  &PresencePenalty,
+		Temperature:      &Temperature,
+		TopP:             &TopP,
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("ReAct模型分析")
@@ -72,6 +78,8 @@ func newChatModel3(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 		BaseURL:          conf.BaseURL,
 		FrequencyPenalty: &FrequencyPenalty,
 		PresencePenalty:  &PresencePenalty,
+		Temperature:      &Temperature,
+		TopP:             &TopP,
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("ReAct模型分析")
@@ -108,16 +116,15 @@ func QaModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 }
 
 func BranchNewChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
-	var topP float32 = 0.1
-	var temperature float32 = 0.1
 	config := &ark.ChatModelConfig{
 		APIKey:      g.Cfg().MustGet(ctx, "Branch.apiKey").String(),
 		BaseURL:     g.Cfg().MustGet(ctx, "Branch.baseURL").String(),
 		Model:       g.Cfg().MustGet(ctx, "Branch.model").String(),
-		TopP:        &topP,
-		Temperature: &temperature,
+		TopP:        &TopP,
+		Temperature: &Temperature,
 	}
 	cm, err = ark.NewChatModel(ctx, config)
+	log.Println("分支模型分析")
 	if err != nil {
 		return nil, err
 	}
