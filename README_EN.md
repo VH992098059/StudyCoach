@@ -105,9 +105,8 @@ studyCoach/
 │   │   ├── aiModel/          # Model & Orchestration Logic
 │   │   │   ├── CoachChat/    # Teaching Assistant Orchestration Graph
 │   │   │   ├── asr/          # Speech Recognition Module
-│   │   │   └── tools_node.go # MCP Tool Definitions
-│   │   ├── indexer/          # RAG Index Builder
-│   │   └── retriever/        # Hybrid Retriever
+│   │   │   ├── indexer/      # RAG Index Builder
+│   │   │   └── retriever/    # Hybrid Retriever
 │   └── manifest/             # K8s/Docker Deployment Config
 │
 ├── frontChat/                # React Frontend Application
@@ -116,7 +115,7 @@ studyCoach/
 │   │   └── hooks/            # useSSEChat, useVoiceService
 │   └── src/services/         # API Interface Encapsulation
 │
-└── docker/                   # Containerized Environment Config
+└── docker-compose.yml        # Containerized Environment Config
 ```
 
 ## 🚀 Quick Start
@@ -129,7 +128,6 @@ studyCoach/
 
 ### 1. Start Infrastructure
 ```bash
-cd docker
 docker-compose up -d
 # This will start MySQL, Redis, SeaweedFS, Qdrant, Elasticsearch
 ```
@@ -164,6 +162,10 @@ We plan to fully integrate the **MCP Protocol** to achieve greater tool interope
 - **Standardized Tool Interfaces**: Migrate existing DuckDuckGo search and file generation tools to standard MCP Servers.
 - **Cross-Application Context**: Allow AI Agents to securely access local development environments, databases, or third-party APIs, not limited to simple web searches.
 - **Plugin Extensions**: Developers can easily add new capabilities (such as code execution, calendar management, etc.) to StudyCoach by writing MCP Servers without modifying the core code.
+
+### ⏰ Cron Job System (In Progress)
+
+Developing a distributed cron job scheduling and execution module (`backend/internal/controller/cron` & `cron_execute`) to provide flexible task orchestration, status tracking, and background job processing capabilities.
 
 ---
 

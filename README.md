@@ -110,9 +110,8 @@ studyCoach/
 │   │   ├── aiModel/          # 模型与编排逻辑
 │   │   │   ├── CoachChat/    # 教学助手编排图
 │   │   │   ├── asr/          # 语音识别模块
-│   │   │   └── tools_node.go # MCP 工具定义
-│   │   ├── indexer/          # RAG 索引构建器
-│   │   └── retriever/        # 混合检索器
+│   │   │   ├── indexer/      # RAG 索引构建器
+│   │   │   └── retriever/    # 混合检索器
 │   └── manifest/             # K8s/Docker 部署配置
 │
 ├── frontChat/                # React 前端应用
@@ -121,7 +120,7 @@ studyCoach/
 │   │   └── hooks/            # useSSEChat, useVoiceService
 │   └── src/services/         # API 接口封装
 │
-└── docker/                   # 容器化环境配置
+└── docker-compose.yml        # 容器化环境配置
 ```
 
 ## 🚀 快速开始
@@ -136,7 +135,6 @@ studyCoach/
 ### 1. 启动基础设施
 
 ```bash
-cd docker
 docker-compose up -d
 # 这将启动 MySQL, Redis, SeaweedFS, Qdrant, Elasticsearch
 ```
@@ -166,6 +164,7 @@ bun run dev
 ## 🔮 未来计划
 
 ### 📦 存储架构升级
+
 - **SeaweedFS 迁移**: 已完成从 MinIO 到 SeaweedFS (Filer Mode) 的迁移，以支持更高效的小文件存储与目录管理。
 
 ### 🌐 MCP (Model Context Protocol) 生态集成
@@ -175,6 +174,10 @@ bun run dev
 - **标准化工具接口**: 将现有的 DuckDuckGo 搜索和文件生成工具迁移至标准 MCP Server。
 - **跨应用上下文**: 允许 AI Agent 安全地访问本地开发环境、数据库或第三方 API，不仅限于简单的 Web 搜索。
 - **插件化扩展**: 开发者可以通过编写 MCP Server 轻松为 StudyCoach 增加新的能力（如代码执行、日历管理等），无需修改核心代码。
+
+### ⏰ 定时任务系统 (Cron) (进行中)
+
+正在开发分布式定时任务调度与执行模块 (`backend/internal/controller/cron` & `cron_execute`)，旨在提供灵活的任务编排、状态追踪及后台作业处理能力。
 
 ---
 

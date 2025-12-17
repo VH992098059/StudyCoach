@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:latest
+    container_name: studycoach-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: chat_history
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - studycoach-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis缓存
+  redis:
+    image: redis:latest
+    container_name: studycoach-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass 123456
+    volumes:
+      - redis_data:/data
+    networks:
+      - studycoach-network
+    # command: redis-server /usr/local/etc/redis/redis.conf
+
+  # Elasticsearch搜索引擎
+  elasticsearch:
+    image: elasticsearch:latest
+    container_name: studycoach-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - studycoach-network
+
+  # SeaweedFS Master
+  seaweedfs-master:
+    image: chrislusf/seaweedfs
+    container_name: studycoach-seaweedfs-master
+    restart: unless-stopped
+    ports:
+      - "9333:9333"
+      - "19333:19333"
+    command: "master -ip=seaweedfs-master"
+    networks:
+      - studycoach-network
+
+  # SeaweedFS Volume
+  seaweedfs-volume:
+    image: chrislusf/seaweedfs
+    container_name: studycoach-seaweedfs-volume
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "18080:18080"
+    command: "volume -mserver=seaweedfs-master:9333 -port=8080 -ip=seaweedfs-volume"
+    volumes:
+      - seaweedfs_data:/data
+    networks:
+      - studycoach-network
+    depends_on:
+      - seaweedfs-master
+
+  # SeaweedFS Filer
+  seaweedfs-filer:
+    image: chrislusf/seaweedfs
+    container_name: studycoach-seaweedfs-filer
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+      - "18888:18888"
+    command: "filer -master=seaweedfs-master:9333"
+    volumes:
+      - seaweedfs_filer_data:/data
+    networks:
+      - studycoach-network
+    depends_on:
+      - seaweedfs-master
+      - seaweedfs-volume
+
+  # Qdrant向量数据库
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: studycoach-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - studycoach-network
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  seaweedfs_data:
+    driver: local
+  seaweedfs_filer_data:
+    driver: local
+
+networks:
+  studycoach-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

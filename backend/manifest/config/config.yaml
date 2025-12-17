@@ -187,12 +187,8 @@ siliconflow:
   baseURL: "https://api.siliconflow.cn/v1"
   model: "deepseek-ai/DeepSeek-V3.2"
 
-minio:
-  endpoint: "localhost:9000"
-  accessKey: "minioadmin"
-  secretKey: "770880520"
-  bucketFile: "studyfile"
-  bucketImages: "images"
+seaweedfs:
+  filer: "http://localhost:8888"
 
 es:
   #  address: "http://studycoach-elasticsearch:9200"
