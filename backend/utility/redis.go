@@ -41,7 +41,6 @@ func SetJWT(ctx context.Context, key, token string, expiration time.Duration) er
 	if err != nil {
 		log.Println("删除jwt黑名单报错")
 	}
-
 	return err
 }
 
@@ -90,17 +89,4 @@ func DeleteBlackJWT(ctx context.Context, userKey string) error {
 		return err
 	}
 	return nil
-}
-
-// StoreFileToRedis 文件存储到redis
-func StoreFileToRedis(ctx context.Context, fileKey string, fileData []byte) error {
-	return g.Redis().SetEX(ctx, fileKey, fileData, 3600*24)
-}
-
-func GetFileFromRedis(ctx context.Context, fileKey string) ([]byte, error) {
-	value, err := g.Redis().Get(ctx, fileKey)
-	if err != nil {
-		return nil, err
-	}
-	return value.Bytes(), nil
 }

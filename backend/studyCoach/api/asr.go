@@ -3,10 +3,10 @@ package api
 import (
 	"backend/studyCoach/aiModel/asr"
 	"backend/studyCoach/common"
+	"backend/utility"
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 
@@ -96,7 +96,7 @@ func AsrPhone(ctx context.Context, audioBase64 string) (audio []byte, err error)
 	if _, err = filePart.Write(decoded); err != nil {
 		return nil, fmt.Errorf("write form file error: %v", err)
 	}
-	// 语言字段（如上游支持）
+	// 语言字段
 	if err = mw.WriteField("language", "auto"); err != nil {
 		return nil, fmt.Errorf("write field error: %v", err)
 	}
@@ -112,22 +112,10 @@ func AsrPhone(ctx context.Context, audioBase64 string) (audio []byte, err error)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	req.Header.Set("Accept", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	//请求处理
+	bodyBytes, err := utility.AsrTTSHttp(req)
 	if err != nil {
-		return nil, fmt.Errorf("error sending request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// 处理响应
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API request failed with status code %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %v", err)
+		return nil, err
 	}
 
 	// 解析响应，兼容 result 为对象或数组的情况
@@ -188,7 +176,7 @@ func AsrPhone(ctx context.Context, audioBase64 string) (audio []byte, err error)
 	if err != nil {
 		return nil, err
 	}
-	output := common.GetSafeTemplateParams()
+	output := common.GetSafeNormalOutput()
 	output["question"] = recognized
 	invoke, err := modelASR.Invoke(ctx, output)
 	if err != nil {

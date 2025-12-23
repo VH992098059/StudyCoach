@@ -126,6 +126,16 @@ studyCoach/
 - Bun 1.0+
 - Docker & Docker Compose
 
+### Deploy Speech Recognition Service (SenseVoice)
+
+The Speech Recognition (ASR) module of this project depends on the **SenseVoice** model. Please visit the [official SenseVoice repository](https://github.com/FunAudioLLM/SenseVoice) for detailed deployment and configuration instructions. Ensure the service is running and accessible to the backend.
+
+Start after installation:
+
+```bash
+python api.py
+```
+
 ### 1. Start Infrastructure
 ```bash
 docker-compose up -d

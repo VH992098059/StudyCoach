@@ -42,6 +42,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const stoppedRef = useRef<boolean>(false);
+  const processingRef = useRef<boolean>(false);
   const fetchAbortRef = useRef<AbortController | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   
@@ -117,21 +118,28 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
       const vad = await MicVAD.new({
         onnxWASMBasePath: window.location.href+"node_modules/onnxruntime-web/dist/",
         baseAssetPath: window.location.href+"node_modules/@ricky0123/vad-web/dist/",
-        positiveSpeechThreshold: 0.6,
-        negativeSpeechThreshold: 0.35,
-        minSpeechMs: 800,
-        redemptionMs: 1600,
+        positiveSpeechThreshold: 0.8,
+        negativeSpeechThreshold: 0.45,
+        minSpeechMs: 1000,
+        redemptionMs: 3000,
         onSpeechRealStart: () => {
-          if (stoppedRef.current) return;
+          if (stoppedRef.current || processingRef.current) return;
           setRecording(true);
           setHasStarted(true);
           setDurationSec(0);
           if (durationTimerRef.current) window.clearInterval(durationTimerRef.current);
           durationTimerRef.current = window.setInterval(() => { setDurationSec((s) => s + 1); }, 1000);
         },
-        onSpeechStart: () => {},
+        onSpeechStart: () => {
+          if (stoppedRef.current || processingRef.current) return;
+        },
         onSpeechEnd: async (audio: Float32Array) => {
-          if (stoppedRef.current) return;
+          if (stoppedRef.current || processingRef.current) return;
+          processingRef.current = true;
+          if (durationTimerRef.current) {
+            window.clearInterval(durationTimerRef.current);
+            durationTimerRef.current = null;
+          }
           setRecording(false);
           setWorking(true);
           try {
@@ -154,6 +162,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
             }
           } finally {
             setWorking(false);
+            processingRef.current = false;
           }
         },
         getStream: async () => {
@@ -194,6 +203,34 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     setOverlayVisible(false);
     if (durationTimerRef.current) { window.clearInterval(durationTimerRef.current); durationTimerRef.current = null; }
     message.info('通话已结束');
+  };
+
+  // 中断当前处理/播放并重新开始录音
+  const resetAndStart = async () => {
+    // 停止音频播放与销毁资源
+    if (audioRef.current) {
+      try { audioRef.current.pause(); } catch {}
+      audioRef.current.currentTime = 0;
+    }
+    if (audioUrlRef.current) {
+      try { URL.revokeObjectURL(audioUrlRef.current); } catch {}
+      audioUrlRef.current = null;
+    }
+    // 中断 Fetch 请求
+    if (fetchAbortRef.current) {
+      try { fetchAbortRef.current.abort(); } catch {}
+      fetchAbortRef.current = null;
+    }
+    // 释放互斥锁与工作状态
+    processingRef.current = false;
+    setWorking(false);
+    // 清理旧的 VAD 实例（防止重复）
+    if (vadRef.current) {
+      try { await vadRef.current.destroy?.(); } catch (err) { console.error(err); }
+      vadRef.current = null;
+    }
+    // 重新开始录音流程
+    startRecording();
   };
 
   const icon = working ? <LoadingOutlined spin /> : recording ? <StopOutlined /> : <PhoneOutlined />;
@@ -237,6 +274,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
         onStart={startRecording}
         onEnd={stopRecording}
         onCancel={() => { stopRecording(); }}
+        onRestart={resetAndStart}
       />
     </>
   );

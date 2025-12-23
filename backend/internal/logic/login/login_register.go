@@ -28,7 +28,7 @@ func Login(ctx context.Context, username, password string) (id uint64, uuid, tok
 		if err != nil {
 			return gerror.NewCode(gcode.New(401, "用户名不存在或查询失败", ""))
 		}
-		// 检查是否查到了数据（防止 scan 没报错但也没查到数据的情况）
+		// 检查是否查到了数据
 		if user.Id == 0 {
 			return gerror.NewCode(gcode.New(401, "用户名不存在", ""))
 		}
@@ -47,7 +47,6 @@ func Login(ctx context.Context, username, password string) (id uint64, uuid, tok
 		return err
 
 	})
-
 	if err != nil {
 		return 0, "", "", err
 	}
@@ -110,11 +109,13 @@ func RegisterUser(ctx context.Context, in *entity.Users) (id int64, err error) {
 }
 
 func LogoutUser(ctx context.Context) (msg string, err error) {
-	/*获取JWT字段*/ jwtMap, err := utility.JWTMap(ctx)
+	/*获取JWT字段*/
+	jwtMap, err := utility.JWTMap(ctx)
 	if err != nil {
 		return "", gerror.NewCode(gcode.New(500, "token有误，退出失败", ""))
 	}
-	fmt.Println("jwt的ID：", jwtMap["Id"].(float64))
+	log.Println("jwt的ID：", jwtMap["Id"].(float64))
+	log.Println("jwt的Username：", jwtMap["Username"].(string))
 	_, err = dao.Users.Ctx(ctx).Fields("logout_at").Where("id", jwtMap["Id"].(float64)).Data(do.Users{LogoutAt: gtime.Now()}).Update()
 	if err != nil {
 		return "", gerror.NewCode(gcode.New(500, "退出失败", ""))

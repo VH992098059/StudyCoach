@@ -132,6 +132,16 @@ studyCoach/
 - Bun 1.0+
 - Docker & Docker Compose
 
+### 部署语音识别服务 (SenseVoice)
+
+本项目语音识别 (ASR) 模块依赖 **SenseVoice** 模型。请访问 [SenseVoice 官方仓库](https://github.com/FunAudioLLM/SenseVoice) 获取详细的部署与配置指南。确保该服务已启动并可供后端调用。
+
+安装后启用：
+
+```bash
+python api.py
+```
+
 ### 1. 启动基础设施
 
 ```bash

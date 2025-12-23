@@ -13,11 +13,11 @@ import (
 	_ "github.com/gogf/gf/contrib/nosql/redis/v2"
 )
 
+// seaweedFS初始化
 func init() {
 	FilerMode.NewFilerClient("http://localhost:8888")
 }
 
 func main() {
-
 	cmd.Main.Run(gctx.GetInitCtx())
 }

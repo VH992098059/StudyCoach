@@ -1,11 +1,11 @@
 package api
 
 import (
+	"backend/utility"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -21,7 +21,7 @@ type RequestPayload struct {
 
 func TextToSpeech(ctx context.Context, input string) ([]byte, error) {
 	// 从配置文件获取基础URL
-	baseURL := g.Cfg().MustGet(ctx, "chat.baseURL").String()
+	baseURL := g.Cfg().MustGet(ctx, "siliconflow.baseURL").String()
 	if baseURL == "" {
 		return nil, fmt.Errorf("base URL not found in configuration")
 	}
@@ -53,24 +53,10 @@ func TextToSpeech(ctx context.Context, input string) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "audio/mpeg")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	//请求处理
+	audioData, err := utility.AsrTTSHttp(req)
 	if err != nil {
-		return nil, fmt.Errorf("error sending request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// 处理响应
-	if resp.StatusCode != http.StatusOK {
-		// 如果状态码不是 200 OK，则读取错误信息
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API request failed with status code %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-
-	// 直接读取音频数据到内存
-	audioData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading audio data: %v", err)
+		return nil, err
 	}
 	fmt.Println("语音合成成功")
 	return audioData, nil

@@ -1,9 +1,12 @@
 package FilerMode
 
 import (
+	"backend/utility"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -29,14 +32,15 @@ func NewFilerClient(endpoint string) *FilerClient {
 }
 
 // SeaweedFSUpload 上传文件
-// remotePath: 在 SeaweedFS 中的完整路径，例如 "/user/avatars/1001.jpg"
-// fileReader: 文件内容流
-func (c *FilerClient) SeaweedFSUpload(remotePath string, fileReader io.Reader) error {
-	// 1. 构造完整的上传 URL
+func (c *FilerClient) SeaweedFSUpload(ctx context.Context, remotePath string, fileReader io.Reader) error {
+	utility.JWTMap(ctx)
+	log.Println("上传文件：", remotePath)
+
+	// 构造完整的上传 URL
 	// 格式: http://localhost:8888/user/avatars/1001.jpg
 	fullUrl := c.BaseURL + "/" + strings.TrimLeft(remotePath, "/")
 
-	// 2. 构造 Multipart 表单
+	// 构造 Multipart 表单
 	// 虽然 Filer 支持直接 PUT 二进制，但使用 Multipart 兼容性更好
 	bodyBuffer := &bytes.Buffer{}
 	writer := multipart.NewWriter(bodyBuffer)
@@ -56,7 +60,7 @@ func (c *FilerClient) SeaweedFSUpload(remotePath string, fileReader io.Reader) e
 	// 必须关闭 writer 以写入结尾 boundary
 	writer.Close()
 
-	// 3. 发送 POST 请求
+	// 发送 POST 请求
 	req, err := http.NewRequest("POST", fullUrl, bodyBuffer)
 	if err != nil {
 		return err
@@ -79,9 +83,8 @@ func (c *FilerClient) SeaweedFSUpload(remotePath string, fileReader io.Reader) e
 }
 
 // SeaweedFSDownload 下载文件
-// remotePath: 文件路径，例如 "/user/avatars/1001.jpg"
-// 返回: io.ReadCloser (调用者必须 Close), error
-func (c *FilerClient) SeaweedFSDownload(remotePath string) (io.ReadCloser, error) {
+func (c *FilerClient) SeaweedFSDownload(ctx context.Context, remotePath string) (io.ReadCloser, error) {
+	utility.JWTMap(ctx)
 	fullUrl := c.BaseURL + "/" + strings.TrimLeft(remotePath, "/")
 
 	req, err := http.NewRequest("GET", fullUrl, nil)

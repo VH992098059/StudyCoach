@@ -15,6 +15,7 @@ interface VoiceCallOverlayProps {
   onStart?: () => void;
   onEnd?: () => void;
   onCancel?: () => void;
+  onRestart?: () => void;
 }
 
 const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
@@ -24,6 +25,7 @@ const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
   onStart,
   onEnd,
   onCancel,
+  onRestart,
 }) => {
   const isDialing = status === 'dialing';
   const isRecording = status === 'recording';
@@ -83,8 +85,11 @@ const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
           {isRecording && (
             <Button danger onClick={onEnd}>结束通话</Button>
           )}
+          {isProcessing && (
+             <Button type="primary" onClick={onRestart}>重新对话</Button>
+          )}
           {isEnded && (
-            <Button type="primary" onClick={onStart}>重新开始</Button>
+            <Button type="primary" onClick={onRestart || onStart}>重新对话</Button>
           )}
           <Button onClick={onCancel}>关闭</Button>
         </div>
