@@ -18,8 +18,6 @@ import type { MenuProps } from 'antd';
 const AiChat = React.lazy(() => import('../pages/AiChat'));
 const KnowledgeBase = React.lazy(() => import('../pages/KnowledgeBase'));
 const Indexer = React.lazy(() => import('../pages/KnowledgeBase/Indexer'));
-const Documents = React.lazy(() => import('../pages/KnowledgeBase/Documents'));
-const Chunks = React.lazy(() => import('../pages/KnowledgeBase/Chunks'));
 const Retriever = React.lazy(() => import('../pages/KnowledgeBase/Retriever'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 const Login = React.lazy(() => import('../pages/Login'));
@@ -116,14 +114,6 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
     {
       key: 'indexer',
       label: '索引管理',
-    },
-    {
-      key: 'documents',
-      label: '文档管理',
-    },
-    {
-      key: 'chunks',
-      label: '知识块管理',
     },
     {
       key: 'retriever',
@@ -223,7 +213,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
   return (
     <Layout
       headerProps={{
-        title: '学习教练Agent',
+        title: 'AI学习助手',
         menuItems,
         user,
         onLogin: handleLogin,
@@ -231,7 +221,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
         onMenuClick: handleMenuClick,
       }}
       footerProps={{
-        companyName: '学习教练Agent',
+        companyName: 'AI学习助手',
         contactInfo: {
           email: 'contact@example.com',
           phone: '+86 123-4567-8900',
@@ -292,30 +282,6 @@ export const router = createBrowserRouter([
         <Suspense fallback={<LoadingComponent />}>
           <RouteGuard>
             <Indexer />
-          </RouteGuard>
-        </Suspense>
-      </LayoutWrapper>
-    ),
-  },
-  {
-    path: '/documents',
-    element: (
-      <LayoutWrapper>
-        <Suspense fallback={<LoadingComponent />}>
-          <RouteGuard>
-            <Documents />
-          </RouteGuard>
-        </Suspense>
-      </LayoutWrapper>
-    ),
-  },
-  {
-    path: '/chunks',
-    element: (
-      <LayoutWrapper>
-        <Suspense fallback={<LoadingComponent />}>
-          <RouteGuard>
-            <Chunks />
           </RouteGuard>
         </Suspense>
       </LayoutWrapper>

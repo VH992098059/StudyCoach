@@ -82,7 +82,7 @@ const AIChat: React.FC = () => {
   const [currentUploadedFiles, setCurrentUploadedFiles] = useState<UploadedFile[]>([]);
 
   // 朗读功能相关状态 - 使用语音服务
-  const { voiceState, readAloudMessage, stopReading } = useVoiceService();
+  const { voiceState } = useVoiceService();
 
   // 响应式断点
   const { isMobile, isTablet } = useBreakpoints();

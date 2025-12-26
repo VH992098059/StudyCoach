@@ -99,8 +99,8 @@ interface FooterProps {
  * ```
  */
 const Footer: React.FC<FooterProps> = ({
-  copyright = `© ${new Date().getFullYear()} 学习教练Agent. All rights reserved.`,
-  companyName = '学习教练Agent',
+  copyright = `© ${new Date().getFullYear()} AI学习助手. All rights reserved.`,
+  companyName = 'AI学习助手',
   links = [],
   contactInfo,
   socialLinks = [],

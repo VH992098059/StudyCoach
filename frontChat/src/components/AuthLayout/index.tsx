@@ -99,7 +99,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
   backgroundImage,
   showLogo = true,
   logoUrl,
-  logoText = '学习教练Agent',
+  logoText = 'AI学习助手',
 })=> {
   const layoutStyle: React.CSSProperties = {
     minHeight: '100vh',

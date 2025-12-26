@@ -71,7 +71,6 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
                   key={item.id}
                   onClick={() => onLoadSession(item.id)}
                   style={{
-              
                     padding: '10px 12px',
                     borderRadius: 8,
                     cursor: 'pointer',

@@ -1,7 +1,6 @@
 package FilerMode
 
 import (
-	"backend/utility"
 	"bytes"
 	"context"
 	"fmt"
@@ -33,7 +32,7 @@ func NewFilerClient(endpoint string) *FilerClient {
 
 // SeaweedFSUpload 上传文件
 func (c *FilerClient) SeaweedFSUpload(ctx context.Context, remotePath string, fileReader io.Reader) error {
-	utility.JWTMap(ctx)
+
 	log.Println("上传文件：", remotePath)
 
 	// 构造完整的上传 URL
@@ -84,7 +83,7 @@ func (c *FilerClient) SeaweedFSUpload(ctx context.Context, remotePath string, fi
 
 // SeaweedFSDownload 下载文件
 func (c *FilerClient) SeaweedFSDownload(ctx context.Context, remotePath string) (io.ReadCloser, error) {
-	utility.JWTMap(ctx)
+
 	fullUrl := c.BaseURL + "/" + strings.TrimLeft(remotePath, "/")
 
 	req, err := http.NewRequest("GET", fullUrl, nil)

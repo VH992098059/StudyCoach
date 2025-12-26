@@ -13,17 +13,21 @@ import {
   Radio,
   Empty,
   Spin,
-  Popconfirm
+  Popconfirm,
+  Drawer,
 } from 'antd';
 import {
   FolderOutlined,
   PlusOutlined,
   EditOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../services/knowledgeBase';
 import './index.scss';
+import Documents from './Documents';
+
 const { Title } = Typography;
 const { TextArea } = Input;
 
@@ -34,6 +38,10 @@ const KnowledgeBase: React.FC = () => {
   const [dialogVisible, setDialogVisible] = useState<boolean>(false);
   const [isEdit, setIsEdit] = useState<boolean>(false);
   const [form] = Form.useForm();
+
+  // 文档 Drawer 状态
+  const [documentsDrawerVisible, setDocumentsDrawerVisible] = useState(false);
+  const [selectedKbForDocuments, setSelectedKbForDocuments] = useState<string>('');
 
   // 表单数据
   const [kbForm, setKbForm] = useState<KnowledgeBase>({
@@ -117,6 +125,12 @@ const KnowledgeBase: React.FC = () => {
   const submitForm = async () => {
     try {
       const values = await form.validateFields();
+      
+      // 如果分类为空，默认为"无分类"
+      if (!values.category || !values.category.trim()) {
+        values.category = '无分类';
+      }
+
       setSubmitting(true);
 
       if (isEdit) {
@@ -155,6 +169,12 @@ const KnowledgeBase: React.FC = () => {
       console.error('删除失败:', error);
       message.error('删除失败');
     }
+  };
+
+  // 打开文档管理 Drawer
+  const openDocumentsDrawer = (record: KnowledgeBase) => {
+    setSelectedKbForDocuments(record.name);
+    setDocumentsDrawerVisible(true);
   };
 
   // 表格列配置
@@ -208,7 +228,15 @@ const KnowledgeBase: React.FC = () => {
           <Button
             size="small"
             type="primary"
-            ghost
+            icon={<FileTextOutlined />}
+            onClick={() => openDocumentsDrawer(record)}
+          >
+            文档
+          </Button>
+          <Button
+            size="small"
+            variant="solid"
+            color="cyan"
             icon={<EditOutlined />}
             onClick={() => showEditDialog(record)}
           >
@@ -223,9 +251,9 @@ const KnowledgeBase: React.FC = () => {
           >
             <Button
               size="small"
-              type="primary"
+              color="danger"
+              variant="solid"
               danger
-              ghost
               icon={<DeleteOutlined />}
             >
               删除
@@ -353,6 +381,20 @@ const KnowledgeBase: React.FC = () => {
           )}
         </Form>
       </Modal>
+
+      {/* 文档管理 Drawer */}
+      <Drawer
+        title={`知识库文档 - ${selectedKbForDocuments}`}
+        placement="right"
+        size={1000}
+        onClose={() => setDocumentsDrawerVisible(false)}
+        open={documentsDrawerVisible}
+        destroyOnHidden 
+      >
+        {selectedKbForDocuments && (
+          <Documents knowledgeBaseName={selectedKbForDocuments} />
+        )}
+      </Drawer>
     </div>
   );
 };

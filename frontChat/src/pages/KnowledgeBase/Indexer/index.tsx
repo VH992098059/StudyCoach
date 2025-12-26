@@ -34,8 +34,8 @@ import {
   PlusOutlined,
 } from '@ant-design/icons';
 import type { UploadProps, UploadFile } from 'antd';
-import ApiClient from '../../../utils/axios/index';
-import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../../services/knowledgeBase';
+import ApiClient from '@/utils/axios/index';
+import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '@/services/knowledgeBase';
 import './index.scss';
 
 
@@ -60,8 +60,6 @@ interface IndexResult {
   status: 'success' | 'error';
   fileName?: string;
 }
-
-
 
 /**
  * 文档索引页面组件

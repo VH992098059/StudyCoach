@@ -4,7 +4,6 @@
 
 .documents-container {
   padding: 24px;
-  height: calc(100vh - 64px);
   /* 减去header高度 */
   overflow-y: auto;
   /* 允许内容滚动 */
@@ -196,39 +195,110 @@
   .documents-container {
     padding: 12px;
   }
-
-  .card-header {
-    margin-bottom: 16px;
-  }
-
-  .header-title {
-    font-size: 16px;
-  }
-
-  /* 移动端按钮组合 */
-  .ant-space-compact {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
 }
 
-/* 加载状态 */
-.ant-spin-container {
-  position: relative;
+/**
+ * 知识块管理页面样式
+ */
 
+.chunks-container {
+  padding: 24px;
+  // height: calc(100vh - 64px);
+  /* 减去header高度 */
+  overflow-y: auto;
+  /* 允许内容滚动 */
+  box-sizing: border-box;
+  color: var(--ant-color-text);
 }
 
-.ant-table-placeholder {
-  padding: 40px 0;
+.chunks-container .ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* 工具提示样式 */
-.ant-tooltip {
-  font-size: 12px;
+.chunks-container .ant-table {
+  background: var(--ant-color-bg-container);
+  border-radius: 6px;
 }
 
-.ant-tooltip-inner {
-  background-color: rgba(0, 0, 0, 0.85);
+.chunks-container .ant-table-thead>tr>th {
+  background-color: var(--ant-color-fill-secondary);
+  font-weight: 600;
+  color: var(--ant-color-text);
+  border-bottom: 2px solid var(--ant-color-border);
+}
+
+.chunks-container .ant-table-tbody>tr:hover>td {
+  background-color: var(--ant-color-fill-tertiary);
+}
+
+.chunks-container .ant-tag {
   border-radius: 4px;
+  font-weight: 500;
+}
+
+.chunks-container .ant-btn {
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chunks-container .ant-btn-sm {
+  height: 28px;
+  padding: 0 8px;
+}
+
+.chunks-container .ant-select {
+  border-radius: 4px;
+}
+
+.chunks-container .ant-select-selector {
+  border-radius: 4px !important;
+}
+
+.chunks-container .ant-modal {
+  border-radius: 8px;
+}
+
+.chunks-container .ant-modal-header {
+  border-radius: 8px 8px 0 0;
+}
+
+.chunks-container .ant-modal-content {
+  border-radius: 8px;
+}
+
+.chunks-container .ant-input {
+  border-radius: 4px;
+}
+
+.chunks-container .ant-input:focus,
+.chunks-container .ant-input-focused {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.chunks-container .ant-switch {
+  border-radius: 10px;
+}
+
+.chunks-container .ant-empty {
+  margin: 40px 0;
+}
+
+.chunks-container .ant-empty-description {
+  color: var(--ant-color-text-secondary);
+}
+
+@media (max-width: 768px) {
+  .chunks-container {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .chunks-container {
+    padding: 12px;
+  }
 }

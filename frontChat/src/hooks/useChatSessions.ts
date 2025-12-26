@@ -17,7 +17,7 @@ export const useChatSessions = (): UseChatSessionsReturn => {
 
   // 生成唯一的消息ID
   const generateMsgId = useCallback((): string => {
-    return `msg_${Date.now()}_${Math.random().toString(36)}`;
+    return `${Date.now()}`;
   }, []);
 
   // 保存聊天记录到localStorage
