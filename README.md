@@ -1,14 +1,14 @@
-# StudyCoach - 基于大模型编排的智能教学辅助系统
+# StudyCoach - AI-Powered Intelligent Teaching Assistant System
 
 <div align="center">
 
 ![StudyCoach Logo](https://img.shields.io/badge/StudyCoach-AI%20Learning%20Assistant-blue?style=for-the-badge)
 
-StudyCoach 是一个深度融合 **RAG (检索增强生成)** 与 **Agentic Workflow (智能体工作流)** 的全栈 AI 教学辅助平台。
+StudyCoach is a full-stack AI teaching assistant platform that deeply integrates **RAG (Retrieval-Augmented Generation)** and **Agentic Workflow**.
 
-不同于传统的"问答式" ChatBot，StudyCoach 采用基于图的编排引擎 (Graph Orchestration)，能够精准识别用户意图，动态路由至**情感陪伴**、**任务辅导**、**知识检索**或**工具调用**等不同处理分支，为学习者提供沉浸式、多模态的智能化服务。
+Unlike traditional "Q&A" ChatBots, StudyCoach employs a graph-based orchestration engine (Graph Orchestration) to precisely identify user intent and dynamically route requests to different processing branches such as **Emotional Companionship**, **Task Tutoring**, **Knowledge Retrieval**, or **Tool Invocation**, providing learners with immersive, multimodal intelligent services.
 
-**中文** | [English](README_EN.md)
+**English Documentation** | [中文文档](README_ZH.md)
 
 [![Go](https://img.shields.io/badge/Go-1.24-00ADD8?style=flat-square&logo=go)](https://golang.org/)
 [![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=flat-square&logo=react)](https://reactjs.org/)
@@ -20,56 +20,53 @@ StudyCoach 是一个深度融合 **RAG (检索增强生成)** 与 **Agentic Work
 
 ---
 
-## 🌟 核心亮点
+## 🌟 Key Highlights
 
-### 🧠 智能体编排与多模态交互
+### 🧠 Agent Orchestration & Multimodal Interaction
+- **Graph Orchestration Engine**: Built on ByteDance's `CloudWeGo/Eino` framework, constructing complex Directed Acyclic Graph (DAG) business flows.
+- **Intent Recognition & Dynamic Routing**: Automatically analyzes user input (e.g., "feeling down" vs. "help me solve this problem") and intelligently dispatches to **Emotion** (Emotional Model) or **Task** (Task Model) branches.
+- **ReAct Reasoning Paradigm**: Implements the Reasoning + Acting pattern, enabling AI with a "Think-Act-Observe" closed loop to autonomously invoke web search or file generation tools.
+- **Full-Duplex Voice Interaction**: Frontend integrates **VAD (WebAssembly)** for millisecond-level voice activity detection, combined with backend SSE streaming to achieve a natural "interrupt-anytime" conversation experience.
 
-- **图编排引擎 (Graph Orchestration)**: 基于字节跳动 `CloudWeGo/Eino` 框架，构建了复杂的有向无环图 (DAG) 业务流。
-- **意图识别与动态路由**: 系统自动分析用户输入（"心情不好" vs "帮我解题"），智能分发至 **Emotion** (情感模型) 或 **Task** (任务模型) 分支。
-- **ReAct 推理范式**: 实现了 Reasoning + Acting 模式，AI 具备"思考-行动-观察"闭环能力，可自主调用联网搜索或文件生成工具。
-- **全双工语音交互**: 前端集成 **VAD (WebAssembly)** 实现毫秒级语音活动检测，配合后端 SSE 流式传输，达成"说话即打断"的自然对话体验。
+### 📚 Enterprise-Grade RAG Knowledge Engine
+- **Hybrid Retrieval Strategy**: Combines **Qdrant** (Vector Retrieval) and **Elasticsearch** (Full-Text Retrieval) to effectively solve low recall rates for specialized terminology.
+- **Full-Link ETL**: Built-in PDF/HTML/Word parsers (`Loader`) and intelligent splitters (`Splitter`) to automatically construct high-quality private knowledge bases.
 
-### 📚 企业级 RAG 知识引擎
-
-- **混合检索策略**: 结合 **Qdrant** (向量检索) 与 **Elasticsearch** (全文检索)，有效解决专业术语召回率低的问题。
-- **全链路 ETL**: 内置 PDF/HTML/Word 解析器 (`Loader`) 与智能切片器 (`Splitter`)，自动构建高质量私有知识库。
-
-### 🎨 沉浸式前端体验
-
-- **Ant Design X 集成**: 采用蚂蚁金服最新的 AI 组件库，提供专业的思维链 (Chain of Thought) 展示与流式气泡交互。
-- **多格式实时渲染**: 完美支持 **LaTeX 公式**、**Mermaid 流程图**、**代码高亮**及 **Markdown** 表格的实时流式渲染。
+### 🎨 Immersive Frontend Experience
+- **Ant Design X Integration**: Adopts Ant Financial's latest AI component library, providing professional Chain of Thought (CoT) display and streaming bubble interactions.
+- **Multi-Format Real-Time Rendering**: Perfectly supports real-time streaming rendering of **LaTeX formulas**, **Mermaid flowcharts**, **Code highlighting**, and **Markdown** tables.
 
 ---
 
-## 🏗️ 系统架构
+## 🏗️ System Architecture
 
 ```mermaid
 graph TD
-    Start(("Start")) --> AnalysisTemplate["意图分析模板"]
-    AnalysisTemplate --> AnalysisModel["意图识别模型"]
-  
-    AnalysisModel -->|"路由"| Branch{"分支决策"}
-  
-    %% 分支1: 情感陪伴
-    Branch -->|"情感"| EmotionLambda["情感参数注入"]
-    EmotionLambda --> EmotionTemplate["情感陪伴模板"]
-    EmotionTemplate --> EmotionModel["情感陪伴模型"]
+    Start(("Start")) --> AnalysisTemplate["Intent Analysis Template"]
+    AnalysisTemplate --> AnalysisModel["Intent Recognition Model"]
+    
+    AnalysisModel -->|"Route"| Branch{"Branch Decision"}
+    
+    %% Branch 1: Emotional Companionship
+    Branch -->|"Emotion"| EmotionLambda["Emotion Param Injection"]
+    EmotionLambda --> EmotionTemplate["Emotion Template"]
+    EmotionTemplate --> EmotionModel["Emotion Model"]
     EmotionModel --> End(("End"))
-  
-    %% 分支2 & 3: 任务辅导与知识学习 (ReAct)
-    Branch -->|"任务"| TaskLambda["任务参数注入"]
-    Branch -->|"学习"| StudyLambda["学习参数注入"]
-  
-    TaskLambda --> TaskTemplate["任务辅导模板"]
-    StudyLambda --> StudyTemplate["学习辅导模板"]
-  
-    TaskTemplate --> UnifiedReActAgent["ReAct 统一代理"]
+    
+    %% Branch 2 & 3: Task Tutoring & Knowledge Learning (ReAct)
+    Branch -->|"Task"| TaskLambda["Task Param Injection"]
+    Branch -->|"Study"| StudyLambda["Study Param Injection"]
+    
+    TaskLambda --> TaskTemplate["Task Tutoring Template"]
+    StudyLambda --> StudyTemplate["Study Tutoring Template"]
+    
+    TaskTemplate --> UnifiedReActAgent["Unified ReAct Agent"]
     StudyTemplate --> UnifiedReActAgent
-  
-    subgraph ReActLoop ["ReAct 循环"]
-        UnifiedReActAgent <-->|"工具调用"| Tools["联网搜索 / 文件生成 / 混合检索"]
+    
+    subgraph ReActLoop ["ReAct Loop"]
+        UnifiedReActAgent <-->|"Tool Invocation"| Tools["Web Search / File Gen / Hybrid Retrieval"]
     end
-  
+    
     UnifiedReActAgent --> End
 
     style Start fill:#f9f,stroke:#333,stroke-width:2px
@@ -78,128 +75,119 @@ graph TD
     style UnifiedReActAgent fill:#bfb,stroke:#333,stroke-width:2px
 ```
 
-## 🛠️ 技术栈
+## 🛠️ Tech Stack
 
-### 后端 (Backend)
+### Backend
+- **Language**: Go 1.24
+- **Framework**: GoFrame v2 (Web), CloudWeGo/Eino (AI Orchestration)
+- **Database**: MySQL 8.0+, Redis
+- **AI Infrastructure**: 
+  - **Vector DB**: Qdrant / Elasticsearch 8
+  - **Object Storage**: SeaweedFS
 
-- **语言**: Go 1.24
-- **框架**: GoFrame v2 (Web), CloudWeGo/Eino (AI Orchestration)
-- **数据库**: MySQL 8.0+, Redis
-- **AI 基础设施**:
-  - **向量库**: Qdrant / Elasticsearch 8
-  - **对象存储**: SeaweedFS
-
-### 前端 (Frontend)
-
-- **框架**: React 19, TypeScript, Vite
+### Frontend
+- **Framework**: React 19, TypeScript, Vite
 - **UI/UX**: Ant Design 6, **Ant Design X** (AI Components)
-- **AI 交互**:
-  - **VAD**: `@ricky0123/vad-web` (端侧语音检测)
-  - **Markdown**: `react-markdown`, `katex` (数学公式), `mermaid` (图表)
-- **状态管理**: Redux Toolkit, React Router
+- **AI Interaction**: 
+  - **VAD**: `@ricky0123/vad-web` (Client-side Voice Detection)
+  - **Markdown**: `react-markdown`, `katex` (Math Formulas), `mermaid` (Charts)
+- **State Management**: Redux Toolkit, React Router
 
 ---
 
-## 📁 项目结构概览
+## 📁 Project Structure Overview
 
 ```
 studyCoach/
-├── backend/                  # Go 后端服务
-│   ├── internal/controller/  # 业务控制层 (GoFrame)
-│   ├── studyCoach/           # AI 核心模块 (Eino)
-│   │   ├── aiModel/          # 模型与编排逻辑
-│   │   │   ├── CoachChat/    # 教学助手编排图
-│   │   │   ├── asr/          # 语音识别模块
-│   │   │   ├── indexer/      # RAG 索引构建器
-│   │   │   └── retriever/    # 混合检索器
-│   └── manifest/             # K8s/Docker 部署配置
+├── backend/                  # Go Backend Service
+│   ├── internal/controller/  # Business Control Layer (GoFrame)
+│   ├── studyCoach/           # AI Core Module (Eino)
+│   │   ├── aiModel/          # Model & Orchestration Logic
+│   │   │   ├── CoachChat/    # Teaching Assistant Orchestration Graph
+│   │   │   ├── asr/          # Speech Recognition Module
+│   │   │   ├── indexer/      # RAG Index Builder
+│   │   │   └── retriever/    # Hybrid Retriever
+│   └── manifest/             # K8s/Docker Deployment Config
 │
-├── frontChat/                # React 前端应用
-│   ├── src/pages/AiChat/     # AI 对话核心页面
-│   │   ├── components/       # 气泡、输入框等组件
+├── frontChat/                # React Frontend Application
+│   ├── src/pages/AiChat/     # AI Chat Core Page
+│   │   ├── components/       # Bubbles, Input Box Components
 │   │   └── hooks/            # useSSEChat, useVoiceService
-│   └── src/services/         # API 接口封装
+│   └── src/services/         # API Interface Encapsulation
 │
-└── docker-compose.yml        # 容器化环境配置
+└── docker-compose.yml        # Containerized Environment Config
 ```
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
-### 前置要求
-
+### Prerequisites
 - Go 1.24+
 - Node.js 20+
 - Bun 1.0+
 - Docker & Docker Compose
 
-### 部署语音识别服务 (SenseVoice)
+### Deploy Speech Recognition Service (SenseVoice)
 
-本项目语音识别 (ASR) 模块依赖 **SenseVoice** 模型。请访问 [SenseVoice 官方仓库](https://github.com/FunAudioLLM/SenseVoice) 获取详细的部署与配置指南。确保该服务已启动并可供后端调用。
+The Speech Recognition (ASR) module of this project depends on the **SenseVoice** model. Please visit the [official SenseVoice repository](https://github.com/FunAudioLLM/SenseVoice) for detailed deployment and configuration instructions. Ensure the service is running and accessible to the backend.
 
-安装后启用：
+Start after installation:
 
 ```bash
 python api.py
 ```
 
-### 1. 启动基础设施
-
+### 1. Start Infrastructure
 ```bash
 docker-compose up -d
-# 这将启动 MySQL, Redis, SeaweedFS, Qdrant, Elasticsearch
+# This will start MySQL, Redis, SeaweedFS, Qdrant, Elasticsearch
 ```
 
-### 2. 启动后端
-
+### 2. Start Backend
 ```bash
 cd backend
-# 复制并配置环境变量
+# Copy and configure environment variables
 cp .env.example .env
 go mod tidy
 go run main.go
 ```
 
-### 3. 启动前端
-
+### 3. Start Frontend
 ```bash
 cd frontChat
 bun install
 bun run dev
 ```
 
-访问 `http://localhost:5173` 即可开始体验。
+Visit `http://localhost:5173` to start experiencing.
 
 ---
 
-## 🔮 未来计划
+## 🔮 Future Plans
 
-### 📦 存储架构升级
+### 📦 Storage Architecture Upgrade
+- **SeaweedFS Migration**: Completed migration from MinIO to SeaweedFS (Filer Mode) to support more efficient small file storage and directory management.
 
-- **SeaweedFS 迁移**: 已完成从 MinIO 到 SeaweedFS (Filer Mode) 的迁移，以支持更高效的小文件存储与目录管理。
+### 🌐 MCP (Model Context Protocol) Ecosystem Integration
+We plan to fully integrate the **MCP Protocol** to achieve greater tool interoperability:
+- **Standardized Tool Interfaces**: Migrate existing DuckDuckGo search and file generation tools to standard MCP Servers.
+- **Cross-Application Context**: Allow AI Agents to securely access local development environments, databases, or third-party APIs, not limited to simple web searches.
+- **Plugin Extensions**: Developers can easily add new capabilities (such as code execution, calendar management, etc.) to StudyCoach by writing MCP Servers without modifying the core code.
 
-### 🌐 MCP (Model Context Protocol) 生态集成
+### ⏰ Cron Job System (In Progress)
 
-我们计划全面接入 **MCP 协议**，以实现更强大的工具互操作性：
-
-- **标准化工具接口**: 将现有的 DuckDuckGo 搜索和文件生成工具迁移至标准 MCP Server。
-- **跨应用上下文**: 允许 AI Agent 安全地访问本地开发环境、数据库或第三方 API，不仅限于简单的 Web 搜索。
-- **插件化扩展**: 开发者可以通过编写 MCP Server 轻松为 StudyCoach 增加新的能力（如代码执行、日历管理等），无需修改核心代码。
-
-### ⏰ 定时任务系统 (Cron) (进行中)
-
-正在开发分布式定时任务调度与执行模块 (`backend/internal/controller/cron` & `cron_execute`)，旨在提供灵活的任务编排、状态追踪及后台作业处理能力。
+Developing a distributed cron job scheduling and execution module (`backend/internal/controller/cron` & `cron_execute`) to provide flexible task orchestration, status tracking, and background job processing capabilities.
 
 ---
 
-## 🙏 致谢 (Acknowledgements)
+## 🙏 Acknowledgements
 
-本项目在 RAG (检索增强生成) 模块的实现过程中，深入参考并使用了以下开源项目的优秀设计：
+During the implementation of the RAG (Retrieval-Augmented Generation) module, this project deeply referenced and partially utilized the excellent design of the following open-source project:
 
-* **[wangle201210/go-rag](https://github.com/wangle201210/go-rag)**: 感谢该项目在 Go 语言环境下 RAG 链路构建提供的宝贵思路与实现参考。
-* **[wangle201210/chat-history](https://github.com/wangle201210/chat-history)**: 感谢该项目为 Eino 框架提供了便捷的聊天历史记录管理功能。
+*   **[wangle201210/go-rag](https://github.com/wangle201210/go-rag)**: Thanks to this project for providing valuable ideas and implementation references for building RAG links in the Go language environment.
+*   **[wangle201210/chat-history](https://github.com/wangle201210/chat-history)**: Thanks to this project for providing convenient chat history management capabilities for the Eino framework.
 
 ---
 
-## 📄 许可证
+## 📄 License
 
 [MIT License](LICENSE)

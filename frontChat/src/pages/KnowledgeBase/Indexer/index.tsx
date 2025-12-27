@@ -3,7 +3,7 @@
  * @description 用于上传和索引文档到知识库的页面
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Upload,
@@ -12,9 +12,6 @@ import {
   Descriptions,
   Tag,
   Divider,
-  InputNumber,
-  Row,
-  Col,
   Select,
   message,
   Space,
@@ -22,7 +19,6 @@ import {
   Input,
   Form,
   Empty,
-  Spin,
 } from 'antd';
 import {
   UploadOutlined,
