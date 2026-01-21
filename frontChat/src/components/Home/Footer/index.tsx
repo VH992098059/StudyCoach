@@ -15,6 +15,7 @@ import {
   WechatOutlined,
   QqOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import './index.scss';
 
 const { Footer: AntFooter } = Layout;
@@ -99,22 +100,27 @@ interface FooterProps {
  * ```
  */
 const Footer: React.FC<FooterProps> = ({
-  copyright = `© ${new Date().getFullYear()} AI学习助手. All rights reserved.`,
-  companyName = 'AI学习助手',
+  copyright,
+  companyName,
   links = [],
   contactInfo,
   socialLinks = [],
   customContent,
 })=> {
+  const { t } = useTranslation();
+  
+  const finalCopyright = copyright || t('footer.copyright', { year: new Date().getFullYear() });
+  const finalCompanyName = companyName || t('footer.companyName');
+
   /**
    * 默认友情链接配置
    * @description 当没有传入自定义链接时使用的默认链接
    */
   const defaultLinks: LinkItem[] = [
-    { title: '关于我们', url: '/about' },
-    { title: '服务条款', url: '/terms' },
-    { title: '隐私政策', url: '/privacy' },
-    { title: '帮助中心', url: '/help' },
+    { title: t('footer.links.about'), url: '/about' },
+    { title: t('footer.links.terms'), url: '/terms' },
+    { title: t('footer.links.privacy'), url: '/privacy' },
+    { title: t('footer.links.help'), url: '/help' },
   ];
 
   /**
@@ -167,10 +173,9 @@ const Footer: React.FC<FooterProps> = ({
           {/* 公司信息 */}
           <Col xs={24} sm={12} md={6}>
             <div className="footer-section">
-              <h4 className="footer-title">{companyName}</h4>
+              <h4 className="footer-title">{finalCompanyName}</h4>
               <p className="footer-description">
-                致力于提供优质的Web应用模板，
-                帮助开发者快速构建现代化的用户界面。
+                {t('footer.description')}
               </p>
             </div>
           </Col>
@@ -178,7 +183,7 @@ const Footer: React.FC<FooterProps> = ({
           {/* 友情链接 */}
           <Col xs={24} sm={12} md={6}>
             <div className="footer-section">
-              <h4 className="footer-title">快速链接</h4>
+              <h4 className="footer-title">{t('footer.quickLinks')}</h4>
               <ul className="footer-links">
                 {finalLinks.map((link, index) => (
                   <li key={index}>
@@ -202,7 +207,7 @@ const Footer: React.FC<FooterProps> = ({
           {contactInfo && (
             <Col xs={24} sm={12} md={6}>
               <div className="footer-section">
-                <h4 className="footer-title">联系我们</h4>
+                <h4 className="footer-title">{t('footer.contact')}</h4>
                 <div className="footer-contact">
                   {contactInfo.email && (
                     <div className="contact-item">
@@ -264,7 +269,7 @@ const Footer: React.FC<FooterProps> = ({
         {/* 版权信息 */}
         <Divider className="footer-divider" />
         <div className="footer-copyright">
-          <p>{copyright}</p>
+          <p>{finalCopyright}</p>
         </div>
       </div>
     </AntFooter>

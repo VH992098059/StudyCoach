@@ -8,6 +8,7 @@
 import React, { Suspense } from 'react';
 import { Layout as AntLayout, Spin, Alert, Button } from 'antd';
 import { ErrorBoundary } from 'react-error-boundary';
+import { useTranslation } from 'react-i18next';
 import './index.scss';
 
 const { Content } = AntLayout;
@@ -46,16 +47,17 @@ const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> 
   error,
   resetErrorBoundary,
 })=> {
+  const { t } = useTranslation();
   return (
     <div className="auth-error-boundary">
       <Alert
-        message="页面出现错误"
+        message={t('common.pageError')}
         description={error.message}
         type="error"
         showIcon
         action={
           <button onClick={resetErrorBoundary} className="auth-error-retry-btn">
-            重试
+            {t('common.retry')}
           </button>
         }
       />
@@ -68,9 +70,10 @@ const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> 
  * @description 在认证页面加载过程中显示的loading界面
  */
 const LoadingFallback: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="auth-loading-container">
-      <Spin size="large" tip="加载中..." />
+      <Spin size="large" tip={t('common.loading')} />
     </div>
   );
 };
@@ -99,8 +102,11 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
   backgroundImage,
   showLogo = true,
   logoUrl,
-  logoText = 'AI学习助手',
+  logoText,
 })=> {
+  const { t } = useTranslation();
+  const finalLogoText = logoText || t('common.appTitle');
+
   const layoutStyle: React.CSSProperties = {
     minHeight: '100vh',
     backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
@@ -121,7 +127,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
             {showLogo && (
               <div className="auth-logo">
                 {logoUrl && <img src={logoUrl} alt="logo" className="auth-logo-image" />}
-                <h1 className="auth-logo-text">{logoText}</h1>
+                <h1 className="auth-logo-text">{finalLogoText}</h1>
               </div>
             )}
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Drawer, List, Button, Modal } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { ChatSession } from '@/types/chat';
 
 export interface SidebarDrawerProps {
@@ -14,6 +15,7 @@ export interface SidebarDrawerProps {
 }
 
 const SidebarDrawer: React.FC<SidebarDrawerProps> = (props: SidebarDrawerProps) => {
+  const { t } = useTranslation();
   const {
     open,
     onClose,
@@ -26,7 +28,7 @@ const SidebarDrawer: React.FC<SidebarDrawerProps> = (props: SidebarDrawerProps) 
 
   return (
     <Drawer
-      title="会话列表"
+      title={t('chat.sidebar.title')}
       placement="left"
       closable
       onClose={onClose}
@@ -40,7 +42,7 @@ const SidebarDrawer: React.FC<SidebarDrawerProps> = (props: SidebarDrawerProps) 
         style={{ marginBottom: 12 }}
         onClick={onCreateSession}
       >
-        新建会话
+        {t('chat.sidebar.newSession')}
       </Button>
 
       <List
@@ -56,7 +58,7 @@ const SidebarDrawer: React.FC<SidebarDrawerProps> = (props: SidebarDrawerProps) 
             <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <List.Item.Meta
                 style={{ minWidth: 0 }}
-                title={<div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title || '未命名会话'}</div>}
+                title={<div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title || t('chat.sidebar.unnamedSession')}</div>}
                 description={
                   item.updatedAt ? new Date(item.updatedAt).toLocaleString() : undefined
                 }
@@ -69,16 +71,16 @@ const SidebarDrawer: React.FC<SidebarDrawerProps> = (props: SidebarDrawerProps) 
                 onClick={(e) => {
                   e.stopPropagation();
                   Modal.confirm({
-                    title: '删除该会话？',
+                    title: t('chat.sidebar.confirmDeleteTitle'),
                     content: (
                       <div style={{ color: '#666' }}>
-                        <div>会话标题：{item.title || '未命名会话'}</div>
-                        <div style={{ marginTop: 8 }}>删除后不可恢复。</div>
+                        <div>{t('chat.sidebar.sessionTitle')}{item.title || t('chat.sidebar.unnamedSession')}</div>
+                        <div style={{ marginTop: 8 }}>{t('chat.sidebar.deleteWarning')}</div>
                       </div>
                     ),
-                    okText: '删除',
+                    okText: t('chat.sidebar.confirm'),
                     okButtonProps: { danger: true },
-                    cancelText: '取消',
+                    cancelText: t('chat.sidebar.cancel'),
                     centered: true,
                     zIndex: 2100,
                     getContainer: () => document.body,
@@ -88,7 +90,7 @@ const SidebarDrawer: React.FC<SidebarDrawerProps> = (props: SidebarDrawerProps) 
                   });
                 }}
                 style={{ flexShrink: 0 }}
-              >删除</Button>
+              >{t('chat.sidebar.delete')}</Button>
             </div>
           </List.Item>
         )}

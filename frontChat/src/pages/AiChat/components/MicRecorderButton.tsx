@@ -10,6 +10,7 @@ import { MicVAD } from '@ricky0123/vad-web';
 import ApiClient from '@/utils/axios';
 import { blobToDataURI } from '@/services/asr';
 import VoiceCallOverlay, { type CallStatus } from './VoiceCallOverlay';
+import { useTranslation } from 'react-i18next';
 
 interface MicRecorderButtonProps {
   onTranscript?: (text: string) => void;
@@ -37,7 +38,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
   const [durationSec, setDurationSec] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const durationTimerRef = useRef<number | null>(null);
-
+  const { t } = useTranslation();
   const vadRef = useRef<any>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
@@ -152,13 +153,13 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
             if (!audioRef.current) audioRef.current = new Audio();
             audioRef.current.src = url;
             await audioRef.current.play();
-            message.success('AI 语音已播放');
+            message.success(t('chat.voice.played'));
           } catch (err: any) {
             if (err?.name === 'AbortError') {
               // 请求已被取消
             } else {
               console.error(err);
-              message.error(err?.message || '上传或播放失败');
+              message.error(err?.message || t('chat.voice.failed'));
             }
           } finally {
             setWorking(false);
@@ -177,10 +178,10 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
       vadRef.current = vad;
       await vad.start();
       setOverlayVisible(true);
-      message.info('麦克风已打开，开始说话吧');
+      message.info(t('chat.voice.micStarted'));
     } catch (err: any) {
       console.error(err);
-      message.error('无法访问麦克风或初始化 VAD，请检查权限和资源路径');
+      message.error(t('chat.voice.micError'));
     }
   };
 
@@ -202,7 +203,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     setHasStarted(true);
     setOverlayVisible(false);
     if (durationTimerRef.current) { window.clearInterval(durationTimerRef.current); durationTimerRef.current = null; }
-    message.info('通话已结束');
+    message.info(t('chat.voice.ended'));
   };
 
   // 中断当前处理/播放并重新开始录音
@@ -239,7 +240,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
 
   return (
     <>
-      <Tooltip title={recording ? '停止录音' : '开始语音通话'}>
+      <Tooltip title={recording ? t('chat.voice.stopRecord') : t('chat.voice.startCall')}>
         <Button
           icon={icon}
           onClick={() => {

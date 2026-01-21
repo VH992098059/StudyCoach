@@ -4,6 +4,7 @@ import { FileTextOutlined, DeleteOutlined, AppstoreOutlined } from '@ant-design/
 import type { ColumnsType } from 'antd/es/table';
 import type { TableRowSelection } from 'antd/es/table/interface';
 import { type DocumentData, DocumentStatus, DocumentsService } from '@/services/documents';
+import { useTranslation } from 'react-i18next';
 
 interface DocumentTableProps {
   loading: boolean;
@@ -24,9 +25,11 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
   onDelete,
   formatDate,
 }) => {
+  const { t } = useTranslation();
+
   const columns: ColumnsType<DocumentData> = [
     {
-      title: '文件名',
+      title: t('kb.documents.fileName'),
       dataIndex: 'fileName',
       key: 'fileName',
       ellipsis: true,
@@ -40,18 +43,18 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
       ),
     },
     {
-      title: '状态',
+      title: t('kb.documents.status'),
       dataIndex: 'status',
       key: 'status',
       width: 100,
       render: (status: DocumentStatus) => (
         <Tag color={DocumentsService.getStatusType(status)}>
-          {DocumentsService.getStatusText(status)}
+          {t(DocumentsService.getStatusTextKey(status))}
         </Tag>
       ),
     },
     {
-      title: '知识库',
+      title: t('kb.documents.knowledgeBase'),
       dataIndex: 'knowledgeBaseName',
       key: 'knowledgeBaseName',
       width: 150,
@@ -60,36 +63,36 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
       ),
     },
     {
-      title: '创建时间',
+      title: t('common.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 180,
       render: (createdAt: string) => formatDate(createdAt),
     },
     {
-      title: '更新时间',
+      title: t('common.updatedAt'),
       dataIndex: 'updatedAt',
       key: 'updatedAt',
       width: 180,
       render: (updatedAt: string) => formatDate(updatedAt),
     },
     {
-      title: '操作',
+      title: t('common.actions'),
       key: 'action',
       width: 150,
       render: (_, record) => (
         <Space>
-          <Tooltip title="查看知识块">
+          <Tooltip title={t('kb.documents.viewChunks')}>
             <Button
               type="primary"
               size="small"
               icon={<AppstoreOutlined />}
               onClick={() => onViewChunks(record)}
             >
-              知识块
+              {t('kb.documents.chunks')}
             </Button>
           </Tooltip>
-          <Tooltip title="删除文档">
+          <Tooltip title={t('kb.documents.deleteDocument')}>
             <Button
               size="small"
               color="danger"

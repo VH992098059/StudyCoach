@@ -10,6 +10,7 @@ import MicRecorderButton from './MicRecorderButton';
 import FileUpload from './FileUpload';
 import type { UploadedFile } from '@/types/chat';
 import { useBreakpoints } from '@/hooks/useMediaQuery';
+import { useTranslation } from 'react-i18next';
 
 
 interface InputAreaProps {
@@ -47,7 +48,7 @@ const InputArea: React.FC<InputAreaProps> = ({
 }) => {
   const { token } = theme.useToken();
   const { isMobile } = useBreakpoints();
-
+  const { t } = useTranslation();
   const iconStyle = {
     fontSize: 18,
     color: token.colorText,
@@ -62,7 +63,7 @@ const InputArea: React.FC<InputAreaProps> = ({
       <Sender
         value={inputValue}
         onChange={(val) => onInputChange(val)}
-        placeholder={"输入你的消息..."}
+        placeholder={t('chat.input.placeholder')}
         autoSize={{ minRows: 2, maxRows: 6 }}
         loading={loading}
         submitType={'enter'}
@@ -90,13 +91,13 @@ const InputArea: React.FC<InputAreaProps> = ({
                   <Divider orientation="vertical" style={{ margin: '0 4px' }} />
                   
                   {/* 深度思考 / 学习模式 */}
-                  {!isMobile && <span style={{ fontSize: 12, color: token.colorTextSecondary }}>学习模式</span>}
+                  {!isMobile && <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{t('chat.input.studyMode')}</span>}
                   <Switch
                     size="small"
                     checked={isStudyMode}
                     onChange={() => onToggleStudyMode()}
-                    checkedChildren={isMobile ? "学" : undefined}
-                    unCheckedChildren={isMobile ? "学" : undefined}
+                    checkedChildren={isMobile ? t('chat.input.studyModeShort') : undefined}
+                    unCheckedChildren={isMobile ? t('chat.input.studyModeShort') : undefined}
                   />
                   
                   <Divider orientation="vertical" style={{ margin: '0 4px' }} />
@@ -113,7 +114,7 @@ const InputArea: React.FC<InputAreaProps> = ({
                         padding: isMobile ? '0 4px' : undefined
                     }}
                   >
-                    {isMobile ? (isNetworkEnabled ? '联网' : '') : (isNetworkEnabled ? '联网开启' : '联网搜索')}
+                    {isMobile ? (isNetworkEnabled ? t('chat.input.network') : '') : (isNetworkEnabled ? t('chat.input.networkEnabled') : t('chat.input.networkSearch'))}
                   </Button>
                 </Flex>
                 

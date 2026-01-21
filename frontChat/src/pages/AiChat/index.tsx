@@ -8,6 +8,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Alert, message, Empty } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useBreakpoints } from '@/hooks/useMediaQuery';
 import { useChatSessions } from '@/hooks/useChatSessions';
 // import './scrollbar.scss';
@@ -22,6 +23,7 @@ import InputArea from './components/InputArea';
 
 
 const AIChat: React.FC = () => {
+  const { t } = useTranslation();
   // 使用聊天会话管理Hook
   const {
     currentSessionId,
@@ -156,23 +158,34 @@ const AIChat: React.FC = () => {
 
   /**
    * 切换联网状态
+   * @description 切换联网搜索功能的开启/关闭
    */
   const handleToggleNetwork = () => {
     setIsNetworkEnabled(prev => !prev);
+    // 移除 message 提示，避免与 UI 状态切换冲突或冗余
+    // message.success(isNetworkEnabled ? t('chat.networkDisabled') : t('chat.networkEnabled'));
   };
+
+  /**
+   * 切换深度学习模式
+   * @description 切换深度学习模式的开启/关闭
+   */
   const handleToggleStudyMode = () => {
     setIsStudyMode(prev => !prev);
+    // 移除 message 提示
+    // message.success(isStudyMode ? t('chat.studyModeDisabled') : t('chat.studyModeEnabled'));
   };
+
   /**
    * 复制文档内容到剪贴板
    */
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      message.success('已复制到剪贴板');
+      message.success(t('chat.copySuccess'));
     } catch (error) {
       console.error('复制失败:', error);
-      message.error('复制失败');
+      message.error(t('chat.copyFailed'));
     }
   };
 
@@ -278,8 +291,8 @@ const AIChat: React.FC = () => {
               border: '1px solid #f0f0f0',
               height: '85vh'
             }}>
-              <Empty description="暂无会话，请创建新对话" image={Empty.PRESENTED_IMAGE_SIMPLE}>
-                <Button type="primary" onClick={createNewSession}>新建会话</Button>
+              <Empty description={t('chat.noSession')} image={Empty.PRESENTED_IMAGE_SIMPLE}>
+                <Button type="primary" onClick={createNewSession}>{t('chat.newSession')}</Button>
               </Empty>
             </div>
           )}

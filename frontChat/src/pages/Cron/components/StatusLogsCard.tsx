@@ -1,6 +1,7 @@
 import React from 'react';
-import { Card, Space, Badge, Statistic, Tag, Collapse, List, Button } from 'antd';
+import { Card, Space, Badge, Tag, List, Button } from 'antd';
 import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 
 type Mode = 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
 
@@ -23,26 +24,15 @@ interface StatusLogsCardProps {
   mode?: Mode;
 }
 
-const statusBadge = (status: 'idle' | 'running' | 'success' | 'failed') => {
-  switch (status) {
-    case 'running':
-      return <Badge status="processing" text="进行中" />;
-    case 'success':
-      return <Badge status="success" text="成功" />;
-    case 'failed':
-      return <Badge status="error" text="失败" />;
-    default:
-      return <Badge status="default" text="空闲" />;
-  }
-};
-
 const StatusLogsCard: React.FC<StatusLogsCardProps> = ({ status, enabled, paused, lastRun, nextRun, logs, onShowDetail, mode }) => {
+  const { t } = useTranslation();
+
   return (
     <Card 
-      title="执行日志" 
+      title={t('cron.logs.title')} 
       className="section-card"
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-      bodyStyle={{ flex: 1, overflowY: 'auto', padding: 0 }}
+      styles={{ body: { flex: 1, overflowY: 'auto', padding: 0 } }}
     >
       <List
         itemLayout="horizontal"
@@ -52,7 +42,7 @@ const StatusLogsCard: React.FC<StatusLogsCardProps> = ({ status, enabled, paused
           <List.Item
             actions={[
               item.status === 'failed' ? (
-                <Button type="link" onClick={() => onShowDetail(item.detail)}>错误详情</Button>
+                <Button type="link" onClick={() => onShowDetail(item.detail)}>{t('cron.logs.details')}</Button>
               ) : null,
             ]}
           >
@@ -60,14 +50,14 @@ const StatusLogsCard: React.FC<StatusLogsCardProps> = ({ status, enabled, paused
               title={
                 <Space>
                   <span>{dayjs(item.time).format('YYYY-MM-DD HH:mm:ss')}</span>
-                  {item.status === 'running' && <Badge status="processing" text="进行中" />}
-                  {item.status === 'success' && <Badge status="success" text="成功" />}
-                  {item.status === 'failed' && <Badge status="error" text="失败" />}
+                  {item.status === 'running' && <Badge status="processing" text={t('cron.status.running')} />}
+                  {item.status === 'success' && <Badge status="success" text={t('cron.status.success')} />}
+                  {item.status === 'failed' && <Badge status="error" text={t('cron.status.failed')} />}
                 </Space>
               }
               description={item.detail || '—'}
             />
-            {item.durationMs ? <Tag color="blue">耗时 {Math.round(item.durationMs)} ms</Tag> : null}
+            {item.durationMs ? <Tag color="blue">{t('cron.logs.duration')} {Math.round(item.durationMs)} ms</Tag> : null}
           </List.Item>
         )}
       />

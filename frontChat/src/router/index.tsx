@@ -10,6 +10,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import Layout from '../components/Home/Layout';
 import type { MenuProps } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 /**
  * 懒加载页面组件
@@ -94,6 +95,7 @@ interface LayoutWrapperProps {
  * @param {LayoutWrapperProps} props - 组件属性
  */
 const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
+  const { t } = useTranslation();
   /**
    * 导航菜单项配置
    * @description 定义头部导航菜单的结构和内容
@@ -101,23 +103,23 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
   const menuItems: MenuProps['items'] = [
     {
       key: 'aichat',
-      label: 'AI聊天',
+      label: t('menu.aiChat'),
     },
     {
       key: 'knowledgebase',
-      label: '知识库管理',
+      label: t('menu.knowledgeBase'),
     },
     {
       key:'cronpage',
-      label:'定时管理'
+      label: t('menu.cron'),
     },
     {
       key: 'indexer',
-      label: '索引管理',
+      label: t('menu.indexer'),
     },
     {
       key: 'retriever',
-      label: '文档检索',
+      label: t('menu.retriever'),
     }
   ];
 
@@ -213,7 +215,7 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
   return (
     <Layout
       headerProps={{
-        title: 'AI学习助手',
+        title: t('common.appTitle'),
         menuItems,
         user,
         onLogin: handleLogin,
@@ -221,11 +223,11 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
         onMenuClick: handleMenuClick,
       }}
       footerProps={{
-        companyName: 'AI学习助手',
+        companyName: t('footer.companyName'),
         contactInfo: {
           email: 'contact@example.com',
           phone: '+86 123-4567-8900',
-          address: '北京市朝阳区示例大厦',
+          address: t('footer.address'),
         },
         socialLinks: [
           {

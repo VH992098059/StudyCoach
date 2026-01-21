@@ -30,6 +30,7 @@ import {
   PlusOutlined,
 } from '@ant-design/icons';
 import type { UploadProps, UploadFile } from 'antd';
+import { useTranslation } from 'react-i18next';
 import ApiClient from '@/utils/axios/index';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '@/services/knowledgeBase';
 import './index.scss';
@@ -61,6 +62,7 @@ interface IndexResult {
  * 文档索引页面组件
  */
 const Indexer: React.FC = () => {
+  const { t } = useTranslation();
   const [processingInfo, setProcessingInfo] = useState<ProcessingInfo | null>(null);
   const [indexResult, setIndexResult] = useState<IndexResult | null>(null);
   const [selectedKnowledge, setSelectedKnowledge] = useState<string>('');
@@ -88,7 +90,7 @@ const Indexer: React.FC = () => {
       }
     } catch (error) {
       console.error('获取知识库列表失败:', error);
-      message.error('获取知识库列表失败');
+      message.error(t('kb.error.fetch'));
     } finally {
       setKnowledgeLoading(false);
     }
@@ -119,22 +121,22 @@ const Indexer: React.FC = () => {
                      file.name.endsWith('.html');
 
     if (!isAllowed) {
-      message.error('只支持 Markdown、HTML、文本文件、PDF 和 Word 文档!');
+      message.error(t('indexer.validation.fileType'));
       return false;
     }
 
     // 检查文件大小 (10MB)
     const isLt10M = file.size / 1024 / 1024 < 10;
     if (!isLt10M) {
-      message.error('文件大小不能超过 10MB!');
+      message.error(t('indexer.validation.fileSize'));
       return false;
     }
 
     // 显示处理中信息
     setProcessingInfo({
-      title: '文档处理中',
+      title: t('indexer.processInfo.processing'),
       type: 'info',
-      description: `正在处理文件: ${file.name}，请稍候...`,
+      description: t('indexer.processInfo.processingDesc', { fileName: file.name }),
     });
 
     return false; // 阻止自动上传，手动控制
@@ -152,17 +154,17 @@ const Indexer: React.FC = () => {
    */
   const handleUpload = async () => {
     if (fileList.length === 0) {
-      message.warning('请先选择要上传的文件');
+      message.warning(t('indexer.validation.selectFile'));
       return;
     }
 
     if (!selectedKnowledge) {
-      message.warning('请先选择知识库');
+      message.warning(t('indexer.validation.selectKb'));
       return;
     }
 
     if (knowledgeList.length === 0) {
-      message.warning('暂无可用知识库，请先创建知识库');
+      message.warning(t('indexer.validation.noKb'));
       return;
     }
 
@@ -176,9 +178,9 @@ const Indexer: React.FC = () => {
       const result = await ApiClient.post('/gateway/v1/indexer', formData);
 
       setProcessingInfo({
-        title: '文档处理完成',
+        title: t('indexer.processInfo.success'),
         type: 'success',
-        description: '文档已成功索引到系统中'
+        description: t('indexer.processInfo.successDesc')
       });
 
       setIndexResult({
@@ -187,23 +189,23 @@ const Indexer: React.FC = () => {
         fileName: fileList[0]?.name
       });
 
-      message.success('文档索引成功!');
+      message.success(t('indexer.validation.indexSuccess'));
       setFileList([]);
       
     } catch (error) {
       console.error('Upload error details:', error);
       
-      let errorMessage = '文档索引过程中发生错误，请重试';
+      let errorMessage = t('indexer.validation.indexError');
       if (error && typeof error === 'object') {
         if ('message' in error) {
-          errorMessage = `错误信息: ${error.message}`;
+          errorMessage = `${t('common.error')}: ${(error as any).message}`;
         } else if ('code' in error) {
-          errorMessage = `错误代码: ${error.code}`;
+          errorMessage = `${t('common.error')}: ${(error as any).code}`;
         }
       }
       
       setProcessingInfo({
-        title: '文档处理失败',
+        title: t('indexer.processInfo.fail'),
         type: 'error',
         description: errorMessage,
       });
@@ -231,17 +233,17 @@ const Indexer: React.FC = () => {
     }
 
     if (!urlValue.trim()) {
-      message.warning('请输入有效的URL地址');
+      message.warning(t('indexer.validation.invalidUrl'));
       return;
     }
 
     if (!selectedKnowledge) {
-      message.warning('请先选择知识库');
+      message.warning(t('indexer.validation.selectKb'));
       return;
     }
 
     if (knowledgeList.length === 0) {
-      message.warning('暂无可用知识库，请先创建知识库');
+      message.warning(t('indexer.validation.noKb'));
       return;
     }
 
@@ -254,9 +256,9 @@ const Indexer: React.FC = () => {
 
       const result = await ApiClient.post('/gateway/v1/indexer', formData);
       setProcessingInfo({
-        title: 'URL处理完成',
+        title: t('indexer.processInfo.urlProcessing'),
         type: 'success',
-        description: 'URL内容已成功索引到系统中'
+        description: t('indexer.processInfo.urlSuccessDesc')
       });
 
       setIndexResult({
@@ -266,24 +268,24 @@ const Indexer: React.FC = () => {
       });
       
       
-      message.success('URL索引成功!');
+      message.success(t('indexer.validation.urlSuccess'));
       setUrlValue('');
       urlForm.resetFields();
       
     } catch (error) {
       console.error('URL index error details:', error);
       
-      let errorMessage = 'URL索引过程中发生错误，请重试';
+      let errorMessage = t('indexer.validation.urlError');
       if (error && typeof error === 'object') {
         if ('message' in error) {
-          errorMessage = `错误信息: ${error.message}`;
+          errorMessage = `${t('common.error')}: ${(error as any).message}`;
         } else if ('code' in error) {
-          errorMessage = `错误代码: ${error.code}`;
+          errorMessage = `${t('common.error')}: ${(error as any).code}`;
         }
       }
       
       setProcessingInfo({
-        title: 'URL处理失败',
+        title: t('indexer.processInfo.urlFail'),
         type: 'error',
         description: errorMessage,
       });
@@ -294,7 +296,7 @@ const Indexer: React.FC = () => {
         fileName: urlValue
       });
 
-      message.error(`URL索引失败: ${errorMessage}`);
+      message.error(`${t('indexer.validation.urlError')}${errorMessage}`);
       console.error('URL index error:', error);
     } finally {
       setUploading(false);
@@ -306,16 +308,16 @@ const Indexer: React.FC = () => {
    */
   const validateUrl = (_: any, value: string) => {
     if (!value) {
-      return Promise.reject(new Error('请输入URL地址'));
+      return Promise.reject(new Error(t('indexer.validation.enterUrl')));
     }
     try {
       const u = new URL(value.trim());
       if (!['http:', 'https:'].includes(u.protocol)) {
-        return Promise.reject(new Error('只支持 http/https 协议'));
+        return Promise.reject(new Error(t('indexer.validation.urlProtocol')));
       }
       return Promise.resolve();
     } catch {
-      return Promise.reject(new Error('请输入有效的URL地址'));
+      return Promise.reject(new Error(t('indexer.validation.invalidUrl')));
     }
   };
 
@@ -335,16 +337,16 @@ const Indexer: React.FC = () => {
         <div className="card-header">
           <Space>
             <UploadOutlined className="header-icon" />
-            <span className="header-title">文档索引</span>
+            <span className="header-title">{t('indexer.title')}</span>
           </Space>
           <div className="header-actions">
             <Space>
-              <span>选择知识库:</span>
+              <span>{t('indexer.selectKb')}:</span>
               <Select
                 value={selectedKnowledge}
                 onChange={setSelectedKnowledge}
                 style={{ width: 200 }}
-                placeholder={knowledgeLoading ? "加载中..." : "请选择知识库"}
+                placeholder={knowledgeLoading ? t('common.loading') : t('indexer.selectKbPlaceholder')}
                 loading={knowledgeLoading}
                 disabled={knowledgeList.length === 0}
                 notFoundContent={
@@ -353,18 +355,18 @@ const Indexer: React.FC = () => {
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
                       description={
                         <span>
-                          暂无可用知识库<br/>
+                          {t('indexer.noKb')}<br/>
                           <Button 
                             type="link" 
                             size="small" 
                             icon={<PlusOutlined />}
                             onClick={() => {
-                              message.info('请先到知识库管理页面创建知识库');
+                              message.info(t('indexer.createKbTip'));
                               // 可以在这里添加路由跳转逻辑
                               // navigate('/knowledge-base');
                             }}
                           >
-                            创建知识库
+                            {t('indexer.createKb')}
                           </Button>
                         </span>
                       }
@@ -386,21 +388,21 @@ const Indexer: React.FC = () => {
 
         {knowledgeList.length === 0 && !knowledgeLoading && (
           <Alert
-            message="暂无可用知识库"
+            message={t('indexer.noKb')}
             description={
               <span>
-                请先到知识库管理页面创建知识库，然后再进行文档索引。
+                {t('indexer.createKbTip')}
                 <Button 
                   type="link" 
                   size="small" 
                   icon={<PlusOutlined />}
                   onClick={() => {
-                    message.info('请先到知识库管理页面创建知识库');
+                    message.info(t('indexer.createKbTip'));
                     // 可以在这里添加路由跳转逻辑
                     // navigate('/knowledge-base');
                   }}
                 >
-                  前往创建
+                  {t('indexer.goCreate')}
                 </Button>
               </span>
             }
@@ -416,7 +418,7 @@ const Indexer: React.FC = () => {
               tab={
                 <span>
                   <CloudUploadOutlined />
-                  文件上传
+                  {t('indexer.fileUpload')}
                 </span>
               }
               key="file"
@@ -437,10 +439,10 @@ const Indexer: React.FC = () => {
                     <InboxOutlined />
                   </p>
                   <p className="ant-upload-text">
-                    拖拽文件到此处或 <em>点击选择文件</em>
+                    {t('indexer.dragTip')} <em>{t('indexer.clickSelect')}</em>
                   </p>
                   <p className="ant-upload-hint">
-                    支持上传 PDF、Markdown、HTML、Word 等文档文件，单个文件不超过 10MB
+                    {t('indexer.uploadHint')}
                   </p>
                 </Dragger>
 
@@ -453,7 +455,7 @@ const Indexer: React.FC = () => {
                       disabled={knowledgeList.length === 0 || !selectedKnowledge}
                       icon={<UploadOutlined />}
                     >
-                      {uploading ? '索引中...' : '开始索引'}
+                      {uploading ? t('indexer.indexing') : t('indexer.startIndex')}
                     </Button>
                   </div>
                 )}
@@ -464,7 +466,7 @@ const Indexer: React.FC = () => {
               tab={
                 <span>
                   <LinkOutlined />
-                  URL链接
+                  {t('indexer.urlIndex')}
                 </span>
               }
               key="url"
@@ -476,13 +478,13 @@ const Indexer: React.FC = () => {
                   onFinish={handleUrlIndex}
                 >
                   <Form.Item
-                    label="URL地址"
+                    label={t('indexer.urlLabel')}
                     name="url"
                     rules={[{ validator: validateUrl }]}
                     validateTrigger={["onBlur"]}
                   >
                     <Input
-                      placeholder="请输入要索引的网页URL，如：https://example.com/article"
+                      placeholder={t('indexer.urlPlaceholder')}
                       value={urlValue}
                       onChange={(e) => setUrlValue(e.target.value)}
                       prefix={<LinkOutlined />}
@@ -499,15 +501,15 @@ const Indexer: React.FC = () => {
                       size="large"
                       disabled={!urlValue.trim() || knowledgeList.length === 0 || !selectedKnowledge}
                     >
-                      {uploading ? '索引中...' : '开始索引'}
+                      {uploading ? t('indexer.indexing') : t('indexer.startIndex')}
                     </Button>
                   </div>
                 </Form>
                 
                 <div className="url-tips">
                   <Alert
-                    message="URL索引说明"
-                    description="系统将自动抓取网页内容并进行索引，支持大部分公开网页。请确保URL可以正常访问。"
+                    message={t('indexer.urlTipTitle')}
+                    description={t('indexer.urlTipDesc')}
                     type="info"
                     showIcon
                     closable={false}
@@ -536,29 +538,29 @@ const Indexer: React.FC = () => {
           <div className="card-header">
             <Space>
               <InfoCircleOutlined className="header-icon" />
-              <span className="header-title">索引结果</span>
+              <span className="header-title">{t('indexer.result.title')}</span>
             </Space>
           </div>
           
           <Divider />
           
           <Descriptions column={1} bordered>
-            <Descriptions.Item label="文件名">
+            <Descriptions.Item label={t('indexer.result.fileName')}>
               <Space>
                 <FileTextOutlined />
-                {indexResult.fileName || '未知文件'}
+                {indexResult.fileName || t('indexer.result.unknownFile')}
               </Space>
             </Descriptions.Item>
-            <Descriptions.Item label="文档片段数">
+            <Descriptions.Item label={t('indexer.result.chunks')}>
               {indexResult.chunks}
             </Descriptions.Item>
-            <Descriptions.Item label="索引状态">
+            <Descriptions.Item label={t('indexer.result.status')}>
               <Tag color={indexResult.status === 'success' ? 'success' : 'error'}>
-                {indexResult.status === 'success' ? '成功' : '失败'}
+                {indexResult.status === 'success' ? t('indexer.result.success') : t('indexer.result.fail')}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="知识库">
-              {knowledgeList.find(k => k.name === selectedKnowledge)?.name || selectedKnowledge || '未知'}
+            <Descriptions.Item label={t('indexer.result.kb')}>
+              {knowledgeList.find(k => k.name === selectedKnowledge)?.name || selectedKnowledge || t('indexer.result.unknown')}
             </Descriptions.Item>
           </Descriptions>
         </Card>

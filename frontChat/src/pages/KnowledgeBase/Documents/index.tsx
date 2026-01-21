@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Button, Space, Select, message, Empty, Drawer } from 'antd';
 import { SearchOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '@/services/knowledgeBase';
 import { DocumentsService, type DocumentData } from '@/services/documents';
 import './index.scss';
@@ -20,6 +21,7 @@ interface DocumentsProps {
 }
 
 const Documents: React.FC<DocumentsProps> = (props) => {
+  const { t } = useTranslation();
   const [documentsList, setDocumentsList] = useState<DocumentData[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedKnowledge, setSelectedKnowledge] = useState<string>(props.knowledgeBaseName || '');
@@ -61,7 +63,7 @@ const Documents: React.FC<DocumentsProps> = (props) => {
       setSelectedRows([]);
     } catch (error) {
       console.error('获取文档列表失败:', error);
-      message.error('获取文档列表失败');
+      message.error(t('kb.documents.fetchFailed'));
       setDocumentsList([]);
       setTotal(0);
     } finally {
@@ -90,7 +92,7 @@ const Documents: React.FC<DocumentsProps> = (props) => {
       }
     } catch (error) {
       console.error('获取知识库列表失败:', error);
-      message.error('获取知识库列表失败');
+      message.error(t('kb.documents.fetchKbFailed'));
     } finally {
       setKnowledgeLoading(false);
     }
@@ -130,7 +132,7 @@ const Documents: React.FC<DocumentsProps> = (props) => {
   };
 
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString('zh-CN');
+    return new Date(dateString).toLocaleString();
   };
 
   return (
@@ -140,22 +142,22 @@ const Documents: React.FC<DocumentsProps> = (props) => {
           <div className="card-header">
             <Space>
               <SearchOutlined className="header-icon" />
-              <span className="header-title">知识文档管理</span>
+              <span className="header-title">{t('kb.documents.management')}</span>
             </Space>
             <div className="header-actions">
               <Space>
-                <span>选择知识库:</span>
+                <span>{t('kb.documents.selectKb')}</span>
                 <Select
                   value={selectedKnowledge}
                   onChange={handleKnowledgeChange}
                   style={{ width: 200 }}
-                  placeholder={knowledgeLoading ? "加载中..." : "请选择知识库"}
+                  placeholder={knowledgeLoading ? t('common.loading') : t('kb.documents.selectKbPlaceholder')}
                   loading={knowledgeLoading}
                   disabled={knowledgeList.length === 0}
                   allowClear
                   notFoundContent={
                     knowledgeList.length === 0 ? (
-                      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无可用知识库" />
+                      <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('kb.documents.noKbAvailable')} />
                     ) : null
                   }
                 >
@@ -182,10 +184,10 @@ const Documents: React.FC<DocumentsProps> = (props) => {
                 onClick={confirmBatchDelete}
                 disabled={selectedRows.length === 0}
               >
-                批量删除
+                {t('common.batchDelete')}
               </Button>
               <span style={{ marginLeft: 8 }}>
-                {selectedRows.length > 0 ? `已选择 ${selectedRows.length} 项` : ''}
+                {selectedRows.length > 0 ? t('common.selectedItems', { count: selectedRows.length }) : ''}
               </span>
             </Space>
           </div>
@@ -199,7 +201,7 @@ const Documents: React.FC<DocumentsProps> = (props) => {
               total: total,
               showSizeChanger: true,
               showQuickJumper: true,
-              showTotal: (total: number) => `共 ${total} 条`,
+              showTotal: (total: number) => t('common.pagination', { current: (currentPage - 1) * pageSize + 1, end: Math.min(currentPage * pageSize, total), total }),
               onChange: handlePageChange,
             }}
             rowSelection={{
@@ -220,7 +222,7 @@ const Documents: React.FC<DocumentsProps> = (props) => {
       )}
 
       <Drawer
-        title={`知识块列表 - ${selectedDocumentForChunks?.fileName || ''}`}
+        title={t('kb.chunks.listTitle', { name: selectedDocumentForChunks?.fileName || '' })}
         placement="right"
         width={900}
         onClose={() => setChunksDrawerVisible(false)}

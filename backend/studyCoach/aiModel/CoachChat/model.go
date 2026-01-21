@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	FrequencyPenalty float32 = 0.6 // 提高重复惩罚，避免无限复读
-	PresencePenalty  float32 = 0.4
-	Temperature      float32 = 0.1
-	TopP             float32 = 0.1
+	FrequencyPenalty float32 = 0.3 // 提高重复惩罚，避免无限复读
+	PresencePenalty  float32 = 0.3 //存在惩罚
+	Temperature      float32 = 0.8 //核采样，控制候选词广度
+	TopP             float32 = 0.8 //温度，控制随机生成
 )
 
 // newChatModel component initialization function of node 'AnalysisChatModel' in graph 'StudyCoachFor'

@@ -4,6 +4,7 @@
  * references 面板显隐及滚动状态节流。
  */
 import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RetrieverService, type RetrievalDocument } from '../../../services/retriever';
 
 export interface ReferenceDocument {
@@ -21,6 +22,7 @@ export interface AdvancedSettings {
 }
 
 const useReferences = () => {
+  const { t } = useTranslation();
   const [selectedKnowledge, setSelectedKnowledge] = useState<string>('none');
   const [advancedSettings, setAdvancedSettings] = useState<AdvancedSettings>({ topK: 5, score: 0.5 });
   const [referenceDocuments, setReferenceDocuments] = useState<ReferenceDocument[]>([]);
@@ -69,10 +71,10 @@ const useReferences = () => {
       const docs = res.document || [];
       const references: ReferenceDocument[] = docs.map((doc: RetrievalDocument, index: number) => ({
         id: doc.id || String(index),
-        title: doc.meta_data?.ext?._file_name || `文档片段 ${index + 1}`,
+        title: doc.meta_data?.ext?._file_name || `${t('chat.fragment')} ${index + 1}`,
         content: doc.content,
         similarity: doc.score || doc.meta_data?._score || 0,
-        source: doc.meta_data?.ext?._file_name || '未知来源',
+        source: doc.meta_data?.ext?._file_name || t('chat.unknownSource'),
         url: '',
       }));
 

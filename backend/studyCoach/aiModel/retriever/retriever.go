@@ -25,9 +25,7 @@ func newRetriever(ctx context.Context, conf *common.Config) (rtr retriever.Retri
 		return nil, err
 	}
 
-	// 根据客户端类型创建不同的 retriever
 	if conf.Client != nil {
-		// ES retriever
 		retrieverConfig := &es8.RetrieverConfig{
 			Client: conf.Client,
 			Index:  conf.IndexName,

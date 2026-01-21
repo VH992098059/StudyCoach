@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Row, Col, Empty, Drawer,theme } from 'antd';
+import { useTranslation } from 'react-i18next';
 import './index.scss';
 import ConfigPanel from './components/ConfigPanel';
 import StatusLogsCard from './components/StatusLogsCard';
@@ -12,6 +13,7 @@ const CronPage: React.FC = () => {
   const { isTablet, isMobile } = useBreakpoints();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const { token } = theme.useToken();
+  const { t } = useTranslation();
   
   const {
     form,
@@ -88,7 +90,7 @@ const CronPage: React.FC = () => {
       </div>
     ) : (
       <div style={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <Empty description="暂无定时任务，请先新建" />
+        <Empty description={t('cron.messages.empty')} />
       </div>
     );
 
@@ -117,7 +119,7 @@ const CronPage: React.FC = () => {
 
       {/* Mobile Drawer */}
       <Drawer
-        title="任务配置与日志"
+        title={t('cron.drawerTitle')}
         placement="right"
         width="100%"
         onClose={() => setDrawerVisible(false)}

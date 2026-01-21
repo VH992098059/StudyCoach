@@ -38,7 +38,7 @@ services:
 
   # Elasticsearch搜索引擎
   elasticsearch:
-    image: elasticsearch:latest
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
     container_name: studycoach-elasticsearch
     restart: unless-stopped
     environment:
@@ -53,34 +53,6 @@ services:
     networks:
       - studycoach-network
 
-  # SeaweedFS Master
-  seaweedfs-master:
-    image: chrislusf/seaweedfs
-    container_name: studycoach-seaweedfs-master
-    restart: unless-stopped
-    ports:
-      - "9333:9333"
-      - "19333:19333"
-    command: "master -ip=seaweedfs-master"
-    networks:
-      - studycoach-network
-
-  # SeaweedFS Volume
-  seaweedfs-volume:
-    image: chrislusf/seaweedfs
-    container_name: studycoach-seaweedfs-volume
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-      - "18080:18080"
-    command: "volume -mserver=seaweedfs-master:9333 -port=8080 -ip=seaweedfs-volume"
-    volumes:
-      - seaweedfs_data:/data
-    networks:
-      - studycoach-network
-    depends_on:
-      - seaweedfs-master
-
   # SeaweedFS Filer
   seaweedfs-filer:
     image: chrislusf/seaweedfs
@@ -94,9 +66,6 @@ services:
       - seaweedfs_filer_data:/data
     networks:
       - studycoach-network
-    depends_on:
-      - seaweedfs-master
-      - seaweedfs-volume
 
   # Qdrant向量数据库
   qdrant:

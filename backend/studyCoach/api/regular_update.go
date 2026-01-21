@@ -1,7 +1,7 @@
 package api
 
 import (
-	"backend/studyCoach/aiModel/regular_update"
+	"backend/studyCoach/aiModel/RegularUpdate"
 	"backend/studyCoach/common"
 	"context"
 	"fmt"
@@ -36,7 +36,7 @@ func regularUpdateModel(ctx context.Context, input string) (*schema.Message, err
 	}
 	maxRetries := 3
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		model, err := regular_update.BuildRegularUpdate(ctx, conf)
+		model, err := RegularUpdate.BuildRegularUpdate(ctx, conf)
 		if err != nil {
 			log.Printf("构建模型失败 (尝试 %d/%d): %v", attempt+1, maxRetries, err)
 			if attempt == maxRetries {

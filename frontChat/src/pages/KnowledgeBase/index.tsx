@@ -24,6 +24,7 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { useTranslation } from 'react-i18next';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../services/knowledgeBase';
 import './index.scss';
 import Documents from './Documents';
@@ -32,6 +33,7 @@ const { Title } = Typography;
 const { TextArea } = Input;
 
 const KnowledgeBase: React.FC = () => {
+  const { t } = useTranslation();
   const [knowledgeBaseList, setKnowledgeBaseList] = useState<KnowledgeBase[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -55,15 +57,15 @@ const KnowledgeBase: React.FC = () => {
   // 表单验证规则
   const rules = {
     name: [
-      { required: true, message: '请输入知识库名称' },
-      { min: 3, max: 20, message: '长度在 3 到 20 个字符' }
+      { required: true, message: t('kb.validation.nameRequired') },
+      { min: 3, max: 20, message: t('kb.validation.nameLength') }
     ],
     description: [
-      { required: true, message: '请输入知识库描述' },
-      { min: 3, max: 200, message: '长度在 3 到 200 个字符' }
+      { required: true, message: t('kb.validation.descRequired') },
+      { min: 3, max: 200, message: t('kb.validation.descLength') }
     ],
     category: [
-      { min: 3, max: 10, message: '长度在 3 到 10 个字符' }
+      { min: 3, max: 10, message: t('kb.validation.categoryLength') }
     ]
   };
 
@@ -80,7 +82,7 @@ const KnowledgeBase: React.FC = () => {
       setKnowledgeBaseList(response.list || []);
     } catch (error) {
       console.error('获取知识库列表失败:', error);
-      message.error('获取知识库列表失败');
+      message.error(t('kb.error.fetch'));
     } finally {
       setLoading(false);
     }
@@ -128,7 +130,7 @@ const KnowledgeBase: React.FC = () => {
       
       // 如果分类为空，默认为"无分类"
       if (!values.category || !values.category.trim()) {
-        values.category = '无分类';
+        values.category = t('kb.noCategory');
       }
 
       setSubmitting(true);
@@ -139,11 +141,11 @@ const KnowledgeBase: React.FC = () => {
           id: kbForm.id,
           ...values
         });
-        message.success('知识库更新成功');
+        message.success(t('kb.success.update'));
       } else {
         // 创建知识库
         await KnowledgeBaseService.create(values);
-        message.success('知识库创建成功');
+        message.success(t('kb.success.create'));
       }
 
       setDialogVisible(false);
@@ -152,7 +154,7 @@ const KnowledgeBase: React.FC = () => {
       await fetchKnowledgeBaseList();
     } catch (error) {
       console.error('操作失败:', error);
-      message.error('操作失败');
+      message.error(t('kb.error.operate'));
     } finally {
       setSubmitting(false);
     }
@@ -162,12 +164,12 @@ const KnowledgeBase: React.FC = () => {
   const confirmDelete = async (record: KnowledgeBase) => {
     try {
       await KnowledgeBaseService.delete(record.id);
-      message.success('知识库删除成功');
+      message.success(t('kb.success.delete'));
       // 重新获取列表
       await fetchKnowledgeBaseList();
     } catch (error) {
       console.error('删除失败:', error);
-      message.error('删除失败');
+      message.error(t('kb.error.delete'));
     }
   };
 
@@ -180,47 +182,47 @@ const KnowledgeBase: React.FC = () => {
   // 表格列配置
   const columns: ColumnsType<KnowledgeBase> = [
     {
-      title: 'ID',
+      title: t('kb.id'),
       dataIndex: 'id',
       key: 'id',
       width: 80,
       responsive: ['md'],
     },
     {
-      title: '知识库名称',
+      title: t('kb.name'),
       dataIndex: 'name',
       key: 'name',
       width: 180,
       ellipsis: true,
     },
     {
-      title: '描述',
+      title: t('kb.description'),
       dataIndex: 'description',
       key: 'description',
       ellipsis: true,
       responsive: ['md'],
     },
     {
-      title: '分类',
+      title: t('kb.category'),
       dataIndex: 'category',
       key: 'category',
       width: 120,
       responsive: ['sm'],
     },
     {
-      title: '状态',
+      title: t('kb.status'),
       dataIndex: 'status',
       key: 'status',
       width: 100,
       responsive: ['sm'],
       render: (status: KBStatus) => (
         <Tag color={status === KBStatus.OK ? 'success' : 'error'}>
-          {status === KBStatus.OK ? '启用' : '禁用'}
+          {status === KBStatus.OK ? t('kb.enabled') : t('kb.disabled')}
         </Tag>
       ),
     },
     {
-      title: '操作',
+      title: t('kb.action'),
       key: 'action',
       width: 160,
       render: (_, record) => (
@@ -231,7 +233,7 @@ const KnowledgeBase: React.FC = () => {
             icon={<FileTextOutlined />}
             onClick={() => openDocumentsDrawer(record)}
           >
-            文档
+            {t('kb.documents.documents')}
           </Button>
           <Button
             size="small"
@@ -240,14 +242,14 @@ const KnowledgeBase: React.FC = () => {
             icon={<EditOutlined />}
             onClick={() => showEditDialog(record)}
           >
-            编辑
+            {t('common.edit')}
           </Button>
           <Popconfirm
-            title="确定要删除这个知识库吗？"
-            description="此操作不可恢复。"
+            title={t('kb.confirmDelete')}
+            description={t('kb.deleteDesc')}
             onConfirm={() => confirmDelete(record)}
-            okText="确定"
-            cancelText="取消"
+            okText={t('common.confirm')}
+            cancelText={t('common.cancel')}
           >
             <Button
               size="small"
@@ -256,7 +258,7 @@ const KnowledgeBase: React.FC = () => {
               danger
               icon={<DeleteOutlined />}
             >
-              删除
+              {t('kb.delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -277,7 +279,7 @@ const KnowledgeBase: React.FC = () => {
         }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <FolderOutlined style={{ marginRight: '8px', fontSize: '18px' }} />
-            <Title level={4} style={{ margin: 0 }}>知识库管理</Title>
+            <Title level={4} style={{ margin: 0 }}>{t('kb.title')}</Title>
           </div>
           <Button
             type="primary"
@@ -286,7 +288,7 @@ const KnowledgeBase: React.FC = () => {
             onClick={showAddDialog}
             style={{ height: "33px" }}
           >
-            新建知识库
+            {t('kb.create')}
           </Button>
         </div>
 
@@ -303,7 +305,7 @@ const KnowledgeBase: React.FC = () => {
               emptyText: (
                 <Empty
                   image={<FolderOutlined style={{ fontSize: '48px', color: '#d9d9d9' }} />}
-                  description="暂无知识库，请点击右上角新建"
+                  description={t('kb.empty')}
                 />
               )
             }}
@@ -314,7 +316,7 @@ const KnowledgeBase: React.FC = () => {
 
       {/* 新建/编辑知识库对话框 */}
       <Modal
-        title={isEdit ? '编辑知识库' : '新建知识库'}
+        title={isEdit ? t('kb.edit') : t('kb.create')}
         open={dialogVisible}
         destroyOnHidden
         onCancel={() => {
@@ -323,7 +325,7 @@ const KnowledgeBase: React.FC = () => {
         }}
         footer={[
           <Button key="cancel" onClick={() => setDialogVisible(false)}>
-            取消
+            {t('common.cancel')}
           </Button>,
           <Button
             key="submit"
@@ -331,7 +333,7 @@ const KnowledgeBase: React.FC = () => {
             loading={submitting}
             onClick={submitForm}
           >
-            确认
+            {t('common.confirm')}
           </Button>
         ]}
         width={500}
@@ -342,40 +344,40 @@ const KnowledgeBase: React.FC = () => {
           initialValues={kbForm}
         >
           <Form.Item
-            label="知识库名称"
+            label={t('kb.name')}
             name="name"
             rules={rules.name}
           >
-            <Input placeholder="请输入知识库名称" />
+            <Input placeholder={t('kb.placeholder.name')} />
           </Form.Item>
 
           <Form.Item
-            label="描述"
+            label={t('kb.description')}
             name="description"
             rules={rules.description}
           >
             <TextArea
               rows={3}
-              placeholder="请输入知识库描述"
+              placeholder={t('kb.placeholder.desc')}
             />
           </Form.Item>
 
           <Form.Item
-            label="分类"
+            label={t('kb.category')}
             name="category"
             rules={rules.category}
           >
-            <Input placeholder="请输入知识库分类" />
+            <Input placeholder={t('kb.placeholder.category')} />
           </Form.Item>
 
           {isEdit && (
             <Form.Item
-              label="状态"
+              label={t('kb.status')}
               name="status"
             >
               <Radio.Group>
-                <Radio value={KBStatus.OK}>启用</Radio>
-                <Radio value={KBStatus.DISABLED}>禁用</Radio>
+                <Radio value={KBStatus.OK}>{t('kb.enabled')}</Radio>
+                <Radio value={KBStatus.DISABLED}>{t('kb.disabled')}</Radio>
               </Radio.Group>
             </Form.Item>
           )}
@@ -384,7 +386,7 @@ const KnowledgeBase: React.FC = () => {
 
       {/* 文档管理 Drawer */}
       <Drawer
-        title={`知识库文档 - ${selectedKbForDocuments}`}
+        title={`${t('kb.drawerTitle')} - ${selectedKbForDocuments}`}
         placement="right"
         size={1000}
         onClose={() => setDocumentsDrawerVisible(false)}

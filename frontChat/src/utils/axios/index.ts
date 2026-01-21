@@ -2,6 +2,8 @@ import axios, { type AxiosInstance} from 'axios';
 import { API_CONFIG } from './config';
 import { requestInterceptor, responseInterceptor } from './interceptors';
 import type { RequestConfig } from './types';
+import i18n from '../../i18n';
+
 // 注意：某些情况下浏览器开发工具会代理 XMLHttpRequest 并对 blob/arraybuffer 的 responseText 访问抛错。
 // 为此我们提供一个基于 fetch 的二进制请求辅助方法，以避免 XHR 代理造成的干扰。
 
@@ -100,7 +102,7 @@ export class ApiClient {
       console.log('Request completed (blob):', fullUrl);
     }
     if (!resp.ok) {
-      const msg = `请求失败 (${resp.status})`;
+      const msg = i18n.t('api.requestFailedWithStatus', { status: resp.status });
       throw new Error(msg);
     }
     return await resp.blob();

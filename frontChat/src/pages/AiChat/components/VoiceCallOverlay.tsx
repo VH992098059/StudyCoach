@@ -5,6 +5,7 @@
 import React, { useEffect } from 'react';
 import { Modal, Button } from 'antd';
 import { AudioOutlined, StopOutlined, LoadingOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 export type CallStatus = 'dialing' | 'recording' | 'processing' | 'ended';
 
@@ -27,18 +28,19 @@ const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
   onCancel,
   onRestart,
 }) => {
+  const { t } = useTranslation();
   const isDialing = status === 'dialing';
   const isRecording = status === 'recording';
   const isProcessing = status === 'processing';
   const isEnded = status === 'ended';
 
   const title = isDialing
-    ? '拨号中…'
+    ? t('chat.voice.dialing')
     : isRecording
-    ? '语音通话中'
+    ? t('chat.voice.inCall')
     : isProcessing
-    ? '处理中…'
-    : '通话已结束';
+    ? t('chat.voice.processing')
+    : t('chat.voice.ended');
 
   useEffect(() => {
     // 未来可加入铃声/提示音
@@ -80,18 +82,18 @@ const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
         )}
         <div style={{ display: 'flex', gap: 12 }}>
           {isDialing && (
-            <Button type="primary" onClick={onStart}>开始通话</Button>
+            <Button type="primary" onClick={onStart}>{t('chat.voice.startBtn')}</Button>
           )}
           {isRecording && (
-            <Button danger onClick={onEnd}>结束通话</Button>
+            <Button danger onClick={onEnd}>{t('chat.voice.endBtn')}</Button>
           )}
           {isProcessing && (
-             <Button type="primary" onClick={onRestart}>重新对话</Button>
+             <Button type="primary" onClick={onRestart}>{t('chat.voice.restartBtn')}</Button>
           )}
           {isEnded && (
-            <Button type="primary" onClick={onRestart || onStart}>重新对话</Button>
+            <Button type="primary" onClick={onRestart || onStart}>{t('chat.voice.restartBtn')}</Button>
           )}
-          <Button onClick={onCancel}>关闭</Button>
+          <Button onClick={onCancel}>{t('chat.voice.closeBtn')}</Button>
         </div>
       </div>
     </Modal>

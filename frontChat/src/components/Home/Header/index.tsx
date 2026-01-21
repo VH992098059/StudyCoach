@@ -5,9 +5,10 @@
 
 import React, { useState } from 'react';
 import { Layout, Menu, Button, Avatar, Dropdown, Space, Drawer, Switch } from 'antd';
-import { UserOutlined, LoginOutlined, LogoutOutlined, MenuOutlined } from '@ant-design/icons';
+import { UserOutlined, LoginOutlined, LogoutOutlined, MenuOutlined, GlobalOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { MenuProps } from 'antd';
+import { useTranslation } from 'react-i18next';
 import './index.scss';
 
 const { Header: AntHeader } = Layout;
@@ -69,6 +70,31 @@ const Header: React.FC<HeaderProps> = ({
   isDark,
   onToggleTheme,
 }) => {
+  const { t, i18n } = useTranslation();
+
+  /**
+   * 切换语言
+   */
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
+
+  /**
+   * 语言菜单配置
+   */
+  const langMenuItems: MenuProps['items'] = [
+    {
+      key: 'zh',
+      label: t('common.chinese'),
+      onClick: () => changeLanguage('zh'),
+    },
+    {
+      key: 'en',
+      label: t('common.english'),
+      onClick: () => changeLanguage('en'),
+    },
+  ];
+
   /**
    * 移动端菜单显示状态
    * @description 控制移动端抽屉菜单的显示和隐藏
@@ -82,7 +108,7 @@ const Header: React.FC<HeaderProps> = ({
   const userMenuItems: MenuProps['items'] = [
     {
       key: 'profile',
-      label: '个人信息',
+      label: t('common.profile'),
       icon: <UserOutlined />,
     },
     {
@@ -90,7 +116,7 @@ const Header: React.FC<HeaderProps> = ({
     },
     {
       key: 'logout',
-      label: '退出登录',
+      label: t('common.logout'),
       icon: <LogoutOutlined />,
       onClick: onLogout,
     },
@@ -199,6 +225,9 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* 用户操作区 */}
         <div className="header-user">
+          <Dropdown menu={{ items: langMenuItems }} placement="bottomRight">
+            <Button type="text" icon={<GlobalOutlined />} style={{ marginRight: 8 }} />
+          </Dropdown>
           <Switch
             checked={!!isDark}
             onChange={onToggleTheme}
@@ -224,7 +253,7 @@ const Header: React.FC<HeaderProps> = ({
                 size="small"
                 onClick={() => navigate('/register')}
               >
-                注册
+                {t('common.register')}
               </Button>
               <Button
                 type="primary"
@@ -232,7 +261,7 @@ const Header: React.FC<HeaderProps> = ({
                 onClick={() => navigate('/login')}
                 size="small"
               >
-                登录
+                {t('common.login')}
               </Button>
             </Space>
           )}
@@ -264,7 +293,14 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* 移动端用户操作区 */}
         <div className="mobile-user-actions">
-          
+          <div style={{ padding: '0 16px 16px' }}>
+             <Space>
+                <Dropdown menu={{ items: langMenuItems }} placement="bottomRight">
+                  <Button icon={<GlobalOutlined />}>{t('common.language')}</Button>
+                </Dropdown>
+             </Space>
+          </div>
+
           {user ? (
             <>
               <Button
@@ -275,7 +311,7 @@ const Header: React.FC<HeaderProps> = ({
                   // 这里可以添加跳转到个人信息页面的逻辑
                 }}
               >
-                个人信息
+                {t('common.profile')}
               </Button>
               <Button
                 block
@@ -285,7 +321,7 @@ const Header: React.FC<HeaderProps> = ({
                   onLogout?.();
                 }}
               >
-                退出登录
+                {t('common.logout')}
               </Button>
             </>
           ) : (
@@ -297,7 +333,7 @@ const Header: React.FC<HeaderProps> = ({
                   navigate('/register');
                 }}
               >
-                注册
+                {t('common.register')}
               </Button>
               <Button
                 block
@@ -308,7 +344,7 @@ const Header: React.FC<HeaderProps> = ({
                   navigate('/login');
                 }}
               >
-                登录
+                {t('common.login')}
               </Button>
             </>
           )}

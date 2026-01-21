@@ -20,16 +20,18 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/minio/minio-go/v7 v7.0.94
 	github.com/wangle201210/chat-history v0.0.1
 	golang.org/x/crypto v0.40.0
 )
 
 require (
+	github.com/cloudwego/eino-ext/callbacks/cozeloop v0.1.7
 	github.com/cloudwego/eino-ext/components/document/parser/xlsx v0.0.0-20251121095553-9c4349cc3e46
 	github.com/cloudwego/eino-ext/components/indexer/qdrant v0.0.0-20251121095553-9c4349cc3e46
 	github.com/cloudwego/eino-ext/components/tool/mcp v0.0.8
+	github.com/coze-dev/cozeloop-go v0.1.20
 	github.com/goccy/go-json v0.10.5
+	github.com/joho/godotenv v1.5.1
 	github.com/mark3labs/mcp-go v0.43.2
 	github.com/qdrant/go-client v1.15.2
 	github.com/robfig/cron/v3 v3.0.1
@@ -37,22 +39,22 @@ require (
 
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/bluele/gcache v0.0.2 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/corpix/uarand v0.2.0 // indirect
+	github.com/coze-dev/cozeloop-go/spec v0.1.7 // indirect
 	github.com/eino-contrib/jsonschema v1.0.2 // indirect
-	github.com/go-ini/ini v1.67.0 // indirect
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
-	github.com/minio/crc64nvme v1.0.1 // indirect
-	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
+	github.com/nikolalohinski/gonja/v2 v2.3.1 // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.4 // indirect
-	github.com/rs/xid v1.6.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
-	github.com/tinylib/msgp v1.3.0 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/xuri/efp v0.0.0-20240408161823-9ad904a10d6d // indirect
 	github.com/xuri/excelize/v2 v2.9.0 // indirect
@@ -104,7 +106,6 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
 	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
@@ -119,7 +120,7 @@ require (
 	github.com/nikolalohinski/gonja v1.5.3 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.2-0.20201214064552-5dd12d0cfe7f // indirect
 	github.com/redis/go-redis/v9 v9.12.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect

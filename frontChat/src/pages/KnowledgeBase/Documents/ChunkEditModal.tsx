@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Modal, Input } from 'antd';
 import type { KnowledgeChunk } from '@/services/chunks';
+import { useTranslation } from 'react-i18next';
 
 const { TextArea } = Input;
 
@@ -21,23 +22,24 @@ const ChunkEditModal: React.FC<ChunkEditModalProps> = ({
   content,
   onContentChange,
 }) => {
+  const { t } = useTranslation();
   return (
     <Modal
-      title="编辑知识块内容"
+      title={t('kb.chunks.editContent')}
       open={open}
       onOk={onSave}
       onCancel={onCancel}
       width={800}
-      okText="保存"
-      cancelText="取消"
+      okText={t('common.save')}
+      cancelText={t('common.cancel')}
     >
       <div style={{ marginBottom: 16 }}>
-        <strong>块ID:</strong> {chunk?.chunkId}
+        <strong>{t('kb.chunks.chunkId')}:</strong> {chunk?.chunkId}
       </div>
       <TextArea
         value={content}
         onChange={(e) => onContentChange(e.target.value)}
-        placeholder="请输入知识块内容"
+        placeholder={t('kb.chunks.placeholder')}
         rows={10}
         maxLength={5000}
         showCount

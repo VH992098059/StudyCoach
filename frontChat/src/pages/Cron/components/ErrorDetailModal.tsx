@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Button } from 'antd';
+import { useTranslation } from 'react-i18next';
 
 interface ErrorDetailModalProps {
   open: boolean;
@@ -8,14 +9,15 @@ interface ErrorDetailModalProps {
 }
 
 const ErrorDetailModal: React.FC<ErrorDetailModalProps> = ({ open, content, onClose }) => {
+  const { t } = useTranslation();
   return (
     <Modal
       open={open}
       onCancel={onClose}
-      title="错误详情"
-      footer={<Button onClick={onClose}>关闭</Button>}
+      title={t('cron.logs.details')}
+      footer={<Button onClick={onClose}>{t('cron.actions.close')}</Button>}
     >
-      <pre className="error-detail">{content || '无详情'}</pre>
+      <pre className="error-detail">{content || t('cron.logs.noDetails')}</pre>
     </Modal>
   );
 };

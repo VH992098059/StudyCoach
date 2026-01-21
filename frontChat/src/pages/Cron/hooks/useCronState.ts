@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Form, message } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import type { CronConfig, LogEntry } from '../types';
 import type { CronTask } from '../components/TaskListCard';
 import { type KnowledgeSelectorRef } from '@/components/KnowledgeSelector';
@@ -93,6 +94,7 @@ function generateCronExpression(values: CronConfig): string {
 }
 
 export const useCronState = () => {
+  const { t } = useTranslation();
   // Casting to any to bypass missing type definitions for setFieldsValue, etc. in current antd version
   const [form] = Form.useForm() as any;
   
@@ -132,7 +134,7 @@ export const useCronState = () => {
       if (res && res.list) {
         const apiTasks: CronTask[] = res.list.map(item => ({
           id: String(item.id),
-          cronName: item.cronName || item.cron_name || `任务 ${item.id}`,
+          cronName: item.cronName || item.cron_name || `${t('cron.task')} ${item.id}`,
           cronExpression: item.cronExpression || item.cron_expression,
           knowledgeBasename: item.knowledgeBaseName || item.knowledge_base_name,
           contentType: (item.contentType || item.content_type) === 1 ? 1 : 2,
@@ -149,7 +151,7 @@ export const useCronState = () => {
       }
     } catch (error) {
       console.error('Failed to fetch cron tasks:', error);
-      message.error('获取任务列表失败');
+      message.error(t('cron.messages.fetchFailed'));
     }
   };
 
@@ -271,7 +273,7 @@ export const useCronState = () => {
                 setTasks(prev => [...prev, newTask]);
                 setSelectedTaskId(newTask.id);
                 setIsCreating(false);
-                message.success('新建任务成功');
+                message.success(t('cron.messages.createSuccess'));
             }
         } else {
             // 更新现有任务逻辑
@@ -304,11 +306,11 @@ export const useCronState = () => {
                 }
                 return t;
             }));
-            message.success('配置已保存');
+            message.success(t('cron.messages.saveSuccess'));
         }
     } catch (error) {
         console.error('Save task failed:', error);
-        message.error('保存配置失败');
+        message.error(t('cron.messages.saveFailed'));
     }
   };
 
@@ -318,7 +320,7 @@ export const useCronState = () => {
     const id = Date.now();
     setExecStatus('running');
     
-    const newLog: LogEntry = { id, time: Date.now(), status: 'running', detail: '任务开始执行...' };
+    const newLog: LogEntry = { id, time: Date.now(), status: 'running', detail: t('cron.messages.startExec') };
     const newLogs = [newLog, ...logs];
     setLogs(newLogs);
     // localStorage.setItem(`cronLogs_${selectedTaskId}`, JSON.stringify(newLogs));
@@ -334,7 +336,7 @@ export const useCronState = () => {
       const updatedLogs = newLogs.map(l => (l.id === id ? { 
           ...l, 
           status: resultStatus, 
-          detail: success ? '执行成功：已完成知识库更新' : '执行失败：请查看错误详情', 
+          detail: success ? t('cron.messages.execSuccessDetail') : t('cron.messages.execFailedDetail'), 
           durationMs: duration 
       } : l));
       
@@ -344,14 +346,14 @@ export const useCronState = () => {
       // Update task status in list
       setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, execStatus: resultStatus, lastRunTime: Date.now() } : t));
 
-      if (success) message.success('任务执行成功'); else message.error('任务执行失败');
+      if (success) message.success(t('cron.messages.execSuccess')); else message.error(t('cron.messages.execFailed'));
     }, 1800);
 
     if (!enabled) {
       // Update task enabled state
       CronService.updateOneStatus({ id: parseInt(selectedTaskId), status: 1 }).catch(console.error);
       setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, status: 1 } : t));
-      message.info('已开启定时：将按配置自动调度');
+      message.info(t('cron.messages.enableAuto'));
     }
   };
 
@@ -362,10 +364,10 @@ export const useCronState = () => {
     try {
         await CronService.updateOneStatus({ id: parseInt(selectedTaskId), status: nextStatus });
         setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, status: nextStatus } : t));
-        message.info(nextStatus !== 0 ? '已开启定时' : '已关闭定时');
+        message.info(nextStatus !== 0 ? t('cron.messages.enable') : t('cron.messages.disable'));
     } catch (error) {
         console.error('Toggle status failed:', error);
-        message.error('操作失败');
+        message.error(t('cron.messages.opFailed'));
     }
   };
   
@@ -375,10 +377,10 @@ export const useCronState = () => {
     try {
         await CronService.updateOneStatus({ id: parseInt(selectedTaskId), status: nextStatus });
         setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, status: nextStatus } : t));
-        message.info(nextStatus === 1 ? '已恢复任务调度' : '已暂停任务调度');
+        message.info(nextStatus === 1 ? t('cron.messages.resumeSuccess') : t('cron.messages.pauseSuccess'));
     } catch (error) {
         console.error('Pause/Resume failed:', error);
-        message.error('操作失败');
+        message.error(t('cron.messages.opFailed'));
     }
   };
 
@@ -407,10 +409,10 @@ export const useCronState = () => {
             setSelectedTaskId(undefined);
             form.resetFields();
         }
-        message.success('删除成功');
+        message.success(t('cron.messages.deleteSuccess'));
     } catch (error) {
         console.error('Delete task failed:', error);
-        message.error('删除失败');
+        message.error(t('cron.messages.deleteFailed'));
     }
   };
 

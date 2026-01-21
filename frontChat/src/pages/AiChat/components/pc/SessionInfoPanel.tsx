@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Card, Button, Empty, Tooltip, Tag, Input, Segmented, Space, Slider } from 'antd';
 import { FileTextOutlined, CopyOutlined, LinkOutlined, SearchOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import KnowledgeSelector, { type KnowledgeSelectorRef } from '@/components/KnowledgeSelector';
 import MDEditor from '@uiw/react-md-editor';
 
@@ -50,6 +51,7 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
     onCopyDocumentContent,
   } = props;
 
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [sortMode, setSortMode] = useState<'similarity' | 'title'>('similarity');
 
@@ -70,8 +72,8 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
     if (!filteredDocs.length) return;
     const text = filteredDocs
       .map((d, i) => {
-        const header = `#${i + 1} ${d.title || '未命名'} (${(d.similarity * 100).toFixed(1)}%)`;
-        const urlLine = d.url ? `\n链接: ${d.url}` : '';
+        const header = `#${i + 1} ${d.title || t('chat.sidebar.unnamedSession')} (${(d.similarity * 100).toFixed(1)}%)`;
+        const urlLine = d.url ? `\nLink: ${d.url}` : '';
         return `${header}${urlLine}\n\n${d.content}`;
       })
       .join('\n\n---\n\n');
@@ -82,12 +84,12 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <Card
         size="small"
-        title="会话信息"
+        title={t('chat.info.title')}
         extra={
           <Space size={8}>
-            <Tag color={isNetworkEnabled ? 'green' : 'red'} style={{ marginRight: 0 }}>{isNetworkEnabled ? '联网已开启' : '联网已关闭'}</Tag>
+            <Tag color={isNetworkEnabled ? 'green' : 'red'} style={{ marginRight: 0 }}>{isNetworkEnabled ? t('chat.info.networkEnabled') : t('chat.info.networkDisabled')}</Tag>
             <Button type="text" icon={<FileTextOutlined />} onClick={onToggleReferences} size="small">
-              {showReferences ? '隐藏参考' : '显示参考'}
+              {showReferences ? t('chat.info.hideReferences') : t('chat.info.showReferences')}
             </Button>
           </Space>
         }
@@ -102,19 +104,19 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
           />
         </div>
         <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap',flexDirection:"column", fontSize: isTablet ? 11 : 12, color: '#666' }}>
-          <div>会话ID: {currentSessionId || '未开始'}</div>
-          <div>消息数: {messagesCount}</div>
-          <div>参考文档: {referenceDocuments.length} 条</div>
+          <div>{t('chat.info.id')}: {currentSessionId || t('chat.info.notStarted')}</div>
+          <div>{t('chat.info.messageCount')}: {messagesCount}</div>
+          <div>{t('chat.info.referenceDocs')}: {referenceDocuments.length} {t('chat.info.countUnit')}</div>
         </div>
         <div style={{ marginTop: 8}}>
-          <div style={{ fontSize: isTablet ? 11 : 12, color: '#333', marginBottom: 6 }}>高级选项</div>
+          <div style={{ fontSize: isTablet ? 11 : 12, color: '#333', marginBottom: 6 }}>{t('chat.info.advancedSettings')}</div>
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: isTablet ? 11 : 12, color: '#666', marginBottom: 4 }}>返回数量: {advancedSettings.topK}</div>
+              <div style={{ fontSize: isTablet ? 11 : 12, color: '#666', marginBottom: 4 }}>{t('chat.info.returnCount')}: {advancedSettings.topK}</div>
               <Slider min={1} max={10} value={advancedSettings.topK} onChange={(value: number) => onAdvancedSettingsChange('topK', value)} marks={{ 1: '1', 5: '5', 10: '10' }} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: isTablet ? 11 : 12, color: '#666', marginBottom: 4 }}>相似度: {advancedSettings.score}</div>
+              <div style={{ fontSize: isTablet ? 11 : 12, color: '#666', marginBottom: 4 }}>{t('chat.info.similarity')}: {advancedSettings.score}</div>
               <Slider min={0} max={1} step={0.1} value={advancedSettings.score} onChange={(value: number) => onAdvancedSettingsChange('score', value)} marks={{ 0: '0', 0.5: '0.5', 1: '1' }} />
             </div>
           </div>
@@ -124,11 +126,11 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
       {showReferences && (
         <Card
           size="small"
-          title="参考文档"
+          title={t('chat.info.referenceDocs')}
           extra={
             <Space size={8}>
-              <Button type="text" size="small" onClick={handleCopyAll} icon={<CopyOutlined />}>复制全部</Button>
-              <Button type="text" size="small" onClick={onToggleReferences}>收起</Button>
+              <Button type="text" size="small" onClick={handleCopyAll} icon={<CopyOutlined />}>{t('chat.info.copyAll')}</Button>
+              <Button type="text" size="small" onClick={onToggleReferences}>{t('chat.info.collapse')}</Button>
             </Space>
           }
         >
@@ -136,7 +138,7 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
             <Input
               allowClear
               size={isTablet ? 'small' : 'middle'}
-              placeholder="搜索标题或内容"
+              placeholder={t('chat.info.searchPlaceholder')}
               prefix={<SearchOutlined />}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -147,8 +149,8 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
               value={sortMode}
               onChange={(v) => setSortMode(v as 'similarity' | 'title')}
               options={[
-                { label: '按相似度', value: 'similarity' },
-                { label: '按标题', value: 'title' },
+                { label: t('chat.info.sortBySimilarity'), value: 'similarity' },
+                { label: t('chat.info.sortByTitle'), value: 'title' },
               ]}
             />
           </div>
@@ -171,16 +173,16 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: isTablet ? 12 : 13, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title}</div>
                       <div style={{ fontSize: isTablet ? 10 : 11, color: '#666', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <Tag color="blue">相似度 {(doc.similarity * 100).toFixed(1)}%</Tag>
-                        <Tag color="green">来源 {doc.source}</Tag>
+                        <Tag color="blue">{t('chat.info.similarity')} {(doc.similarity * 100).toFixed(1)}%</Tag>
+                        <Tag color="green">{t('chat.info.source')} {doc.source}</Tag>
                         {doc.url ? (
                           <Button type="link" size="small" icon={<LinkOutlined />} href={doc.url} target="_blank" rel="noopener noreferrer" style={{ padding: 0 }}>
-                            打开链接
+                            {t('chat.info.openLink')}
                           </Button>
                         ) : null}
                       </div>
                     </div>
-                    <Tooltip title="复制内容">
+                    <Tooltip title={t('chat.info.copyContent')}>
                       <Button
                         type="text"
                         icon={<CopyOutlined />}
@@ -202,7 +204,7 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
                 </Card>
               ))
             ) : (
-              <Empty description="暂无匹配的参考文档" image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ margin: '20px 0' }} />
+              <Empty description={t('chat.info.noMatchingDocs')} image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ margin: '20px 0' }} />
             )}
           </div>
         </Card>

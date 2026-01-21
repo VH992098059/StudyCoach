@@ -13,6 +13,7 @@ import {
   DeleteOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { ChunksService, type KnowledgeChunk, ChunkStatus } from '@/services/chunks';
 import ChunkTable from './ChunkTable';
 import ChunkEditModal from './ChunkEditModal';
@@ -26,6 +27,7 @@ interface ChunkListProps {
 }
 
 const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
+  const { t } = useTranslation();
   const [chunksList, setChunksList] = useState<KnowledgeChunk[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -54,7 +56,7 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
       setChunksList(response.data);
       setTotal(response.total);
     } catch (error) {
-      message.error('获取知识块列表失败');
+      message.error(t('kb.chunks.fetchFailed'));
       console.error('Fetch chunks error:', error);
     } finally {
       setLoading(false);
@@ -78,13 +80,13 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
         id: editingChunk.id,
         content: editContent,
       });
-      message.success('知识块内容更新成功');
+      message.success(t('kb.chunks.updateSuccess'));
       setEditModalVisible(false);
       setEditingChunk(null);
       setEditContent('');
       await fetchChunksList();
     } catch (error) {
-      message.error('更新知识块内容失败');
+      message.error(t('kb.chunks.updateFailed'));
       console.error('Update chunk content error:', error);
     }
   };
@@ -96,10 +98,11 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
         ids: [chunk.id],
         status: newStatus,
       });
-      message.success(`知识块已${newStatus === ChunkStatus.ACTIVE ? '启用' : '禁用'}`);
+      const statusText = newStatus === ChunkStatus.ACTIVE ? t('kb.enabled') : t('kb.disabled');
+      message.success(t('kb.chunks.statusChanged', { status: statusText }));
       await fetchChunksList();
     } catch (error) {
-      message.error('更新知识块状态失败');
+      message.error(t('kb.chunks.statusChangeFailed'));
       console.error('Update chunk status error:', error);
     }
   };
@@ -107,22 +110,22 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
   const handleDeleteChunk = async (chunk: KnowledgeChunk) => {
     try {
       await ChunksService.delete({ id: chunk.id });
-      message.success(`知识块 "${chunk.chunkId}" 删除成功`);
+      message.success(t('kb.chunks.deleteSuccess', { id: chunk.chunkId }));
       await fetchChunksList();
     } catch (error) {
-      message.error('删除知识块失败');
+      message.error(t('kb.chunks.deleteFailed'));
       console.error('Delete chunk error:', error);
     }
   };
 
   const confirmDelete = (chunk: KnowledgeChunk) => {
     confirm({
-      title: '确认删除',
+      title: t('common.confirmDelete'),
       icon: <ExclamationCircleOutlined />,
-      content: `确定要删除知识块 "${chunk.chunkId}" 吗？此操作不可恢复。`,
-      okText: '确定删除',
+      content: t('kb.chunks.deleteConfirm', { id: chunk.chunkId }),
+      okText: t('common.delete'),
       okType: 'danger',
-      cancelText: '取消',
+      cancelText: t('common.cancel'),
       onOk: () => handleDeleteChunk(chunk),
     });
   };
@@ -134,12 +137,12 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
         ChunksService.delete({ id: chunk.id })
       );
       await Promise.all(deletePromises);
-      message.success(`成功删除 ${selectedRows.length} 个知识块`);
+      message.success(t('common.success'));
       setSelectedRowKeys([]);
       setSelectedRows([]);
       await fetchChunksList();
     } catch (error) {
-      message.error('批量删除失败');
+      message.error(t('kb.chunks.deleteFailed'));
       console.error('Batch delete error:', error);
     } finally {
       setBatchDeleteLoading(false);
@@ -149,22 +152,22 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
   const confirmBatchDelete = () => {
     if (selectedRows.length === 0) return;
     confirm({
-      title: '批量删除确认',
+      title: t('common.batchDelete'),
       icon: <ExclamationCircleOutlined />,
       content: (
         <div>
-          <p>确定要删除以下 {selectedRows.length} 个知识块吗？此操作不可恢复。</p>
+          <p>{t('kb.chunks.batchDeleteConfirmText', { count: selectedRows.length })}</p>
         </div>
       ),
-      okText: '确定删除',
+      okText: t('common.delete'),
       okType: 'danger',
-      cancelText: '取消',
+      cancelText: t('common.cancel'),
       onOk: handleBatchDelete,
     });
   };
 
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString('zh-CN');
+    return new Date(dateString).toLocaleString();
   };
 
   return (
@@ -173,7 +176,7 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
         <div className="card-header">
           <Space>
             <SearchOutlined className="header-icon" />
-            <span className="header-title">知识块列表</span>
+            <span className="header-title">{t('kb.chunks.list')}</span>
           </Space>
         </div>
 
@@ -181,9 +184,9 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
           <Alert
             title={
               <Space>
-                <span>已选择 {selectedRowKeys.length} 个知识块</span>
+                <span>{t('common.selectedItems', { count: selectedRowKeys.length })}</span>
                 <Button size="small" onClick={() => { setSelectedRowKeys([]); setSelectedRows([]); }}>
-                  取消选择
+                  {t('common.deselect')}
                 </Button>
                 <Button
                   size="small"
@@ -194,7 +197,7 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
                   loading={batchDeleteLoading}
                   onClick={confirmBatchDelete}
                 >
-                  批量删除
+                  {t('common.batchDelete')}
                 </Button>
               </Space>
             }
@@ -228,7 +231,7 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
               total={total}
               showSizeChanger
               showQuickJumper
-              showTotal={(total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`}
+              showTotal={(total, range) => t('common.pagination', { current: range[0], end: range[1], total })}
               pageSizeOptions={['10', '20', '50', '100']}
               onChange={(page, size) => {
                 setCurrentPage(page);

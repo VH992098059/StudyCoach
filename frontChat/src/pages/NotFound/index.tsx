@@ -1,8 +1,10 @@
 import React from 'react';
 import { Result, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const NotFound: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleBackHome = () => {
@@ -13,11 +15,11 @@ const NotFound: React.FC = () => {
     <div style={{ padding: '24px', textAlign: 'center' }}>
       <Result
         status="404"
-        title="404"
-        subTitle="抱歉，您访问的页面不存在。"
+        title={t('notFound.title')}
+        subTitle={t('notFound.subtitle')}
         extra={
           <Button type="primary" onClick={handleBackHome}>
-          返回AI聊天
+          {t('notFound.backHome')}
         </Button>
         }
       />

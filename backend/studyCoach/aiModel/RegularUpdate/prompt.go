@@ -1,4 +1,4 @@
-package regular_update
+package RegularUpdate
 
 import (
 	"context"

@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Checkbox, message, Divider } from 'antd';
 import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone, ArrowLeftOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AuthLayout from '../../components/AuthLayout';
 import './index.scss';
 
@@ -34,6 +35,7 @@ interface LoginFormData {
  * ```
  */
 const Login: React.FC = ()=> {
+  const { t } = useTranslation();
   /** 表单实例 */
   const [form] = Form.useForm();
   /** 登录加载状态 */
@@ -88,7 +90,7 @@ const Login: React.FC = ()=> {
       console.log(result);
       
       if (response.ok && result.code === 0 && result.data.token) {
-        message.success('登录成功！');
+        message.success(t('auth.success.login'));
 
         const userInfo = {
           username: values.username,
@@ -106,11 +108,11 @@ const Login: React.FC = ()=> {
         // 跳转到首页
         navigate('/');
       } else {
-        message.error(result.message || '登录失败，请检查您的凭据。');
+        message.error(result.message || t('auth.error.login'));
       }
     } catch (error) {
       console.error('登录请求失败:', error);
-      message.error('登录请求失败，请稍后重试。');
+      message.error(t('auth.error.loginRequest'));
     } finally {
       setLoading(false);
     }
@@ -140,8 +142,8 @@ const Login: React.FC = ()=> {
 
   return (
     <AuthLayout
-      title="用户登录"
-      subtitle="欢迎回来，请输入您的账号信息"
+      title={t('auth.loginTitle')}
+      subtitle={t('auth.loginSubtitle')}
       loading={loading}
     >
       {/* 返回按钮 */}
@@ -152,7 +154,7 @@ const Login: React.FC = ()=> {
           onClick={handleGoBack}
           className="back-btn"
         >
-          返回
+          {t('common.back')}
         </Button>
       </div>
       
@@ -167,14 +169,14 @@ const Login: React.FC = ()=> {
         <Form.Item
           name="username"
           rules={[
-            { required: true, message: '请输入用户名！' },
-            { min: 3, message: '用户名至少3个字符！' },
-            { max: 20, message: '用户名最多20个字符！' }
+            { required: true, message: t('auth.validation.usernameRequired') },
+            { min: 3, message: t('auth.validation.usernameMin') },
+            { max: 20, message: t('auth.validation.usernameMax') }
           ]}
         >
           <Input
             prefix={<UserOutlined className="site-form-item-icon" />}
-            placeholder="用户名"
+            placeholder={t('auth.username')}
             allowClear
           />
         </Form.Item>
@@ -182,13 +184,13 @@ const Login: React.FC = ()=> {
         <Form.Item
           name="password"
           rules={[
-            { required: true, message: '请输入密码！' },
-            { min: 6, message: '密码至少6个字符！' }
+            { required: true, message: t('auth.validation.passwordRequired') },
+            { min: 6, message: t('auth.validation.passwordMin') }
           ]}
         >
           <Input.Password
             prefix={<LockOutlined className="site-form-item-icon" />}
-            placeholder="密码"
+            placeholder={t('auth.password')}
             iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
           />
         </Form.Item>
@@ -196,14 +198,14 @@ const Login: React.FC = ()=> {
         <Form.Item>
           <div className="login-options">
             <Form.Item name="remember" valuePropName="checked" noStyle>
-              <Checkbox>记住我</Checkbox>
+              <Checkbox>{t('auth.rememberMe')}</Checkbox>
             </Form.Item>
             <Button
               type="link"
               onClick={handleForgotPassword}
               className="forgot-password-link"
             >
-              忘记密码？
+              {t('auth.forgotPassword')}
             </Button>
           </div>
         </Form.Item>
@@ -216,17 +218,17 @@ const Login: React.FC = ()=> {
             className="login-submit-btn"
             block
           >
-            {loading ? '登录中...' : '登录'}
+            {loading ? t('auth.loginLoading') : t('auth.loginBtn')}
           </Button>
         </Form.Item>
 
-        <Divider plain>还没有账号？</Divider>
+        <Divider plain>{t('auth.noAccount')}</Divider>
         
         <Form.Item>
           <div className="register-link">
-            <span>还没有账号？</span>
+            <span>{t('auth.noAccount')}</span>
             <Link to="/register" className="register-btn">
-              立即注册
+              {t('auth.registerNow')}
             </Link>
           </div>
         </Form.Item>

@@ -12,6 +12,7 @@
 import React, { useRef } from 'react';
 import { Button, Progress, Tooltip, Space } from 'antd';
 import { PaperClipOutlined, DeleteOutlined, FileOutlined, LoadingOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useBreakpoints } from '@/hooks/useMediaQuery';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import type { UploadedFile, FileUploadConfig } from '@/types/chat';
@@ -64,24 +65,6 @@ const getFileStatusColor = (status: UploadedFile['status']): string => {
 };
 
 /**
- * 获取文件状态文本
- */
-const getFileStatusText = (status: UploadedFile['status']): string => {
-  switch (status) {
-    case 'pending':
-      return '待上传';
-    case 'uploading':
-      return '上传中';
-    case 'success':
-      return '上传成功';
-    case 'error':
-      return '上传失败';
-    default:
-      return '';
-  }
-};
-
-/**
  * 文件上传组件
  */
 export const FileUpload: React.FC<FileUploadProps> = ({
@@ -92,6 +75,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   onFilesChange,
   onUploadComplete,
 }) => {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isMobile } = useBreakpoints();
   
@@ -105,6 +89,21 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     uploadFiles,
     config: fileConfig,
   } = useFileUpload(config);
+
+  const getFileStatusText = (status: UploadedFile['status']): string => {
+    switch (status) {
+      case 'pending':
+        return t('chat.upload.pending');
+      case 'uploading':
+        return t('chat.upload.uploading');
+      case 'success':
+        return t('chat.upload.success');
+      case 'error':
+        return t('chat.upload.error');
+      default:
+        return '';
+    }
+  };
 
   // 监听文件变化
   React.useEffect(() => {
@@ -158,7 +157,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             justifyContent: 'space-between',
             alignItems: 'center'
           }}>
-            <span>已选择文件 ({uploadedFiles.length}/{fileConfig.maxFileCount}):</span>
+            <span>{t('chat.upload.selected')} ({uploadedFiles.length}/{fileConfig.maxFileCount}):</span>
             {uploadedFiles.length > 1 && (
               <Button
                 type="link"
@@ -167,7 +166,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 disabled={isUploading}
                 style={{ padding: 0, height: 'auto', fontSize: '12px' }}
               >
-                清空全部
+                {t('chat.upload.clearAll')}
               </Button>
             )}
           </div>
@@ -192,6 +191,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   border: `1px solid ${getFileStatusColor(file.status)}`,
                   minWidth: isMobile ? '100%' : 'auto',
                   maxWidth: isMobile ? '100%' : '200px',
+                  position: 'relative',
+                  paddingRight: file.status !== 'uploading' ? '24px' : '8px'
                 }}
               >
                 <FileOutlined style={{ color: getFileStatusColor(file.status) }} />
@@ -245,7 +246,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                       height: '16px',
                       minWidth: '16px',
                       color: '#ff4d4f',
-                      fontSize: '10px'
+                      fontSize: '10px',
+                      position: 'absolute',
+                      right: '4px',
+                      top: '50%',
+                      transform: 'translateY(-50%)'
                     }}
                   />
                 )}
@@ -265,7 +270,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                 percent={Math.round(uploadProgress)}
                 size="small"
                 status="active"
-                format={(percent) => `上传中 ${percent}%`}
+                format={(percent) => `${t('chat.upload.uploading')} ${percent}%`}
               />
             </div>
           )}
@@ -287,8 +292,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
           }}
           title={
             uploadedFiles.length >= fileConfig.maxFileCount 
-              ? `最多只能选择 ${fileConfig.maxFileCount} 个文件`
-              : '选择文件'
+              ? t('chat.upload.maxLimit', { count: fileConfig.maxFileCount })
+              : t('chat.upload.select')
           }
         />
 
@@ -302,7 +307,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             disabled={disabled}
             style={{ fontSize: '12px' }}
           >
-            {isUploading ? '上传中...' : '上传文件'}
+            {isUploading ? t('chat.upload.btnUploading') : t('chat.upload.btn')}
           </Button>
         )}
       </Space>

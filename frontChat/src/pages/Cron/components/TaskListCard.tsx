@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, List, Button, Tag, Space, Typography, theme } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 
 export interface CronTask {
   id: string;
@@ -36,29 +37,30 @@ const TaskListCard: React.FC<TaskListCardProps> = ({
   onRefresh,
 }) => {
   const { token } = theme.useToken();
+  const { t } = useTranslation();
 
   const getStatusTag = (status: number) => {
     switch (status) {
-      case 1: return <Tag color="success">启用</Tag>;
-      case 2: return <Tag color="warning">暂停</Tag>;
-      default: return <Tag color="default">停止</Tag>;
+      case 1: return <Tag color="success">{t('cron.status.enabled')}</Tag>;
+      case 2: return <Tag color="warning">{t('cron.status.paused')}</Tag>;
+      default: return <Tag color="default">{t('cron.status.stopped')}</Tag>;
     }
   };
 
   return (
     <Card
-      title="定时任务列表"
+      title={t('cron.title')}
       className="section-card"
       style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
       extra={
         <Space>
             <Button icon={<ReloadOutlined />} size="small" onClick={onRefresh} />
             <Button type="primary" icon={<PlusOutlined />} size="small" onClick={onAddTask}>
-            新建
+            {t('cron.create')}
             </Button>
         </Space>
       }
-      bodyStyle={{ padding: 0, flex: 1, overflowY: 'auto' }}
+      styles={{ body: { padding: 0, flex: 1, overflowY: 'auto' } }}
     >
       <List
         rowKey="id"
@@ -89,7 +91,7 @@ const TaskListCard: React.FC<TaskListCardProps> = ({
             <List.Item.Meta
               title={
                 <Space>
-                  <Typography.Text strong>{item.cronName || `任务 ${item.id}`}</Typography.Text>
+                  <Typography.Text strong>{item.cronName || `${t('cron.task')} ${item.id}`}</Typography.Text>
                   {getStatusTag(item.status)}
                 </Space>
               }
@@ -99,7 +101,7 @@ const TaskListCard: React.FC<TaskListCardProps> = ({
                     {item.cronExpression}
                   </Typography.Text>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    知识库: {item.kbName || item.knowledgeBasename || '未选择'}
+                    {t('cron.kb')}: {item.kbName || item.knowledgeBasename || t('cron.notSelected')}
                   </Typography.Text>
                 </Space>
               }

@@ -11,7 +11,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import Header from '../Header';
-import Footer from '../Footer';
+import { useTranslation } from 'react-i18next';
 import type { MenuProps } from 'antd';
 import './index.scss';
 
@@ -109,16 +109,17 @@ const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> 
   error,
   resetErrorBoundary,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="error-boundary">
       <Alert
-        message="页面出现错误"
+        title={t('common.pageError')}
         description={error.message}
         type="error"
         showIcon
         action={
           <button onClick={resetErrorBoundary} className="error-retry-btn">
-            重试
+            {t('common.retry')}
           </button>
         }
       />
@@ -131,9 +132,10 @@ const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> 
  * @description 在页面加载过程中显示的loading界面
  */
 const LoadingFallback: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="loading-container">
-      <Spin size="large" tip="加载中..." />
+      <Spin size="large" tip={t('common.loading')} />
     </div>
   );
 };

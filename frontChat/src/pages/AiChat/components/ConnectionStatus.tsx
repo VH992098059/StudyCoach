@@ -3,6 +3,7 @@
  * @description 展示 SSE 连接的状态信息与重试次数，提示用户当前网络/服务状态。
  */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { SSEConnectionState } from '@/utils/sse/sse';
 
 interface ConnectionStatusProps {
@@ -18,6 +19,8 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   reconnectAttempts,
   maxReconnectAttempts,
 }) => {
+  const { t } = useTranslation();
+
   if (!loading && connectionState === SSEConnectionState.DISCONNECTED) {
     return null;
   }
@@ -27,19 +30,19 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
 
   switch (connectionState) {
     case SSEConnectionState.CONNECTING:
-      statusText = '正在连接...';
+      statusText = t('chat.status.connecting');
       statusColor = '#1890ff';
       break;
     case SSEConnectionState.CONNECTED:
-      statusText = '已连接';
+      statusText = t('chat.status.connected');
       statusColor = '#52c41a';
       break;
     case SSEConnectionState.RECONNECTING:
-      statusText = `重连中... (${reconnectAttempts}/${maxReconnectAttempts})`;
+      statusText = `${t('chat.status.reconnecting')} (${reconnectAttempts}/${maxReconnectAttempts})`;
       statusColor = '#faad14';
       break;
     case SSEConnectionState.ERROR:
-      statusText = '连接错误';
+      statusText = t('chat.status.error');
       statusColor = '#ff4d4f';
       break;
     default:

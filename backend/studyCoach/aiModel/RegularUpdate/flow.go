@@ -1,4 +1,4 @@
-package regular_update
+package RegularUpdate
 
 import (
 	"backend/studyCoach/common"
@@ -11,7 +11,6 @@ import (
 
 // newLambda component initialization function of node 'Lambda2' in graph 'RegularUpdate'
 func newLambda(ctx context.Context, conf *common.Config) (lba *compose.Lambda, err error) {
-	// TODO Modify component configuration here.
 	config := &react.AgentConfig{}
 	chatModelIns11, err := newChatModel(ctx, conf)
 	if err != nil {

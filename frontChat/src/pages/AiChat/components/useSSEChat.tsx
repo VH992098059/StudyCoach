@@ -6,6 +6,7 @@ import { useRef, useState, useCallback } from 'react';
 import { SSEConnectionState } from '@/utils/sse/sse';
 import { XRequest, XStream } from '@ant-design/x-sdk';
 import type { Message } from '@/types/chat';
+import { useTranslation } from 'react-i18next';
 
 interface AdvancedSettings {
   topK: number;
@@ -33,6 +34,7 @@ interface ChatParams {
 
 const useSSEChat = (params: UseSSEChatParams) => {
   const { selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, generateMsgId, setMessages } = params;
+  const { t } = useTranslation();
 
   // --- Refs ---
   // 请求实例，使用 any 规避复杂的泛型类型兼容问题
@@ -112,7 +114,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
             // 检查错误事件
             if (chunk?.event === 'error') {
-              const errorMsg = chunk?.data || '未知错误';
+              const errorMsg = chunk?.data || t('chat.sse.unknownError');
               console.error('SSE Error Event:', errorMsg);
               // 如果有累积的消息，先保存
               if (accumulatedMessageRef.current) {
@@ -245,7 +247,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
             if (attempt < MAX_RECONNECT_ATTEMPTS) {
               const nextAttempt = attempt + 1;
               setReconnectAttempts(nextAttempt);
-              setConnectionError(`连接中断，正在尝试第 ${nextAttempt} 次重连...`);
+              setConnectionError(t('chat.sse.reconnecting', { attempt: nextAttempt }));
               setConnectionState(SSEConnectionState.RECONNECTING);
 
               // 延迟重连
@@ -253,7 +255,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
                   createConnection(question, sessionId, nextAttempt);
               }, 2000);
             } else {
-              setConnectionError('连接失败，请稍后重试');
+              setConnectionError(t('chat.sse.connectionFailed'));
               setConnectionState(SSEConnectionState.ERROR);
               setLoading(false);
             }

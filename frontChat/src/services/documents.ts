@@ -81,20 +81,20 @@ export const DocumentsService = {
   },
 
   /**
-   * 获取状态文本
+   * 获取状态文本的翻译键
    */
-  getStatusText: (status: DocumentStatus): string => {
+  getStatusTextKey: (status: DocumentStatus): string => {
     switch (status) {
       case DocumentStatus.PENDING:
-        return '待处理';
+        return 'kb.documents.statusText.pending';
       case DocumentStatus.INDEXING:
-        return '索引中';
+        return 'kb.documents.statusText.indexing';
       case DocumentStatus.ACTIVE:
-        return '已完成';
+        return 'kb.documents.statusText.active';
       case DocumentStatus.FAILED:
-        return '失败';
+        return 'kb.documents.statusText.failed';
       default:
-        return '未知';
+        return 'kb.documents.statusText.unknown';
     }
   },
 

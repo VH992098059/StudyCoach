@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, message, Divider, Checkbox } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, EyeInvisibleOutlined, EyeTwoTone, ArrowLeftOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AuthLayout from '../../components/AuthLayout';
 import './index.scss';
 
@@ -38,6 +39,7 @@ interface RegisterFormData {
  * ```
  */
 const Register: React.FC = ()=> {
+  const { t } = useTranslation();
   /** 表单实例 */
   const [form] = Form.useForm();
   /** 注册加载状态 */
@@ -106,20 +108,20 @@ const Register: React.FC = ()=> {
       
       if (data.code===0) {
         // 注册成功
-        message.success('注册成功！请登录您的账号。');
+        message.success(t('auth.success.register'));
         console.log('注册成功:', data);
         
         // 跳转到登录页面
         navigate('/login');
       } else {
         // 注册失败，显示后端返回的错误信息
-        const errorMessage = data.message || '注册失败，请稍后重试！';
+        const errorMessage = data.message || t('auth.error.register');
         message.error(errorMessage);
         console.error('注册失败:', data);
       }
     } catch (error) {
       console.error('注册请求失败:', error);
-      message.error('网络错误，请检查网络连接后重试！');
+      message.error(t('auth.error.registerRequest'));
     } finally {
       setLoading(false);
     }
@@ -148,13 +150,13 @@ const Register: React.FC = ()=> {
    */
   const validatePassword = (_: any, value: string): Promise<void> => {
     if (!value) {
-      return Promise.reject(new Error('请输入密码！'));
+      return Promise.reject(new Error(t('auth.validation.passwordRequired')));
     }
     if (value.length < 6) {
-      return Promise.reject(new Error('密码至少6个字符！'));
+      return Promise.reject(new Error(t('auth.validation.passwordMin')));
     }
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
-      return Promise.reject(new Error('密码必须包含大小写字母和数字！'));
+      return Promise.reject(new Error(t('auth.validation.passwordPattern')));
     }
     return Promise.resolve();
   };
@@ -168,10 +170,10 @@ const Register: React.FC = ()=> {
    */
   const validateConfirmPassword = (_: any, value: string): Promise<void> => {
     if (!value) {
-      return Promise.reject(new Error('请确认密码！'));
+      return Promise.reject(new Error(t('auth.validation.confirmPasswordRequired')));
     }
     if (value !== form.getFieldValue('password')) {
-      return Promise.reject(new Error('两次输入的密码不一致！'));
+      return Promise.reject(new Error(t('auth.validation.passwordMismatch')));
     }
     return Promise.resolve();
   };
@@ -185,11 +187,11 @@ const Register: React.FC = ()=> {
    */
   const validateEmail = (_: any, value: string): Promise<void> => {
     if (!value) {
-      return Promise.reject(new Error('请输入邮箱地址！'));
+      return Promise.reject(new Error(t('auth.validation.emailRequired')));
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      return Promise.reject(new Error('请输入有效的邮箱地址！'));
+      return Promise.reject(new Error(t('auth.validation.emailInvalid')));
     }
     return Promise.resolve();
   };
@@ -198,8 +200,8 @@ const Register: React.FC = ()=> {
 
   return (
     <AuthLayout
-      title="用户注册"
-      subtitle="创建您的账号，开始使用我们的服务"
+      title={t('auth.registerTitle')}
+      subtitle={t('auth.registerSubtitle')}
       loading={loading}
     >
       {/* 返回按钮 */}
@@ -210,7 +212,7 @@ const Register: React.FC = ()=> {
         className="back-button"
         style={{ marginBottom: '16px' }}
       >
-        {canGoBack ? '返回上一页' : '返回主页'}
+        {canGoBack ? t('common.back') : t('common.home')}
       </Button>
       
       <Form
@@ -225,15 +227,15 @@ const Register: React.FC = ()=> {
         <Form.Item
           name="username"
           rules={[
-            { required: true, message: '请输入用户名！' },
-            { min: 3, message: '用户名至少3个字符！' },
-            { max: 20, message: '用户名最多20个字符！' },
-            { pattern: /^[a-zA-Z0-9_]+$/, message: '用户名只能包含字母、数字和下划线！' }
+            { required: true, message: t('auth.validation.usernameRequired') },
+            { min: 3, message: t('auth.validation.usernameMin') },
+            { max: 20, message: t('auth.validation.usernameMax') },
+            { pattern: /^[a-zA-Z0-9_]+$/, message: t('auth.validation.usernamePattern') }
           ]}
         >
           <Input
             prefix={<UserOutlined className="site-form-item-icon" />}
-            placeholder="用户名"
+            placeholder={t('auth.username')}
             allowClear
           />
         </Form.Item>
@@ -244,7 +246,7 @@ const Register: React.FC = ()=> {
         >
           <Input
             prefix={<MailOutlined className="site-form-item-icon" />}
-            placeholder="邮箱地址"
+            placeholder={t('auth.email')}
             allowClear
           />
         </Form.Item>
@@ -257,7 +259,7 @@ const Register: React.FC = ()=> {
         >
           <Input.Password
             prefix={<LockOutlined className="site-form-item-icon" />}
-            placeholder="密码"
+            placeholder={t('auth.password')}
             iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
           />
         </Form.Item>
@@ -269,7 +271,7 @@ const Register: React.FC = ()=> {
         >
           <Input.Password
             prefix={<LockOutlined className="site-form-item-icon" />}
-            placeholder="确认密码"
+            placeholder={t('auth.confirmPassword')}
             iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
           />
         </Form.Item>
@@ -280,18 +282,18 @@ const Register: React.FC = ()=> {
           rules={[
             {
               validator: (_, value) =>
-                value ? Promise.resolve() : Promise.reject(new Error('请阅读并同意服务条款！')),
+                value ? Promise.resolve() : Promise.reject(new Error(t('auth.validation.agreementRequired'))),
             },
           ]}
         >
           <Checkbox>
-            我已阅读并同意
+            {t('auth.agreement')}
             <Link to="/terms" target="_blank" className="agreement-link">
-              《服务条款》
+              {t('auth.terms')}
             </Link>
-            和
+            {t('auth.and')}
             <Link to="/privacy" target="_blank" className="agreement-link">
-              《隐私政策》
+              {t('auth.privacy')}
             </Link>
           </Checkbox>
         </Form.Item>
@@ -304,17 +306,17 @@ const Register: React.FC = ()=> {
             className="register-submit-btn"
             block
           >
-            {loading ? '注册中...' : '立即注册'}
+            {loading ? t('auth.registerLoading') : t('auth.registerBtn')}
           </Button>
         </Form.Item>
 
-        <Divider plain>已有账号？</Divider>
+        <Divider plain>{t('auth.haveAccount')}</Divider>
         
         <Form.Item>
           <div className="login-link">
-            <span>已有账号？</span>
+            <span>{t('auth.haveAccount')}</span>
             <Link to="/login" className="login-btn">
-              立即登录
+              {t('auth.loginNow')}
             </Link>
           </div>
         </Form.Item>

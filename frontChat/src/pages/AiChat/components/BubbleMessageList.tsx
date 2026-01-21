@@ -7,16 +7,19 @@ import React from 'react';
 import { Card, Avatar } from 'antd';
 import { Bubble, XProvider } from '@ant-design/x';
 import zhCN from '@ant-design/x/locale/zh_CN';
+import enUS from '@ant-design/x/locale/en_US';
 import XMarkdown, { type ComponentProps } from '@ant-design/x-markdown';
 import HighlightCode from '@ant-design/x-markdown/plugins/HighlightCode';
 import Latex from '@ant-design/x-markdown/plugins/Latex';
 import Mermaid from '@ant-design/x-markdown/plugins/Mermaid';
 import { RobotOutlined, UserOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { Message } from '@/types/chat';
 import { SSEConnectionState } from '@/utils/sse/sse';
 import '@ant-design/x-markdown/themes/light.css';
 import '@ant-design/x-markdown/themes/dark.css';
 import './BubbleMessageList.css';
+import ConnectionStatus from './ConnectionStatus';
 
 const Code: React.FC<ComponentProps> = (props) => {
   const { className, children } = props;
@@ -41,7 +44,6 @@ const renderMarkdown = (content: React.ReactNode) => {
     </XMarkdown>
   );
 };
-import ConnectionStatus from './ConnectionStatus';
 
 interface VoiceStateProps {
   isReading: boolean;
@@ -81,8 +83,11 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
   voiceState,
   messagesEndRef,
 }) => {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? enUS : zhCN;
+
   return (
-    <XProvider locale={zhCN}>
+    <XProvider locale={locale}>
       <Card
         style={{ flex: 1, marginBottom: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}
         styles={{body:{ padding: 0, flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}}
@@ -119,7 +124,7 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
                       placement: 'start' as 'start' | 'end',
                       avatar: <Avatar icon={<RobotOutlined />} style={aiAvatarStyle} />,
                       typing: !currentAiMessage,
-                      content: currentAiMessage || '正在连接AI服务...',
+                      content: currentAiMessage || t('chat.connecting'),
                       styles: !currentAiMessage ? { avatar: hideAvatar } : undefined,
                     },
                   ]

@@ -26,6 +26,7 @@ import {
   SearchOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../../services/knowledgeBase';
 import { RetrieverService, type RetrievalDocument } from '../../../services/retriever';
 import './index.scss';
@@ -50,6 +51,7 @@ type SearchResult = RetrievalDocument;
  * 文档检索页面组件
  */
 const Retriever: React.FC = () => {
+  const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<RetrievalDocument[]>([]);
@@ -66,7 +68,7 @@ const Retriever: React.FC = () => {
     try {
       const response = await KnowledgeBaseService.getList({ status: KBStatus.OK });
       const options = [
-        { id: '', name: '全部知识库' },
+        { id: '', name: t('retriever.allKb') },
         ...(response.list || []).map((kb: KnowledgeBase) => ({
           id: kb.name,
           name: kb.name
@@ -75,7 +77,7 @@ const Retriever: React.FC = () => {
       setKnowledgeOptions(options);
     } catch (error) {
       console.error('获取知识库列表失败:', error);
-      message.error('获取知识库列表失败');
+      message.error(t('retriever.validation.fetchKbFailed'));
     } finally {
       setKnowledgeLoading(false);
     }
@@ -112,12 +114,12 @@ const Retriever: React.FC = () => {
       const values = await form.validateFields();
       
       if (!values.question?.trim()) {
-        message.warning('请输入搜索问题');
+        message.warning(t('retriever.validation.question'));
         return;
       }
 
       if (!values.knowledge_name) {
-        message.warning('请选择知识库');
+        message.warning(t('retriever.validation.kb'));
         return;
       }
 
@@ -137,14 +139,14 @@ const Retriever: React.FC = () => {
       setActiveKeys(results.length > 0 ? ['0'] : []);
 
       if (results.length === 0) {
-        message.info('未找到相关文档');
+        message.info(t('retriever.noResult'));
       } else {
-        message.success(`找到 ${results.length} 个相关结果`);
+        message.success(t('retriever.found', { count: results.length }));
       }
 
     } catch (error) {
       console.error('Search error:', error);
-      message.error('检索失败，请重试');
+      message.error(t('retriever.validation.failed'));
     } finally {
       setLoading(false);
     }
@@ -172,7 +174,7 @@ const Retriever: React.FC = () => {
         <div className="card-header">
           <Space>
             <SearchOutlined className="header-icon" />
-            <span className="header-title">文档检索</span>
+            <span className="header-title">{t('retriever.title')}</span>
           </Space>
 
         </div>
@@ -194,11 +196,11 @@ const Retriever: React.FC = () => {
               <Col xs={24} sm={16}>
                 <Form.Item name="question">
                   <Input.Search
-                    placeholder="请输入您想要检索的问题"
+                    placeholder={t('retriever.placeholder')}
                     size="large"
                     enterButton={
                       <Button type="primary" icon={<SearchOutlined />}>
-                        检索
+                        {t('retriever.search')}
                       </Button>
                     }
                     onSearch={handleSearch}
@@ -210,7 +212,7 @@ const Retriever: React.FC = () => {
               <Col xs={35} sm={9}>
                 <Form.Item name="knowledge_name" >
                   <Select
-                    placeholder="请选择知识库"
+                    placeholder={t('retriever.selectKb')}
                     loading={knowledgeLoading}
                     allowClear
                   >
@@ -229,7 +231,7 @@ const Retriever: React.FC = () => {
 
             <Row gutter={24}>
               <Col xs={24} sm={12}>
-                <Form.Item label="返回结果数量" name="top_k">
+                <Form.Item label={t('retriever.topK')} name="top_k">
                   <InputNumber
                     min={1}
                     max={10}
@@ -239,7 +241,7 @@ const Retriever: React.FC = () => {
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12}>
-                <Form.Item label="相似度阈值" name="score">
+                <Form.Item label={t('retriever.score')} name="score">
                   <Slider
                     min={0}
                     max={1}
@@ -265,7 +267,7 @@ const Retriever: React.FC = () => {
             <Divider >
               <Space>
                 <FileTextOutlined />
-                <span>检索结果</span>
+                <span>{t('retriever.result')}</span>
               </Space>
             </Divider>
 
@@ -280,13 +282,13 @@ const Retriever: React.FC = () => {
                     <div className="result-header">
                       <Space>
                         <span className="result-title">
-                          文档片段 #{index + 1}
+                          {t('retriever.fragment')} #{index + 1}
                         </span>
                         <Tag color="blue">
-                          相似度: {formatScore(result.meta_data._score)}
+                          {t('retriever.similarity')}: {formatScore(result.meta_data._score)}
                         </Tag>
                         <Tag color="green">
-                          {result.meta_data.ext._file_name || '未知来源'}
+                          {result.meta_data.ext._file_name || t('retriever.unknownSource')}
                         </Tag>
                       </Space>
                     </div>
@@ -296,7 +298,7 @@ const Retriever: React.FC = () => {
                   <Card className="content-card" size="small">
                     <div className="source-info">
                       <Tag  color="processing">
-                        {result.meta_data.ext._file_name || '未知来源'}
+                        {result.meta_data.ext._file_name || t('retriever.unknownSource')}
                       </Tag>
                     </div>
                     <div 
@@ -315,7 +317,7 @@ const Retriever: React.FC = () => {
         {!loading && searchResults.length === 0 && searched && (
           <div className="empty-result">
             <Empty 
-              description="未找到相关文档"
+              description={t('retriever.noResult')}
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           </div>

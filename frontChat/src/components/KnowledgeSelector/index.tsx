@@ -8,6 +8,7 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Select, message } from 'antd';
 import { DatabaseOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '@/services/knowledgeBase';
 
 const { Option } = Select;
@@ -36,7 +37,8 @@ export interface KnowledgeSelectorRef {
  * 知识库选择组件
  */
 const KnowledgeSelector = forwardRef<KnowledgeSelectorRef, KnowledgeSelectorProps>(
-  ({ value, onChange, placeholder = '选择知识库', style, size = 'middle', disabled = false }, ref) => {
+  ({ value, onChange, placeholder, style, size = 'middle', disabled = false }, ref) => {
+    const { t } = useTranslation();
     const [selectedKnowledge, setSelectedKnowledge] = useState<string>(value || 'none');
     const [knowledgeOptions, setKnowledgeOptions] = useState<Array<{id: string; name: string; description?: string}>>([]);
     const [loading, setLoading] = useState(false);
@@ -58,7 +60,7 @@ const KnowledgeSelector = forwardRef<KnowledgeSelectorRef, KnowledgeSelectorProp
       try {
         const response = await KnowledgeBaseService.getList({ status: KBStatus.OK });
         const knowledgeOptions = [
-          { id: 'none', name: '无', description: '不使用知识库' },
+          { id: 'none', name: t('common.none'), description: t('kb.noKbDescription') },
           ...(response.list || []).map((kb: KnowledgeBase) => ({
             id: kb.name,
             name: kb.name,
@@ -69,7 +71,7 @@ const KnowledgeSelector = forwardRef<KnowledgeSelectorRef, KnowledgeSelectorProp
         setKnowledgeOptions(knowledgeOptions);
       } catch (error) {
         console.error('获取知识库列表失败:', error);
-        message.error('获取知识库列表失败');
+        message.error(t('kb.error.fetch'));
       } finally {
         setLoading(false);
       }
@@ -100,7 +102,7 @@ const KnowledgeSelector = forwardRef<KnowledgeSelectorRef, KnowledgeSelectorProp
       <Select
         value={selectedKnowledge}
         onChange={handleChange}
-        placeholder={placeholder}
+        placeholder={placeholder || t('kb.documents.selectKbPlaceholder')}
         style={{ minWidth: 100, ...style }}
         size={size}
         disabled={disabled}

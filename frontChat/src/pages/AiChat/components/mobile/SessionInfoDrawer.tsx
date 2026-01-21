@@ -1,6 +1,7 @@
 import React from 'react';
 import { Drawer, Divider, Card, Button, Empty, Tooltip, Tag, Slider } from 'antd';
 import { FileTextOutlined, CopyOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import KnowledgeSelector, { type KnowledgeSelectorRef } from '@/components/KnowledgeSelector';
 import MDEditor from '@uiw/react-md-editor';
 import type { ReferenceDocument } from '../pc/SessionInfoPanel';
@@ -25,6 +26,7 @@ export interface SessionInfoDrawerProps {
 }
 
 const SessionInfoDrawer: React.FC<SessionInfoDrawerProps> = (props: SessionInfoDrawerProps) => {
+  const { t } = useTranslation();
   const {
     open,
     onClose,
@@ -46,7 +48,7 @@ const SessionInfoDrawer: React.FC<SessionInfoDrawerProps> = (props: SessionInfoD
 
   return (
     <Drawer
-      title="会话信息"
+      title={t('chat.info.title')}
       placement="right"
       onClose={onClose}
       open={open}
@@ -63,23 +65,23 @@ const SessionInfoDrawer: React.FC<SessionInfoDrawerProps> = (props: SessionInfoD
         />
       </div>
       <div style={{ fontSize: 12, color: '#666', lineHeight: 1.6, marginBottom: 16 }}>
-        <div>会话ID: {currentSessionId || '未开始'}</div>
-        <div>消息数: {messagesCount}</div>
-        <div>联网: {isNetworkEnabled ? '已开启' : '已关闭'}</div>
-        <div>参考文档: {referenceDocuments.length} 条</div>
+        <div>{t('chat.info.id')}: {currentSessionId || t('chat.info.notStarted')}</div>
+        <div>{t('chat.info.messageCount')}: {messagesCount}</div>
+        <div>{isNetworkEnabled ? t('chat.info.networkEnabled') : t('chat.info.networkDisabled')}</div>
+        <div>{t('chat.info.referenceDocs')}: {referenceDocuments.length} {t('chat.info.countUnit')}</div>
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <Divider style={{ margin: '12px 0' }}>高级选项</Divider>
-        <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>返回数量: {advancedSettings.topK}</div>
+        <Divider style={{ margin: '12px 0' }}>{t('chat.info.advancedSettings')}</Divider>
+        <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>{t('chat.info.returnCount')}: {advancedSettings.topK}</div>
         <Slider min={1} max={10} value={advancedSettings.topK} onChange={(value: number) => onAdvancedSettingsChange('topK', value)} marks={{ 1: '1', 5: '5', 10: '10' }} />
-        <div style={{ fontSize: 12, color: '#666', margin: '8px 0 6px' }}>相似度: {advancedSettings.score}</div>
+        <div style={{ fontSize: 12, color: '#666', margin: '8px 0 6px' }}>{t('chat.info.similarity')}: {advancedSettings.score}</div>
         <Slider min={0} max={1} step={0.1} value={advancedSettings.score} onChange={(value: number) => onAdvancedSettingsChange('score', value)} marks={{ 0: '0', 0.5: '0.5', 1: '1' }} />
       </div>
 
       {showReferences && (
         <div>
-          <Divider style={{ margin: '12px 0' }}>参考文档</Divider>
+          <Divider style={{ margin: '12px 0' }}>{t('chat.info.referenceDocs')}</Divider>
           <div
             style={{
               maxHeight: 400,
@@ -97,11 +99,11 @@ const SessionInfoDrawer: React.FC<SessionInfoDrawerProps> = (props: SessionInfoD
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 'bold', fontSize: 11, marginBottom: 2 }}>{doc.title}</div>
                       <div style={{ fontSize: 10, color: '#666', marginBottom: 4 }}>
-                        <Tag color="blue">相似度: {(doc.similarity * 100).toFixed(1)}%</Tag>
-                        <Tag color="green">来源: {doc.source}</Tag>
+                        <Tag color="blue">{t('chat.info.similarity')} {(doc.similarity * 100).toFixed(1)}%</Tag>
+                        <Tag color="green">{t('chat.info.source')} {doc.source}</Tag>
                       </div>
                     </div>
-                    <Tooltip title="复制内容">
+                    <Tooltip title={t('chat.info.copyContent')}>
                       <Button
                         type="text"
                         icon={<CopyOutlined />}
@@ -119,7 +121,7 @@ const SessionInfoDrawer: React.FC<SessionInfoDrawerProps> = (props: SessionInfoD
                 </Card>
               ))
             ) : (
-              <Empty description="暂无参考文档" image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ margin: '20px 0' }} />
+              <Empty description={t('chat.info.noDocs')} image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ margin: '20px 0' }} />
             )}
           </div>
         </div>

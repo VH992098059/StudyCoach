@@ -1,6 +1,7 @@
 import type { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { message } from 'antd';
 import type { ApiResponse, ApiError } from './types';
+import i18n from '../../i18n';
 
 /**
  * 请求拦截器
@@ -69,7 +70,7 @@ export const responseInterceptor = {
     } else {
       const error: ApiError = {
         code: (data as any)?.code ?? -1,
-        message: (data as any)?.message ?? '请求失败',
+        message: (data as any)?.message ?? i18n.t('api.requestFailed'),
         details: (data as any)?.data,
       };
       
@@ -88,26 +89,25 @@ export const responseInterceptor = {
 
     if (response) {
       const { status, data } = response;
-      let errorMessage = '请求失败';
+      let errorMessage = i18n.t('api.requestFailed');
 
       switch (status) {
         case 401:
-          errorMessage = '登录已过期，请重新登录';
-          // 清除 token 并跳转到登录页
+          errorMessage = i18n.t('api.unauthorized');
           localStorage.removeItem('access_token');
           window.location.href = '/login';
           break;
         case 403:
-          errorMessage = '没有权限访问该资源';
+          errorMessage = i18n.t('api.forbidden');
           break;
         case 404:
-          errorMessage = '请求的资源不存在';
+          errorMessage = i18n.t('api.notFound');
           break;
         case 500:
-          errorMessage = '服务器内部错误';
+          errorMessage = i18n.t('api.internalServerError');
           break;
         default:
-          errorMessage = (data as any)?.message || `请求失败 (${status})`;
+          errorMessage = (data as any)?.message || i18n.t('api.requestFailedWithStatus', { status });
       }
 
       if (showError) {
@@ -120,7 +120,7 @@ export const responseInterceptor = {
         details: data,
       });
     } else {
-      const errorMessage = '网络连接失败，请检查网络设置';
+      const errorMessage = i18n.t('api.networkError');
       if (showError) {
         message.error(errorMessage);
       }

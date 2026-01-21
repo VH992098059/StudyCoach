@@ -1,6 +1,8 @@
 
+import React, { useMemo, useState } from 'react';
 import { Button, Modal, Typography } from 'antd';
 import { DeleteOutlined, PlusOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { ChatSession } from '@/types/chat';
 
 const { Title } = Typography;
@@ -28,6 +30,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
     onDeleteSession,
   } = props;
 
+  const { t } = useTranslation();
+
   const groups = (() => {
     const now = new Date();
     const todayKey = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toDateString();
@@ -39,7 +43,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
     for (const item of sorted) {
       const d = new Date(item.updatedAt);
       const key = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toDateString();
-      const label = key === todayKey ? '今天' : key === yesterdayKey ? '昨天' : d.toLocaleDateString();
+      const label = key === todayKey ? t('chat.sidebar.today') : key === yesterdayKey ? t('chat.sidebar.yesterday') : d.toLocaleDateString();
       (bucket[label] ||= []).push(item);
     }
     for (const label of Object.keys(bucket)) map.push({ label, items: bucket[label] });
@@ -55,8 +59,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
     >
       <div style={{ padding: 20, borderRadius: 8,  height: 'calc(100vh - 67px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Title level={5} style={{ margin: 0 }}>会话列表</Title>
-          <Button type="primary" size="middle" icon={<PlusOutlined />} onClick={onCreateSession}>新建会话</Button>
+          <Title level={5} style={{ margin: 0 }}>{t('chat.sidebar.title')}</Title>
+          <Button type="primary" size="middle" icon={<PlusOutlined />} onClick={onCreateSession}>{t('chat.sidebar.newSession')}</Button>
         </div>
         <div
           className={`custom-scrollbar ${isScrolling ? 'scrolling' : ''}`}
@@ -84,7 +88,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
                 >
                   <div style={{ overflow: 'hidden' }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: '#333', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                      {item.title || '未命名会话'}
+                      {item.title || t('chat.sidebar.unnamedSession')}
                     </div>
                     <div style={{ fontSize: 12, color: '#999' }}>
                       {item.updatedAt ? new Date(item.updatedAt).toLocaleTimeString() : ''}
@@ -98,17 +102,17 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
                     onClick={(e) => {
                       e.stopPropagation();
                       Modal.confirm({
-                        title: '删除该会话？',
+                        title: t('chat.sidebar.confirmDeleteTitle'),
                         icon: <ExclamationCircleOutlined />,
                         content: (
                           <div style={{ color: '#666' }}>
-                            <div>会话标题：{item.title || '未命名会话'}</div>
-                            <div style={{ marginTop: 8 }}>删除后不可恢复。</div>
+                            <div>{t('chat.sidebar.sessionTitle')} {item.title || t('chat.sidebar.unnamedSession')}</div>
+                            <div style={{ marginTop: 8 }}>{t('chat.sidebar.deleteWarning')}</div>
                           </div>
                         ),
-                        okText: '删除',
+                        okText: t('chat.sidebar.confirm'),
                         okButtonProps: { danger: true },
-                        cancelText: '取消',
+                        cancelText: t('chat.sidebar.cancel'),
                         centered: true,
                         zIndex: 2100,
                         getContainer: () => document.body,
@@ -117,7 +121,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
                         onOk: () => onDeleteSession(item.id),
                       });
                     }}
-                  >删除</Button>
+                  >{t('chat.sidebar.delete')}</Button>
 
                 </div>
               ))}

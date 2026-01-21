@@ -69,12 +69,6 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 	g.Log().Infof(ctx, "[ChatAiModel] 开始处理请求 - ID: %s, 网络搜索: %v, 知识库: %s", req.ID, req.IsNetwork, req.KnowledgeName)
 
 	g.Log().Infof(ctx, "用户内容：", req.Question)
-	//火山引擎
-	/*conf := &common.Config{
-		APIKey:    g.Cfg().MustGet(ctx, "ark.apiKey").String(),
-		BaseURL:   g.Cfg().MustGet(ctx, "ark.baseURL").String(),
-		ChatModel: g.Cfg().MustGet(ctx, "ark.model").String(),
-	}*/
 	//硅基流动
 	conf := &common.Config{
 		APIKey:    g.Cfg().MustGet(ctx, "siliconflow.apiKey").String(),
@@ -127,7 +121,7 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 	var rag *Rag
 	var documents []*schema.Document
 	g.Log().Info(ctx, "用户内容：", req.Question)
-	// 初始化 RAG 组件，避免后续调用空指针
+	// 初始化RAG组件
 	rag, err := NewRagChat(ctx, esConf)
 	if err != nil {
 		return nil, fmt.Errorf("init rag failed: %w", err)
@@ -178,6 +172,7 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 
 	g.Log().Infof(ctx, "历史记录数量: %d", len(history))
 	var modelStream compose.Runnable[map[string]any, *schema.Message]
+	//判断是否开启联网
 	if streamType.IsStudyMode == false {
 		modelStream, err = NormalChat.BuildNormalChat(ctx)
 		if err != nil {

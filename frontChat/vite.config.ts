@@ -23,7 +23,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true, // 如果端口被占用则失败，而不是尝试其他端口
-    open: false, // Tauri开发模式下不需要自动打开浏览器
+    open: true, // Tauri开发模式下不需要自动打开浏览器
     proxy: {
       // 仅代理 WebSocket，不再代理所有顶级路径，避免静态模块被错误代理到后端
       '/ws': {

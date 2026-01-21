@@ -3,6 +3,7 @@ import { Table, Space, Tooltip, Tag, Switch, Button } from 'antd';
 import { FileTextOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { TableRowSelection } from 'antd/es/table/interface';
+import { useTranslation } from 'react-i18next';
 import { type KnowledgeChunk, ChunkStatus } from '@/services/chunks';
 
 interface ChunkTableProps {
@@ -24,8 +25,10 @@ const ChunkTable: React.FC<ChunkTableProps> = ({
   onToggleStatus,
   formatDate,
 }) => {
+  const { t } = useTranslation();
+
   const getStatusText = (status: ChunkStatus): string => {
-    return status === ChunkStatus.ACTIVE ? '启用' : '禁用';
+    return status === ChunkStatus.ACTIVE ? t('kb.enabled') : t('kb.disabled');
   };
 
   const getStatusType = (status: ChunkStatus): 'success' | 'default' => {
@@ -34,13 +37,13 @@ const ChunkTable: React.FC<ChunkTableProps> = ({
 
   const columns: ColumnsType<KnowledgeChunk> = [
     {
-      title: 'ID',
+      title: t('kb.id'),
       dataIndex: 'id',
       key: 'id',
       width: 80,
     },
     {
-      title: '块ID',
+      title: t('kb.chunks.chunkId'),
       dataIndex: 'chunkId',
       key: 'chunkId',
       width: 120,
@@ -52,7 +55,7 @@ const ChunkTable: React.FC<ChunkTableProps> = ({
       ),
     },
     {
-      title: '内容预览',
+      title: t('kb.chunks.contentPreview'),
       dataIndex: 'content',
       key: 'content',
       ellipsis: {
@@ -65,7 +68,7 @@ const ChunkTable: React.FC<ChunkTableProps> = ({
       ),
     },
     {
-      title: '状态',
+      title: t('kb.status'),
       dataIndex: 'status',
       key: 'status',
       width: 100,
@@ -83,19 +86,19 @@ const ChunkTable: React.FC<ChunkTableProps> = ({
       ),
     },
     {
-      title: '创建时间',
+      title: t('common.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 180,
       render: (createdAt: string) => formatDate(createdAt),
     },
     {
-      title: '操作',
+      title: t('common.actions'),
       key: 'action',
       width: 150,
       render: (_, record) => (
         <Space>
-          <Tooltip title="编辑内容">
+          <Tooltip title={t('kb.chunks.editContent')}>
             <Button
               type="primary"
               size="small"
@@ -103,7 +106,7 @@ const ChunkTable: React.FC<ChunkTableProps> = ({
               onClick={() => onEdit(record)}
             />
           </Tooltip>
-          <Tooltip title="删除知识块">
+          <Tooltip title={t('common.delete')}>
             <Button
               type="primary"
               danger

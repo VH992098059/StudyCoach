@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Form, Input, Button, message, Steps, Result } from 'antd';
 import { MailOutlined, LockOutlined, SafetyOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import AuthLayout from '../../components/AuthLayout';
 import './ResetPassword.scss';
 
@@ -14,6 +15,7 @@ interface ResetPasswordFormData {
 }
 
 const ResetPassword: React.FC = () => {
+  const { t } = useTranslation();
   const [form] = Form.useForm<ResetPasswordFormData>();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -31,7 +33,7 @@ const ResetPassword: React.FC = () => {
       
       console.log('发送验证码到:', values.email);
       setEmail(values.email);
-      message.success('验证码已发送到您的邮箱！');
+      message.success(t('auth.resetPassword.messages.codeSent'));
       
       // 开始倒计时
       setCountdown(60);
@@ -48,7 +50,7 @@ const ResetPassword: React.FC = () => {
       setCurrentStep(1);
     } catch (error) {
       console.error('发送验证码失败:', error);
-      message.error('发送验证码失败，请稍后重试！');
+      message.error(t('auth.resetPassword.messages.sendFailed'));
     } finally {
       setLoading(false);
     }
@@ -66,14 +68,14 @@ const ResetPassword: React.FC = () => {
       
       // 模拟验证成功
       if (values.verificationCode === '123456') {
-        message.success('验证码验证成功！');
+        message.success(t('auth.resetPassword.messages.verifySuccess'));
         setCurrentStep(2);
       } else {
-        message.error('验证码错误，请重新输入！');
+        message.error(t('auth.resetPassword.messages.verifyFailed'));
       }
     } catch (error) {
       console.error('验证码验证失败:', error);
-      message.error('验证失败，请稍后重试！');
+      message.error(t('auth.resetPassword.messages.verifyError'));
     } finally {
       setLoading(false);
     }
@@ -88,11 +90,11 @@ const ResetPassword: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       console.log('重置密码');
-      message.success('密码重置成功！');
+      message.success(t('auth.resetPassword.messages.resetSuccess'));
       setCurrentStep(3);
     } catch (error) {
       console.error('密码重置失败:', error);
-      message.error('密码重置失败，请稍后重试！');
+      message.error(t('auth.resetPassword.messages.resetFailed'));
     } finally {
       setLoading(false);
     }
@@ -100,34 +102,34 @@ const ResetPassword: React.FC = () => {
 
   const validatePassword = (_: any, value: string) => {
     if (!value) {
-      return Promise.reject(new Error('请输入新密码！'));
+      return Promise.reject(new Error(t('auth.resetPassword.validation.pwdRequired')));
     }
     if (value.length < 6) {
-      return Promise.reject(new Error('密码至少6个字符！'));
+      return Promise.reject(new Error(t('auth.resetPassword.validation.pwdLen')));
     }
     if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
-      return Promise.reject(new Error('密码必须包含大小写字母和数字！'));
+      return Promise.reject(new Error(t('auth.resetPassword.validation.pwdPattern')));
     }
     return Promise.resolve();
   };
 
   const validateConfirmPassword = (_: any, value: string) => {
     if (!value) {
-      return Promise.reject(new Error('请确认新密码！'));
+      return Promise.reject(new Error(t('auth.resetPassword.validation.confirmRequired')));
     }
     if (value !== form.getFieldValue('newPassword')) {
-      return Promise.reject(new Error('两次输入的密码不一致！'));
+      return Promise.reject(new Error(t('auth.resetPassword.validation.confirmMismatch')));
     }
     return Promise.resolve();
   };
 
   const validateEmail = (_: any, value: string) => {
     if (!value) {
-      return Promise.reject(new Error('请输入邮箱地址！'));
+      return Promise.reject(new Error(t('auth.resetPassword.validation.emailRequired')));
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      return Promise.reject(new Error('请输入有效的邮箱地址！'));
+      return Promise.reject(new Error(t('auth.resetPassword.validation.emailInvalid')));
     }
     return Promise.resolve();
   };
@@ -150,7 +152,7 @@ const ResetPassword: React.FC = () => {
             >
               <Input
                 prefix={<MailOutlined className="site-form-item-icon" />}
-                placeholder="请输入您的邮箱地址"
+                placeholder={t('auth.resetPassword.emailStep.placeholder')}
                 allowClear
               />
             </Form.Item>
@@ -162,7 +164,7 @@ const ResetPassword: React.FC = () => {
                 className="reset-password-btn"
                 block
               >
-                {loading ? '发送中...' : '发送验证码'}
+                {loading ? t('auth.resetPassword.emailStep.sending') : t('auth.resetPassword.emailStep.btn')}
               </Button>
             </Form.Item>
           </Form>
@@ -179,18 +181,18 @@ const ResetPassword: React.FC = () => {
             className="reset-password-form"
           >
             <div className="email-info">
-              验证码已发送到：<strong>{email}</strong>
+              {t('auth.resetPassword.verifyStep.sentTo')}<strong>{email}</strong>
             </div>
             <Form.Item
               name="verificationCode"
               rules={[
-                { required: true, message: '请输入验证码！' },
-                { len: 6, message: '验证码为6位数字！' }
+                { required: true, message: t('auth.resetPassword.validation.codeRequired') },
+                { len: 6, message: t('auth.resetPassword.validation.codeLen') }
               ]}
             >
               <Input
                 prefix={<SafetyOutlined className="site-form-item-icon" />}
-                placeholder="请输入6位验证码"
+                placeholder={t('auth.resetPassword.verifyStep.placeholder')}
                 maxLength={6}
                 allowClear
               />
@@ -198,7 +200,7 @@ const ResetPassword: React.FC = () => {
             <Form.Item>
               <div className="resend-code">
                 {countdown > 0 ? (
-                  <span className="countdown-text">{countdown}秒后可重新发送</span>
+                  <span className="countdown-text">{countdown}{t('auth.resetPassword.verifyStep.countdown')}</span>
                 ) : (
                   <Button
                     type="link"
@@ -208,7 +210,7 @@ const ResetPassword: React.FC = () => {
                     }}
                     className="resend-btn"
                   >
-                    重新发送验证码
+                    {t('auth.resetPassword.verifyStep.resend')}
                   </Button>
                 )}
               </div>
@@ -221,7 +223,7 @@ const ResetPassword: React.FC = () => {
                 className="reset-password-btn"
                 block
               >
-                {loading ? '验证中...' : '验证验证码'}
+                {loading ? t('auth.resetPassword.verifyStep.verifying') : t('auth.resetPassword.verifyStep.btn')}
               </Button>
             </Form.Item>
           </Form>
@@ -243,7 +245,7 @@ const ResetPassword: React.FC = () => {
             >
               <Input.Password
                 prefix={<LockOutlined className="site-form-item-icon" />}
-                placeholder="请输入新密码"
+                placeholder={t('auth.resetPassword.resetStep.newPwdPlaceholder')}
                 iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
               />
             </Form.Item>
@@ -254,7 +256,7 @@ const ResetPassword: React.FC = () => {
             >
               <Input.Password
                 prefix={<LockOutlined className="site-form-item-icon" />}
-                placeholder="请确认新密码"
+                placeholder={t('auth.resetPassword.resetStep.confirmPwdPlaceholder')}
                 iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
               />
             </Form.Item>
@@ -266,7 +268,7 @@ const ResetPassword: React.FC = () => {
                 className="reset-password-btn"
                 block
               >
-                {loading ? '重置中...' : '重置密码'}
+                {loading ? t('auth.resetPassword.resetStep.resetting') : t('auth.resetPassword.resetStep.btn')}
               </Button>
             </Form.Item>
           </Form>
@@ -276,8 +278,8 @@ const ResetPassword: React.FC = () => {
         return (
           <Result
             status="success"
-            title="密码重置成功！"
-            subTitle="您的密码已成功重置，请使用新密码登录。"
+            title={t('auth.resetPassword.successStep.title')}
+            subTitle={t('auth.resetPassword.successStep.subtitle')}
             extra={[
               <Button
                 type="primary"
@@ -285,13 +287,13 @@ const ResetPassword: React.FC = () => {
                 onClick={() => navigate('/login')}
                 className="reset-password-btn"
               >
-                立即登录
+                {t('auth.resetPassword.successStep.loginBtn')}
               </Button>,
               <Button
                 key="home"
                 onClick={() => navigate('/')}
               >
-                返回AI聊天
+                {t('auth.resetPassword.successStep.backHomeBtn')}
               </Button>,
             ]}
           />
@@ -304,16 +306,16 @@ const ResetPassword: React.FC = () => {
 
   return (
     <AuthLayout
-      title="重置密码"
-      subtitle="请按照步骤重置您的密码"
+      title={t('auth.resetPassword.title')}
+      subtitle={t('auth.resetPassword.subtitle')}
       loading={loading && currentStep !== 3}
     >
       <div className="reset-password-container">
         {currentStep < 3 && (
           <Steps current={currentStep} className="reset-password-steps" items={[
-            { title: "验证邮箱", description: "输入邮箱地址" },
-            { title: "验证身份", description: "输入验证码" },
-            { title: "重置密码", description: "设置新密码" },
+            { title: t('auth.resetPassword.steps.verifyEmail'), description: t('auth.resetPassword.steps.verifyEmailDesc') },
+            { title: t('auth.resetPassword.steps.verifyIdentity'), description: t('auth.resetPassword.steps.verifyIdentityDesc') },
+            { title: t('auth.resetPassword.steps.reset'), description: t('auth.resetPassword.steps.resetDesc') },
           ]} />
         )}
         
@@ -324,7 +326,7 @@ const ResetPassword: React.FC = () => {
         {currentStep < 3 && (
           <div className="back-to-login">
             <Link to="/login" className="back-link">
-              ← 返回登录
+              ← {t('auth.resetPassword.backToLogin')}
             </Link>
           </div>
         )}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal, message } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { DocumentsService, type DocumentData } from '@/services/documents';
 import React from 'react';
 
@@ -17,25 +18,26 @@ export const useDocumentOperations = ({
   setSelectedRowKeys,
   setSelectedRows,
 }: UseDocumentOperationsProps) => {
+  const { t } = useTranslation();
   const [batchDeleteLoading, setBatchDeleteLoading] = useState(false);
 
   const handleDeleteDocument = async (document: DocumentData) => {
     try {
       await DocumentsService.delete({ document_id: document.id });
-      message.success(`文档 "${document.fileName}" 删除成功`);
+      message.success(t('kb.documents.deleteSuccess', { fileName: document.fileName }));
       fetchDocumentsList();
     } catch (error) {
-      message.error('删除文档失败');
+      message.error(t('kb.documents.deleteFailed'));
       console.error('Delete document error:', error);
     }
   };
 
   const confirmDelete = (document: DocumentData) => {
     Modal.confirm({
-      title: '确认删除',
-      content: `确定要删除文档 "${document.fileName}" 吗？此操作不可恢复。`,
-      okText: '确定',
-      cancelText: '取消',
+      title: t('common.confirmDelete'),
+      content: t('kb.documents.deleteConfirm', { fileName: document.fileName }),
+      okText: t('common.confirm'),
+      cancelText: t('common.cancel'),
       okType: 'danger',
       onOk: () => handleDeleteDocument(document),
     });
@@ -51,12 +53,12 @@ export const useDocumentOperations = ({
       );
 
       await Promise.all(deletePromises);
-      message.success(`成功删除 ${selectedRows.length} 个文档`);
+      message.success(t('kb.documents.batchDeleteSuccess', { count: selectedRows.length }));
       setSelectedRowKeys([]);
       setSelectedRows([]);
       fetchDocumentsList();
     } catch (error) {
-      message.error('批量删除失败，请重试');
+      message.error(t('kb.documents.batchDeleteFailed'));
       console.error('Batch delete error:', error);
     } finally {
       setBatchDeleteLoading(false);
@@ -65,16 +67,16 @@ export const useDocumentOperations = ({
 
   const confirmBatchDelete = () => {
     if (selectedRows.length === 0) {
-      message.warning('请先选择要删除的文档');
+      message.warning(t('kb.documents.selectFirst'));
       return;
     }
 
     Modal.confirm({
-      title: '批量删除确认',
+      title: t('common.batchDeleteConfirm'),
       icon: <ExclamationCircleOutlined />,
       content: (
         <div>
-          <p>确定要删除以下 {selectedRows.length} 个文档吗？此操作不可恢复。</p>
+          <p>{t('kb.documents.batchDeleteConfirmText', { count: selectedRows.length })}</p>
           <div style={{ maxHeight: '200px', overflow: 'auto', marginTop: '10px' }}>
             {selectedRows.map((doc, index) => (
               <div key={doc.id} style={{ padding: '2px 0' }}>
@@ -84,8 +86,8 @@ export const useDocumentOperations = ({
           </div>
         </div>
       ),
-      okText: '确定删除',
-      cancelText: '取消',
+      okText: t('common.delete'),
+      cancelText: t('common.cancel'),
       okType: 'danger',
       onOk: handleBatchDelete,
     });
