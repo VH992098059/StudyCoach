@@ -6,11 +6,12 @@
  */
 
 import React, { Suspense } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import { Spin } from 'antd';
 import Layout from '../components/Home/Layout';
 import type { MenuProps } from 'antd';
 import { useTranslation } from 'react-i18next';
+import { LoginRegisterService } from '../services/login_register';
 
 /**
  * 懒加载页面组件
@@ -25,6 +26,7 @@ const Login = React.lazy(() => import('../pages/Login'));
 const Register = React.lazy(() => import('../pages/Register'));
 const ResetPassword = React.lazy(() => import('../pages/Auth/ResetPassword'));
 const CronPage=React.lazy(()=>import('../pages/Cron/index'))
+const Profile = React.lazy(() => import('../pages/Profile'));
 /**
  * 加载中组件
  * @description 在懒加载组件加载过程中显示的loading界面
@@ -66,15 +68,13 @@ interface RouteGuardProps {
  * ```
  */
 const RouteGuard: React.FC<RouteGuardProps> = ({ children, requireAuth = false })=> {
-  // 这里可以添加认证逻辑
-  // const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+  const location = useLocation();
+  const token = localStorage.getItem('access_token');
   
-  // 暂时不实现认证逻辑，直接返回子组件
   if (requireAuth) {
-    // 如果需要认证但未登录，可以重定向到登录页
-    // if (!isAuthenticated) {
-    //   return <Navigate to="/login" replace />;
-    // }
+    if (!token) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
   }
   
   return <>{children}</>;
@@ -165,16 +165,23 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
    * 处理用户登出
    * @description 清除用户登录状态和存储的用户信息
    */
-  const handleLogout = (): void => {
+  const handleLogout = async (): Promise<void> => {
+    try {
+      await LoginRegisterService.logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+    
     // 清除存储的用户信息
     localStorage.removeItem('userInfo');
     sessionStorage.removeItem('userInfo');
+    localStorage.removeItem('access_token');
     
     // 更新用户状态
     setUser(undefined);
     
-    // 跳转到首页
-    window.location.href = '/';
+    // 跳转到登录页
+    window.location.href = '/login';
   };
 
   /**
@@ -254,7 +261,7 @@ export const router = createBrowserRouter([
     element: (
       <LayoutWrapper>
         <Suspense fallback={<LoadingComponent />}>
-          <RouteGuard>
+          <RouteGuard requireAuth={true}>
             <AiChat />
           </RouteGuard>
         </Suspense>
@@ -270,7 +277,7 @@ export const router = createBrowserRouter([
     element: (
       <LayoutWrapper>
         <Suspense fallback={<LoadingComponent />}>
-          <RouteGuard>
+          <RouteGuard requireAuth={true}>
             <KnowledgeBase />
           </RouteGuard>
         </Suspense>
@@ -282,7 +289,7 @@ export const router = createBrowserRouter([
     element: (
       <LayoutWrapper>
         <Suspense fallback={<LoadingComponent />}>
-          <RouteGuard>
+          <RouteGuard requireAuth={true}>
             <Indexer />
           </RouteGuard>
         </Suspense>
@@ -294,7 +301,7 @@ export const router = createBrowserRouter([
     element: (
       <LayoutWrapper>
         <Suspense fallback={<LoadingComponent />}>
-          <RouteGuard>
+          <RouteGuard requireAuth={true}>
             <Retriever />
           </RouteGuard>
         </Suspense>
@@ -331,11 +338,25 @@ export const router = createBrowserRouter([
     element:(
       <LayoutWrapper>
         <Suspense fallback={<LoadingComponent/>}>
-          <CronPage/>
+          <RouteGuard requireAuth={true}>
+            <CronPage/>
+          </RouteGuard>
         </Suspense>
       </LayoutWrapper>
 
     )
+  },
+  {
+    path: '/profile',
+    element: (
+      <LayoutWrapper>
+        <Suspense fallback={<LoadingComponent />}>
+          <RouteGuard requireAuth={true}>
+            <Profile />
+          </RouteGuard>
+        </Suspense>
+      </LayoutWrapper>
+    ),
   },
   // 404页面
   {

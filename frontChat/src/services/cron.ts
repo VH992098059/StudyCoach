@@ -82,6 +82,35 @@ export interface CronUpdateOneStatusRes {
     is_ok: string;
 }
 
+export interface CronRunReq {
+    id: number;
+}
+
+export interface CronRunRes {
+    is_ok: string;
+}
+
+export interface CronExecuteListReq {
+    cron_name_fk: string;
+    page: number;
+    size: number;
+}
+
+export interface CronExecute {
+    id: number;
+    cron_name_fk: string;
+    cronNameFk?: string; // Compatible with camelCase
+    execute_time: string;
+    executeTime?: string; // Compatible with camelCase
+    next_time?: string;
+    nextTime?: string; // Compatible with camelCase
+}
+
+export interface CronExecuteListRes {
+    list: CronExecute[];
+    total: number;
+}
+
 export const CronService = {
     create: (data: CronCreateReq) => {
         return http.post<CronCreateRes>('/gateway/v1/cronCreate', data);
@@ -100,5 +129,11 @@ export const CronService = {
     },
     updateOneStatus: (data: CronUpdateOneStatusReq) => {
         return http.put<CronUpdateOneStatusRes>('/gateway/v1/cronUpdateOneStatus', data);
+    },
+    run: (data: CronRunReq) => {
+        return http.post<CronRunRes>('/gateway/v1/cronRun', data);
+    },
+    listLogs: (params: CronExecuteListReq) => {
+        return http.get<CronExecuteListRes>('/gateway/v1/cronExecuteList', params);
     }
 };

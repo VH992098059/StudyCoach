@@ -11,6 +11,7 @@ import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone, ArrowLeft
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import AuthLayout from '../../components/AuthLayout';
+import { LoginRegisterService } from '../../services/login_register';
 import './index.scss';
 
 /**
@@ -52,6 +53,24 @@ const Login: React.FC = ()=> {
    * @description 通过检查location.state或document.referrer来判断
    */
   useEffect(() => {
+    // 检查是否有记住的账号密码
+    const remembered = localStorage.getItem('remembered_credentials');
+    if (remembered) {
+      try {
+        const { username, password } = JSON.parse(remembered);
+        // 解码密码（如果是base64）
+        const decodedPassword = atob(password);
+        form.setFieldsValue({
+          username,
+          password: decodedPassword,
+          remember: true,
+        });
+      } catch (e) {
+        console.error('Failed to parse remembered credentials:', e);
+        localStorage.removeItem('remembered_credentials');
+      }
+    }
+
     // 方法1: 检查是否通过路由导航进入（有state信息）
     const hasNavigationState = location.state && location.state.from;
     
@@ -75,44 +94,53 @@ const Login: React.FC = ()=> {
   const handleSubmit = async (values: LoginFormData): Promise<void> => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/gateway/users/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: values.username, // 后端需要 username 字段
-          password: values.password,
-        }),
+      const result = await LoginRegisterService.login({
+        username: values.username,
+        password: values.password
       });
 
-      const result = await response.json();
       console.log(result);
       
-      if (response.ok && result.code === 0 && result.data.token) {
+      if (result && result.token) {
         message.success(t('auth.success.login'));
 
         const userInfo = {
           username: values.username,
-          token: result.data.token,
-          uuid: result.data.uuid,
+          token: result.token,
+          uuid: result.uuid,
           loginTime: new Date().toISOString(),
         };
 
+        // 存储 token 供拦截器使用
+        localStorage.setItem('access_token', result.token);
+
         if (values.remember) {
           localStorage.setItem('userInfo', JSON.stringify(userInfo));
+          // 保存账号密码（base64简单加密）
+          const encodedPassword = btoa(values.password);
+          localStorage.setItem('remembered_credentials', JSON.stringify({
+            username: values.username,
+            password: encodedPassword
+          }));
         } else {
           sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
+          // 清除保存的账号密码
+          localStorage.removeItem('remembered_credentials');
         }
-        
-        // 跳转到首页
-        navigate('/');
+
+        // 跳转逻辑
+        const from = (location.state as any)?.from?.pathname || '/';
+        if (from !== '/' && from !== '/login') {
+            navigate(from, { replace: true });
+        } else {
+            navigate('/', { replace: true });
+        }
       } else {
-        message.error(result.message || t('auth.error.login'));
+        message.error(t('auth.error.login'));
       }
     } catch (error) {
       console.error('登录请求失败:', error);
-      message.error(t('auth.error.loginRequest'));
+      // 拦截器通常会显示错误信息，这里可以根据需要补充
     } finally {
       setLoading(false);
     }

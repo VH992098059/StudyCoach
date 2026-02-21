@@ -19,7 +19,16 @@ export interface RegisterRes{
     id:number;
 }
 
-const BASE_PATH = '/gateway/v1';
+export interface LogoutRes {
+    msg: string;
+}
+
+const BASE_PATH = '/gateway/users';
+
+export interface UpdatePasswordReq {
+    oldPassword: string;
+    newPassword: string;
+}
 
 export const LoginRegisterService={
     async login(req:LoginReq){
@@ -27,5 +36,11 @@ export const LoginRegisterService={
     },
     async register(req:RegisterReq){
         return await ApiClient.post<RegisterRes>(`${BASE_PATH}/register`,req)
+    },
+    async logout(){
+        return await ApiClient.post<LogoutRes>(`${BASE_PATH}/logout`)
+    },
+    async updatePassword(req: UpdatePasswordReq){
+        return await ApiClient.post<any>(`${BASE_PATH}/update_password`, req)
     }
 }

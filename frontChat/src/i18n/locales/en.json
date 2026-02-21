@@ -35,6 +35,19 @@
     "deselect": "Deselect",
     "pagination": "{{current}}-{{end}} of {{total}}"
   },
+  "profile": {
+    "securitySettings": "Security Settings",
+    "currentPassword": "Current Password",
+    "currentPasswordRequired": "Please enter current password",
+    "newPassword": "New Password",
+    "newPasswordRequired": "Please enter new password",
+    "confirmPassword": "Confirm New Password",
+    "confirmPasswordRequired": "Please confirm new password",
+    "passwordMismatch": "Passwords do not match",
+    "updatePassword": "Update Password",
+    "updatePasswordSuccess": "Password updated successfully",
+    "updatePasswordFailed": "Failed to update password"
+  },
   "auth": {
     "loginTitle": "User Login",
     "loginSubtitle": "Welcome back, please enter your credentials",

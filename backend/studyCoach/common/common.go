@@ -5,6 +5,7 @@ const (
 	FieldContentVector   = "content_vector"
 	FieldQAContent       = "qa_content"
 	FieldQAContentVector = "qa_content_vector"
+	FieldCronID          = "cron_id"
 	FieldExtra           = "ext"
 	KnowledgeName        = "_knowledge_name"
 

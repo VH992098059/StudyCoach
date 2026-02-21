@@ -66,3 +66,12 @@ type CronUpdateStatusReq struct {
 type CronUpdateStatusRes struct {
 	IsOK string `json:"is_ok"`
 }
+
+type CronRunReq struct {
+	g.Meta `path:"/v1/cronRun" method:"post"`
+	Id     int64 `json:"id" v:"required"`
+}
+
+type CronRunRes struct {
+	IsOK string `json:"is_ok"`
+}

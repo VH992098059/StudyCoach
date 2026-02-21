@@ -7,7 +7,7 @@ package cron
 import (
 	"context"
 
-	"backend/api/cron/v1"
+	v1 "backend/api/cron/v1"
 )
 
 type ICronV1 interface {
@@ -17,4 +17,5 @@ type ICronV1 interface {
 	CronGetOne(ctx context.Context, req *v1.CronGetOneReq) (res *v1.CronGetOneRes, err error)
 	CronUpdateOne(ctx context.Context, req *v1.CronUpdateOneReq) (res *v1.CronUpdateOneRes, err error)
 	CronUpdateStatus(ctx context.Context, req *v1.CronUpdateStatusReq) (res *v1.CronUpdateStatusRes, err error)
+	CronRun(ctx context.Context, req *v1.CronRunReq) (res *v1.CronRunRes, err error)
 }

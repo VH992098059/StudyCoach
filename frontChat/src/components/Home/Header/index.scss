@@ -156,21 +156,26 @@
 .user-info {
   color: #fff;
   cursor: pointer;
-  padding: 8px 16px;
   border-radius: 20px;
   transition: all 0.3s ease;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
 }
 
 .user-info:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
-
 }
 
 .user-name {
-  margin-left: 8px;
-  font-size: 14px;
   font-weight: 500;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
 }
 
 /* 移动端菜单按钮 */

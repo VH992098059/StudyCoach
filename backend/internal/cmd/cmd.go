@@ -10,6 +10,7 @@ import (
 	"backend/internal/controller/login"
 	"backend/internal/controller/rag"
 	"backend/internal/controller/voice"
+	logicCron "backend/internal/logic/cron"
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -25,6 +26,10 @@ var (
 		Brief: "start http server",
 		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
 			s := g.Server()
+
+			// 初始化定时任务调度器
+			logicCron.InitScheduler(ctx)
+
 			//是否允许跨域操作
 			s.Use(func(r *ghttp.Request) {
 				r.Response.CORSDefault()

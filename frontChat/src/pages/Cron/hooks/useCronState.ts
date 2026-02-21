@@ -155,6 +155,36 @@ export const useCronState = () => {
     }
   };
 
+  // Fetch execution logs
+  const fetchLogs = useMemo(() => async (taskId: string, cronName: string) => {
+    try {
+      const res = await CronService.listLogs({ cron_name_fk: cronName, page: 1, size: 20 });
+      if (res && res.list) {
+          const apiLogs: LogEntry[] = res.list.map(item => ({
+              id: item.id,
+              time: dayjs(item.executeTime || item.execute_time).valueOf(),
+              status: 'success', 
+              detail: t('cron.messages.execSuccessDetail'),
+              durationMs: 0
+          }));
+          setLogs(apiLogs);
+          
+          if (apiLogs.length > 0) {
+              setLastRun(apiLogs[0].time);
+              setExecStatus('success');
+          } else {
+              setLastRun(null);
+              setExecStatus('idle');
+          }
+      } else {
+          setLogs([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+      setLogs([]);
+    }
+  }, [t]);
+
   useEffect(() => {
     fetchTasks();
   }, []);
@@ -166,6 +196,9 @@ export const useCronState = () => {
     if (selectedTaskId) {
       const task = tasks.find(t => t.id === selectedTaskId);
       if (task) {
+          // Fetch logs
+          fetchLogs(task.id, task.cronName);
+
           // Fallback: initialize form from task fields
           // Map string scheduling_method (e.g. "daily", "weekly") to form mode
           const modeValue = (task.config?.mode || 'custom') as 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
@@ -317,43 +350,24 @@ export const useCronState = () => {
   const handleRunNow = async () => {
     if (!selectedTaskId) return;
     
-    const id = Date.now();
+    const task = tasks.find(t => t.id === selectedTaskId);
+    if (!task) return;
+
     setExecStatus('running');
+    message.loading({ content: t('cron.messages.startExec'), key: 'runNow' });
     
-    const newLog: LogEntry = { id, time: Date.now(), status: 'running', detail: t('cron.messages.startExec') };
-    const newLogs = [newLog, ...logs];
-    setLogs(newLogs);
-    // localStorage.setItem(`cronLogs_${selectedTaskId}`, JSON.stringify(newLogs));
-
-    setTimeout(() => {
-      const success = true; // Mock result
-      const duration = Math.floor(1500 + Math.random() * 1500);
-      const resultStatus: 'success' | 'failed' = success ? 'success' : 'failed';
-      
-      setExecStatus(resultStatus);
-      setLastRun(Date.now());
-      
-      const updatedLogs = newLogs.map(l => (l.id === id ? { 
-          ...l, 
-          status: resultStatus, 
-          detail: success ? t('cron.messages.execSuccessDetail') : t('cron.messages.execFailedDetail'), 
-          durationMs: duration 
-      } : l));
-      
-      setLogs(updatedLogs);
-      // localStorage.setItem(`cronLogs_${selectedTaskId}`, JSON.stringify(updatedLogs));
-      
-      // Update task status in list
-      setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, execStatus: resultStatus, lastRunTime: Date.now() } : t));
-
-      if (success) message.success(t('cron.messages.execSuccess')); else message.error(t('cron.messages.execFailed'));
-    }, 1800);
-
-    if (!enabled) {
-      // Update task enabled state
-      CronService.updateOneStatus({ id: parseInt(selectedTaskId), status: 1 }).catch(console.error);
-      setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, status: 1 } : t));
-      message.info(t('cron.messages.enableAuto'));
+    try {
+        await CronService.run({ id: parseInt(selectedTaskId) });
+        message.success({ content: t('cron.messages.execSuccess'), key: 'runNow' });
+        
+        // Refresh logs after a short delay to allow async execution to start/finish
+        setTimeout(() => {
+            fetchLogs(selectedTaskId, task.cronName);
+        }, 2000);
+    } catch (error) {
+        console.error('Run failed:', error);
+        setExecStatus('failed');
+        message.error({ content: t('cron.messages.execFailed'), key: 'runNow' });
     }
   };
 

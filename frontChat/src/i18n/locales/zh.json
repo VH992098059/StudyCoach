@@ -37,6 +37,19 @@
     "deselect": "取消选择",
     "pagination": "第 {{current}}-{{end}} 条，共 {{total}} 条"
   },
+  "profile": {
+    "securitySettings": "安全设置",
+    "currentPassword": "当前密码",
+    "currentPasswordRequired": "请输入当前密码",
+    "newPassword": "新密码",
+    "newPasswordRequired": "请输入新密码",
+    "confirmPassword": "确认新密码",
+    "confirmPasswordRequired": "请再次输入新密码",
+    "passwordMismatch": "两次输入的密码不一致",
+    "updatePassword": "修改密码",
+    "updatePasswordSuccess": "密码修改成功",
+    "updatePasswordFailed": "密码修改失败"
+  },
   "kb": {
     "title": "知识库管理",
     "create": "新建知识库",

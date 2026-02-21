@@ -11,6 +11,7 @@ import { UserOutlined, LockOutlined, MailOutlined, EyeInvisibleOutlined, EyeTwoT
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import AuthLayout from '../../components/AuthLayout';
+import { LoginRegisterService } from '../../services/login_register';
 import './index.scss';
 
 /**
@@ -92,36 +93,22 @@ const Register: React.FC = ()=> {
     setLoading(true);
     try {
       // 调用后端注册API
-      const response = await fetch('http://localhost:8000/gateway/users/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: values.username,
-          password: values.password,
-          email: values.email,
-        }),
+      const result = await LoginRegisterService.register({
+        username: values.username,
+        email: values.email,
+        password: values.password
       });
 
-      const data = await response.json();
-      
-      if (data.code===0) {
-        // 注册成功
+      if (result && result.id) {
         message.success(t('auth.success.register'));
-        console.log('注册成功:', data);
-        
-        // 跳转到登录页面
+        // 注册成功跳转到登录页
         navigate('/login');
       } else {
-        // 注册失败，显示后端返回的错误信息
-        const errorMessage = data.message || t('auth.error.register');
-        message.error(errorMessage);
-        console.error('注册失败:', data);
+        message.error(t('auth.error.register'));
       }
     } catch (error) {
       console.error('注册请求失败:', error);
-      message.error(t('auth.error.registerRequest'));
+      // 拦截器已处理错误提示
     } finally {
       setLoading(false);
     }

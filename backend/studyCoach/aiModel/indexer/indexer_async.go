@@ -45,6 +45,9 @@ func newAsyncIndexer(ctx context.Context, conf *common.Config) (idr indexer.Inde
 					common.FieldExtra: {
 						Value: doc.MetaData[common.FieldExtra],
 					},
+					common.FieldCronID: {
+						Value: doc.MetaData[common.FieldCronID],
+					},
 					common.KnowledgeName: {
 						Value: knowledgeName,
 					},

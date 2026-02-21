@@ -110,6 +110,7 @@ const Header: React.FC<HeaderProps> = ({
       key: 'profile',
       label: t('common.profile'),
       icon: <UserOutlined />,
+      onClick: () => navigate('/profile'),
     },
     {
       type: 'divider',
@@ -181,6 +182,9 @@ const Header: React.FC<HeaderProps> = ({
       case 'cronpage':
         navigate('/cron');
         break;
+      case 'profile':
+        navigate('/profile');
+        break;
       default:
         break;
     }
@@ -226,7 +230,7 @@ const Header: React.FC<HeaderProps> = ({
         {/* 用户操作区 */}
         <div className="header-user">
           <Dropdown menu={{ items: langMenuItems }} placement="bottomRight">
-            <Button type="text" icon={<GlobalOutlined />} style={{ marginRight: 8 }} />
+            <Button type="text" icon={<GlobalOutlined />} style={{ marginRight: 8, color: '#fff' }} />
           </Dropdown>
           <Switch
             checked={!!isDark}
@@ -237,7 +241,7 @@ const Header: React.FC<HeaderProps> = ({
           />
           {user ? (
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <Space className="user-info">
+              <Space className="user-info" align="center" size={8}>
                 <Avatar
                   src={user.avatar}
                   icon={!user.avatar && <UserOutlined />}

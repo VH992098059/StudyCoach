@@ -108,6 +108,31 @@ func RegisterUser(ctx context.Context, in *entity.Users) (id int64, err error) {
 	return getId, nil
 }
 
+func UpdatePassword(ctx context.Context, username, oldPassword, newPassword string) (err error) {
+	/*查询用户*/
+	var user entity.Users
+	err = dao.Users.Ctx(ctx).Where("username", username).Scan(&user)
+	if err != nil {
+		return err
+	}
+	if user.Id == 0 {
+		return gerror.New("用户不存在")
+	}
+
+	/*验证旧密码*/
+	if !utility.Verify(oldPassword, user.Password) {
+		return gerror.New("旧密码错误")
+	}
+
+	/*更新密码*/
+	encryptedNewPassword, _ := utility.Encrypt(newPassword)
+	_, err = dao.Users.Ctx(ctx).Data(do.Users{
+		Password: encryptedNewPassword,
+	}).Where("id", user.Id).Update()
+
+	return err
+}
+
 func LogoutUser(ctx context.Context) (msg string, err error) {
 	/*获取JWT字段*/
 	jwtMap, err := utility.JWTMap(ctx)

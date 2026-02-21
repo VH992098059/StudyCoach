@@ -52,6 +52,9 @@ func newIndexer(ctx context.Context, conf *common.Config) (idr indexer.Indexer, 
 					common.FieldExtra: {
 						Value: doc.MetaData[common.FieldExtra],
 					},
+					common.FieldCronID: {
+						Value: doc.MetaData[common.FieldCronID],
+					},
 					common.KnowledgeName: {
 						Value: knowledgeName,
 					},

@@ -1,7 +1,9 @@
 package common
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -20,6 +22,7 @@ func createEsIndex(ctx context.Context, client *elasticsearch.Client, indexName 
 			Properties: map[string]types.Property{
 				FieldContent:  types.NewTextProperty(),
 				FieldExtra:    types.NewTextProperty(),
+				FieldCronID:   types.NewKeywordProperty(),
 				KnowledgeName: types.NewTextProperty(),
 				FieldContentVector: &types.DenseVectorProperty{
 					Dims:  TypeOf(1024),
@@ -71,4 +74,39 @@ func withRetry(operation func() error) error {
 	b.MaxElapsedTime = 30 * time.Second
 
 	return backoff.Retry(operation, b)
+}
+
+// DeleteDocumentsByCronID 删除指定CronID的所有文档
+func DeleteDocumentsByCronID(ctx context.Context, client *elasticsearch.Client, cronID string) error {
+	return withRetry(func() error {
+		indexName := g.Cfg().MustGet(ctx, "es.indexName").String()
+
+		// 构造删除查询
+		query := map[string]interface{}{
+			"query": map[string]interface{}{
+				"term": map[string]interface{}{
+					FieldCronID: cronID,
+				},
+			},
+		}
+
+		var buf bytes.Buffer
+		if err := json.NewEncoder(&buf).Encode(query); err != nil {
+			return fmt.Errorf("encode query failed: %w", err)
+		}
+
+		// 使用 DeleteByQuery API
+		// 注意：DeleteByQuery 需要 explicit index
+		res, err := client.DeleteByQuery([]string{indexName}, &buf)
+		if err != nil {
+			return fmt.Errorf("delete by query failed: %w", err)
+		}
+		defer res.Body.Close()
+
+		if res.IsError() {
+			return fmt.Errorf("delete by query failed: %s", res.String())
+		}
+
+		return nil
+	})
 }

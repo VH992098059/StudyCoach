@@ -10,7 +10,6 @@ import (
 )
 
 func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
-	// TODO Modify component configuration here.
 	config := &ark.ChatModelConfig{
 		Model:   g.Cfg().MustGet(ctx, "ark.model").String(),
 		BaseURL: g.Cfg().MustGet(ctx, "ark.baseURL").String(),

@@ -30,3 +30,13 @@ type LogoutReq struct {
 type LogoutRes struct {
 	Msg string `json:"msg"`
 }
+
+type UpdatePasswordReq struct {
+	g.Meta      `path:"users/update_password" method:"post" sm:"修改密码"`
+	OldPassword string `json:"oldPassword" v:"required|length:6,20"`
+	NewPassword string `json:"newPassword" v:"required|length:6,20"`
+}
+type UpdatePasswordRes struct {
+	g.Meta `mime:"application/json"`
+	Msg    string `json:"msg"`
+}
