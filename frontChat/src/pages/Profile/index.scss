@@ -3,6 +3,10 @@
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  min-height: calc(100vh - 112px); 
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 
   .profile-card {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
@@ -30,7 +34,22 @@
     }
 
     &.settings-card {
-      min-height: 500px;
+      min-height: 700px;
+    }
+  }
+
+  // Mobile responsiveness
+  @media (max-width: 576px) {
+    padding: 16px;
+    height: auto; // Remove fixed height constraint
+    min-height: auto;
+    justify-content: flex-start; // Align top
+    
+    .profile-card {
+      &.settings-card {
+        min-height: auto; // Remove minimum height constraint
+        margin-top: 16px;
+      }
     }
   }
 }

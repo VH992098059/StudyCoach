@@ -5,17 +5,12 @@ import (
 	"context"
 	"log"
 
+	"github.com/aws/smithy-go/ptr"
+
 	"github.com/cloudwego/eino-ext/components/model/ark"
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/gogf/gf/v2/frame/g"
-)
-
-var (
-	FrequencyPenalty float32 = 0.3 // 提高重复惩罚，避免无限复读
-	PresencePenalty  float32 = 0.3 //存在惩罚
-	Temperature      float32 = 0.8 //核采样，控制候选词广度
-	TopP             float32 = 0.8 //温度，控制随机生成
 )
 
 // newChatModel component initialization function of node 'AnalysisChatModel' in graph 'StudyCoachFor'
@@ -39,10 +34,10 @@ func newChatModel1(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 		Model:            conf.ChatModel,
 		APIKey:           conf.APIKey,
 		BaseURL:          conf.BaseURL,
-		FrequencyPenalty: &FrequencyPenalty,
-		PresencePenalty:  &PresencePenalty,
-		Temperature:      &Temperature,
-		TopP:             &TopP,
+		FrequencyPenalty: ptr.Float32(0.5),
+		PresencePenalty:  ptr.Float32(0.3),
+		Temperature:      ptr.Float32(0.8),
+		TopP:             ptr.Float32(0.8),
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 
@@ -57,10 +52,13 @@ func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 		Model:            conf.ChatModel,
 		APIKey:           conf.APIKey,
 		BaseURL:          conf.BaseURL,
-		FrequencyPenalty: &FrequencyPenalty,
-		PresencePenalty:  &PresencePenalty,
-		Temperature:      &Temperature,
-		TopP:             &TopP,
+		FrequencyPenalty: ptr.Float32(0.5),
+		PresencePenalty:  ptr.Float32(0.3),
+		Temperature:      ptr.Float32(0.8),
+		TopP:             ptr.Float32(0.8),
+		Thinking: &ark.Thinking{
+			Type: "disable",
+		},
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("ReAct模型分析")
@@ -76,10 +74,10 @@ func newChatModel3(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 		Model:            conf.ChatModel,
 		APIKey:           conf.APIKey,
 		BaseURL:          conf.BaseURL,
-		FrequencyPenalty: &FrequencyPenalty,
-		PresencePenalty:  &PresencePenalty,
-		Temperature:      &Temperature,
-		TopP:             &TopP,
+		FrequencyPenalty: ptr.Float32(0.5),
+		PresencePenalty:  ptr.Float32(0.3),
+		Temperature:      ptr.Float32(0.8),
+		TopP:             ptr.Float32(0.8),
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("ReAct模型分析")
@@ -117,11 +115,13 @@ func QaModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 
 func BranchNewChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 	config := &ark.ChatModelConfig{
-		APIKey:      g.Cfg().MustGet(ctx, "Branch.apiKey").String(),
-		BaseURL:     g.Cfg().MustGet(ctx, "Branch.baseURL").String(),
-		Model:       g.Cfg().MustGet(ctx, "Branch.model").String(),
-		TopP:        &TopP,
-		Temperature: &Temperature,
+		APIKey:           g.Cfg().MustGet(ctx, "Branch.apiKey").String(),
+		BaseURL:          g.Cfg().MustGet(ctx, "Branch.baseURL").String(),
+		Model:            g.Cfg().MustGet(ctx, "Branch.model").String(),
+		FrequencyPenalty: ptr.Float32(0.5),
+		PresencePenalty:  ptr.Float32(0.3),
+		Temperature:      ptr.Float32(0.8),
+		TopP:             ptr.Float32(0.8),
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("分支模型分析")
