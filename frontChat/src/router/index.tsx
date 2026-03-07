@@ -12,6 +12,7 @@ import Layout from '../components/Home/Layout';
 import type { MenuProps } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { LoginRegisterService } from '../services/login_register';
+import { clearAuthStorage } from '../utils/axios/interceptors';
 
 /**
  * 懒加载页面组件
@@ -32,16 +33,22 @@ const Profile = React.lazy(() => import('../pages/Profile'));
  * @description 在懒加载组件加载过程中显示的loading界面
 
  */
-const LoadingComponent: React.FC = ()=> (
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    height: '200px' 
+const LoadingComponent: React.FC = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    overflow: 'hidden',
   }}>
-    <Spin tip="页面加载中..." spinning={true} style={{ height: '100vh',width:'100px' }}>
-      <div></div>
-    </Spin>
+    <Spin spinning={true} />
+    <span style={{ whiteSpace: 'nowrap', color: 'inherit' }}>页面加载中...</span>
   </div>
 );
 
@@ -73,7 +80,8 @@ const RouteGuard: React.FC<RouteGuardProps> = ({ children, requireAuth = false }
   
   if (requireAuth) {
     if (!token) {
-      return <Navigate to="/login" state={{ from: location }} replace />;
+      // 未登录时跳转登录页并传递提示信息
+      return <Navigate to="/login" state={{ from: location, authRequired: true }} replace />;
     }
   }
   
@@ -128,6 +136,10 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
    * @description 从localStorage或sessionStorage中获取用户登录状态
    */
   const [user, setUser] = React.useState<{ name: string; avatar?: string } | undefined>(() => {
+    // token 不存在时，不显示用户信息（避免 token 过期后仍显示账号）
+    if (!localStorage.getItem('access_token')) {
+      return undefined;
+    }
     // 尝试从localStorage获取用户信息
     const localUserInfo = localStorage.getItem('userInfo');
     if (localUserInfo) {
@@ -138,7 +150,6 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
         console.error('解析localStorage用户信息失败:', error);
       }
     }
-    
     // 尝试从sessionStorage获取用户信息
     const sessionUserInfo = sessionStorage.getItem('userInfo');
     if (sessionUserInfo) {
@@ -149,7 +160,6 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
         console.error('解析sessionStorage用户信息失败:', error);
       }
     }
-    
     return undefined;
   });
 
@@ -171,17 +181,10 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
     } catch (error) {
       console.error('Logout failed:', error);
     }
-    
-    // 清除存储的用户信息
-    localStorage.removeItem('userInfo');
-    sessionStorage.removeItem('userInfo');
-    localStorage.removeItem('access_token');
-    
-    // 更新用户状态
+    clearAuthStorage();
     setUser(undefined);
-    
-    // 跳转到登录页
-    window.location.href = '/login';
+    // 刷新并留在当前页面（不跳转登录页）
+    window.location.reload();
   };
 
   /**
@@ -198,6 +201,9 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
    * @description 当用户在其他标签页登录/登出时同步状态
    */
   React.useEffect(() => {
+    const handleAuthLogout = () => setUser(undefined);
+    window.addEventListener('auth:logout', handleAuthLogout);
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'userInfo') {
         if (e.newValue) {
@@ -211,10 +217,15 @@ const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
           setUser(undefined);
         }
       }
+      // 其他标签页移除 token 时同步清除用户状态
+      if (e.key === 'access_token' && !e.newValue) {
+        setUser(undefined);
+      }
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => {
+      window.removeEventListener('auth:logout', handleAuthLogout);
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
@@ -261,9 +272,7 @@ export const router = createBrowserRouter([
     element: (
       <LayoutWrapper>
         <Suspense fallback={<LoadingComponent />}>
-          <RouteGuard requireAuth={true}>
-            <AiChat />
-          </RouteGuard>
+          <AiChat />
         </Suspense>
       </LayoutWrapper>
     ),

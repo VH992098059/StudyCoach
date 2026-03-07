@@ -85,7 +85,7 @@
   left: 50%;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, #1890ff, #40a9ff);
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
   transition: all 0.3s ease;
   transform: translateX(-50%);
 }
@@ -142,15 +142,15 @@
 }
 
 .header-user .ant-btn-primary {
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   border: none;
   color: #fff;
 }
 
 .header-user .ant-btn-primary:hover {
-  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
 .user-info {
@@ -236,7 +236,7 @@
 }
 
 .mobile-nav-menu .ant-menu-item-selected {
-  background: rgba(24, 144, 255, 0.2);
+  background: rgba(37, 99, 235, 0.2);
   color: #fff;
 }
 

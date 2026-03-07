@@ -13,8 +13,9 @@ import (
 	"github.com/qdrant/go-client/qdrant"
 )
 
-// StoreWithNamedVectors 使用命名向量存储文档到 Qdrant
-// 这是自定义实现，因为 eino-ext 的 indexer 不支持命名向量
+// StoreWithNamedVectors 使用命名向量将文档写入 Qdrant。
+// 支持 content_vector（qa_content_vector 由异步任务补充），payload 含 content、_knowledge_name、ext。
+// 知识库名称从 context 的 common.KnowledgeName 获取。
 func (idx *QdrantIndexer) StoreWithNamedVectors(ctx context.Context, docs []*schema.Document, opts ...indexer.Option) ([]string, error) {
 	if len(docs) == 0 {
 		return nil, nil

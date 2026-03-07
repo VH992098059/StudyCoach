@@ -4,17 +4,21 @@ import (
 	"backend/internal/logic/rag"
 	"backend/studyCoach/api"
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/goccy/go-json"
 	"github.com/gogf/gf/v2/frame/g"
 
-	"backend/api/rag/v1"
+	v1 "backend/api/rag/v1"
 )
 
 func (c *ControllerV1) Retriever(ctx context.Context, req *v1.RetrieverReq) (res *v1.RetrieverRes, err error) {
 	ragSvr := rag.GetRagSvr()
+	if ragSvr == nil {
+		return nil, fmt.Errorf("RAG服务未初始化")
+	}
 	if req.TopK == 0 {
 		req.TopK = 5
 	}
@@ -35,11 +39,16 @@ func (c *ControllerV1) Retriever(ctx context.Context, req *v1.RetrieverReq) (res
 	for _, document := range msg {
 		if document.MetaData != nil {
 			delete(document.MetaData, "_dense_vector")
-			m := make(map[string]interface{})
-			if err = json.Unmarshal([]byte(document.MetaData["ext"].(string)), &m); err != nil {
-				return
+			if extVal, ok := document.MetaData["ext"]; ok {
+				if extStr, ok := extVal.(string); ok && extStr != "" {
+					m := make(map[string]interface{})
+					if decodeErr := json.Unmarshal([]byte(extStr), &m); decodeErr != nil {
+						g.Log().Errorf(ctx, "ext unmarshal failed, err=%v", decodeErr)
+					} else {
+						document.MetaData["ext"] = m
+					}
+				}
 			}
-			document.MetaData["ext"] = m
 		}
 	}
 	// aiModel 默认是把分高的排在两边

@@ -9,26 +9,40 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/create"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/exists"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/refresh"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/densevectorsimilarity"
 	"github.com/qdrant/go-client/qdrant"
 )
 
-// IndexExists 检查索引/集合是否存在
+// RefreshIndex 强制刷新 ES 索引，使刚写入的文档立即可被搜索。仅 ES 有效。
+func (c *Config) RefreshIndex(ctx context.Context) error {
+	if !c.UseES() || c.Client == nil {
+		return nil
+	}
+	_, err := refresh.NewRefreshFunc(c.Client)().Index(c.IndexName).Do(ctx)
+	return err
+}
+
+// IndexExists 检查索引/集合是否存在。
+// ES: 检查 index 是否存在；Qdrant: 检查 collection 是否存在；Milvus: 检查 collection 是否存在。
 func (c *Config) IndexExists(ctx context.Context) (bool, error) {
-	if c.Client != nil {
-		// ES
+	if c.UseES() {
 		return exists.NewExistsFunc(c.Client)(c.IndexName).Do(ctx)
-	} else if c.QdrantClient != nil {
-		// Qdrant
+	}
+	if c.UseQdrant() {
 		return c.QdrantClient.CollectionExists(ctx, c.IndexName)
+	}
+	if c.UseMilvus() {
+		return c.milvusCollectionExists(ctx)
 	}
 	return false, fmt.Errorf("no valid client configuration")
 }
 
-// CreateIndex 创建索引/集合
+// CreateIndex 创建索引/集合。
+// ES: 创建 index；Qdrant: 创建 collection；Milvus: 由 indexer.Store 首次写入时自动创建。
 func (c *Config) CreateIndex(ctx context.Context) error {
-	if c.Client != nil {
+	if c.UseES() {
 		// ES
 		_, err := create.NewCreateFunc(c.Client)(c.IndexName).Request(&create.Request{
 			Mappings: &types.TypeMapping{
@@ -50,7 +64,8 @@ func (c *Config) CreateIndex(ctx context.Context) error {
 			},
 		}).Do(ctx)
 		return err
-	} else if c.QdrantClient != nil {
+	}
+	if c.UseQdrant() {
 		// Qdrant - 创建集合，支持命名向量
 		vectorsMap := map[string]*qdrant.VectorParams{
 			FieldContentVector: {
@@ -82,12 +97,17 @@ func (c *Config) CreateIndex(ctx context.Context) error {
 
 		return nil
 	}
+	if c.UseMilvus() {
+		// Milvus 由 indexer 首次 Store 时自动创建 collection，此处无需操作
+		return nil
+	}
 	return fmt.Errorf("no valid client configuration")
 }
 
-// DeleteDocument 删除文档
+// DeleteDocument 按文档 ID 删除单条文档。
+// ES: 按 _id 删除；Qdrant: 按 PointId (UUID) 删除；Milvus: 待实现。
 func (c *Config) DeleteDocument(ctx context.Context, documentID string) error {
-	if c.Client != nil {
+	if c.UseES() {
 		// ES
 		res, err := c.Client.Delete(c.IndexName, documentID)
 		if err != nil {
@@ -99,8 +119,8 @@ func (c *Config) DeleteDocument(ctx context.Context, documentID string) error {
 			return fmt.Errorf("delete document failed: %s", res.String())
 		}
 		return nil
-	} else if c.QdrantClient != nil {
-		// Qdrant
+	}
+	if c.UseQdrant() {
 		_, err := c.QdrantClient.Delete(ctx, &qdrant.DeletePoints{
 			CollectionName: c.IndexName,
 			Points: &qdrant.PointsSelector{
@@ -118,16 +138,20 @@ func (c *Config) DeleteDocument(ctx context.Context, documentID string) error {
 		}
 		return nil
 	}
+	if c.UseMilvus() {
+		return fmt.Errorf("DeleteDocument for Milvus not implemented yet")
+	}
 	return fmt.Errorf("no valid client configuration")
 }
 
-// GetKnowledgeBaseList 获取知识库列表
+// GetKnowledgeBaseList 获取所有知识库名称列表（去重）。
+// ES: 暂未实现，返回错误；Qdrant: 通过 Scroll 滚动所有点，从 payload 的 _knowledge_name 去重得到列表。
 func (c *Config) GetKnowledgeBaseList(ctx context.Context) ([]string, error) {
-	if c.Client != nil {
-		// ES - 使用聚合查询
-		// TODO: 实现 ES 的知识库列表获取
+	if c.UseES() {
+		// ES - 可通过 terms 聚合 _knowledge_name 实现，待补充
 		return nil, fmt.Errorf("ES GetKnowledgeBaseList not implemented yet")
-	} else if c.QdrantClient != nil {
+	}
+	if c.UseQdrant() {
 		// Qdrant - 滚动查询并去重
 		knowledgeMap := make(map[string]bool)
 
@@ -172,12 +196,16 @@ func (c *Config) GetKnowledgeBaseList(ctx context.Context) ([]string, error) {
 
 		return list, nil
 	}
+	if c.UseMilvus() {
+		return nil, fmt.Errorf("GetKnowledgeBaseList for Milvus not implemented yet")
+	}
 	return nil, fmt.Errorf("no valid client configuration")
 }
 
-// SearchDocumentsByIDs 根据文档 ID 列表搜索文档
+// SearchDocumentsByIDs 按知识库名称与文档 ID 列表精确拉取文档。
+// 用于异步索引时根据 docIDs 回查完整文档（含向量）。ES: bool must match + terms _id；Qdrant: Filter(Field+HasId)。
 func (c *Config) SearchDocumentsByIDs(ctx context.Context, knowledgeName string, docIDs []string, size int) ([]*schema.Document, error) {
-	if c.Client != nil {
+	if c.UseES() {
 		// ES
 		esQuery := &types.Query{
 			Bool: &types.BoolQuery{
@@ -202,7 +230,7 @@ func (c *Config) SearchDocumentsByIDs(ctx context.Context, knowledgeName string,
 
 		var docs []*schema.Document
 		for _, hit := range searchResp.Hits.Hits {
-			doc, err := esHit2Document(ctx, hit)
+			doc, err := esHitToDocument(ctx, hit)
 			if err != nil {
 				continue
 			}
@@ -210,8 +238,8 @@ func (c *Config) SearchDocumentsByIDs(ctx context.Context, knowledgeName string,
 		}
 
 		return docs, nil
-	} else if c.QdrantClient != nil {
-		// Qdrant
+	}
+	if c.UseQdrant() {
 		ids := make([]*qdrant.PointId, len(docIDs))
 		for i, id := range docIDs {
 			ids[i] = &qdrant.PointId{PointIdOptions: &qdrant.PointId_Uuid{Uuid: id}}
@@ -255,7 +283,7 @@ func (c *Config) SearchDocumentsByIDs(ctx context.Context, knowledgeName string,
 
 		var docs []*schema.Document
 		for _, point := range scrollResp {
-			doc, err := qdrantPoint2Document(ctx, point)
+			doc, err := qdrantPointToDocument(ctx, point)
 			if err != nil {
 				continue
 			}
@@ -264,11 +292,28 @@ func (c *Config) SearchDocumentsByIDs(ctx context.Context, knowledgeName string,
 
 		return docs, nil
 	}
+	if c.UseMilvus() {
+		return c.searchDocumentsByIDsMilvus(ctx, knowledgeName, docIDs, size)
+	}
 	return nil, fmt.Errorf("no valid client configuration")
 }
 
-// esHit2Document 将 ES Hit 转换为 Document
-func esHit2Document(ctx context.Context, hit types.Hit) (*schema.Document, error) {
+// DeleteDocumentsByCronID 按 cron_id 删除该定时任务产生的所有文档。
+// 仅 ES 已实现；Qdrant、Milvus 待实现。
+func (c *Config) DeleteDocumentsByCronID(ctx context.Context, cronID string) error {
+	if c.UseES() {
+		return DeleteDocumentsByCronID(ctx, c.Client, cronID)
+	}
+	if c.UseQdrant() || c.UseMilvus() {
+		// TODO: 实现 Qdrant/Milvus 的按 cron_id 删除
+		return nil
+	}
+	return fmt.Errorf("no valid client configuration")
+}
+
+// esHitToDocument 将 Elasticsearch 的 Hit 转换为 schema.Document。
+// 解析 _source 中的 content、content_vector、ext、_knowledge_name 等字段。
+func esHitToDocument(ctx context.Context, hit types.Hit) (*schema.Document, error) {
 	doc := &schema.Document{
 		ID:       *hit.Id_,
 		MetaData: map[string]any{},
@@ -298,8 +343,12 @@ func esHit2Document(ctx context.Context, hit types.Hit) (*schema.Document, error
 			doc.MetaData[FieldExtra] = val.(string)
 		case KnowledgeName:
 			doc.MetaData[KnowledgeName] = val.(string)
+		case FieldCronID:
+			// cron_id 可能为 nil（手动索引时未设置），检索时忽略即可
+			continue
 		default:
-			return nil, fmt.Errorf("unexpected field=%s, val=%v", field, val)
+			// 忽略未知字段，避免因索引 schema 扩展导致检索失败
+			continue
 		}
 	}
 
@@ -310,8 +359,9 @@ func esHit2Document(ctx context.Context, hit types.Hit) (*schema.Document, error
 	return doc, nil
 }
 
-// qdrantPoint2Document 将 Qdrant RetrievedPoint 转换为 Document
-func qdrantPoint2Document(_ context.Context, point *qdrant.RetrievedPoint) (*schema.Document, error) {
+// qdrantPointToDocument 将 Qdrant 的 RetrievedPoint 转换为 schema.Document。
+// 用于 SearchDocumentsByIDs 的 Scroll 结果，解析 payload 与 vectors。
+func qdrantPointToDocument(_ context.Context, point *qdrant.RetrievedPoint) (*schema.Document, error) {
 	var docID string
 	switch id := point.Id.GetPointIdOptions().(type) {
 	case *qdrant.PointId_Uuid:

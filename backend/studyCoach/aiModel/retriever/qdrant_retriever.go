@@ -1,3 +1,4 @@
+// Package retriever 提供向量检索实现，支持 ES8 与 Qdrant，为 Milvus 等扩展预留接口形态。
 package retriever
 
 import (
@@ -12,7 +13,7 @@ import (
 	"github.com/qdrant/go-client/qdrant"
 )
 
-// QdrantRetrieverConfig Qdrant retriever 配置
+// QdrantRetrieverConfig Qdrant 检索配置，支持命名向量与过滤条件。
 type QdrantRetrieverConfig struct {
 	Client         *qdrant.Client     // Required: Qdrant client
 	Collection     string             // Required: Collection name
@@ -22,12 +23,12 @@ type QdrantRetrieverConfig struct {
 	TopK           int                // Optional: Number of results (default: 10)
 }
 
-// QdrantRetriever Qdrant retriever 实现（支持命名向量和过滤）
+// QdrantRetriever Qdrant 检索实现，支持 content_vector / qa_content_vector 命名向量及 payload 过滤。
 type QdrantRetriever struct {
 	config *QdrantRetrieverConfig
 }
 
-// NewQdrantRetriever 创建 Qdrant retriever（自定义实现，支持命名向量）
+// NewQdrantRetriever 创建 Qdrant 检索器，支持 VectorField 指定命名向量（如 content_vector / qa_content_vector）。
 func NewQdrantRetriever(ctx context.Context, config *QdrantRetrieverConfig) (retriever.Retriever, error) {
 	if config.Client == nil {
 		return nil, fmt.Errorf("qdrant client is required")
@@ -47,7 +48,7 @@ func NewQdrantRetriever(ctx context.Context, config *QdrantRetrieverConfig) (ret
 	}, nil
 }
 
-// Retrieve 检索文档（支持过滤条件）
+// Retrieve 执行向量检索：先 Embedding 查询文本，再调用 Qdrant QueryPoints，支持 TopK、ScoreThreshold、Filter。
 func (r *QdrantRetriever) Retrieve(ctx context.Context, query string, opts ...retriever.Option) ([]*schema.Document, error) {
 	// 解析选项
 	options := &retriever.Options{}
@@ -123,7 +124,7 @@ func (r *QdrantRetriever) Retrieve(ctx context.Context, query string, opts ...re
 	// 转换结果
 	var docs []*schema.Document
 	for _, point := range searchResp {
-		doc, err := r.qdrantPoint2Document(ctx, point)
+		doc, err := r.qdrantPointToDocument(ctx, point)
 		if err != nil {
 			continue
 		}
@@ -133,8 +134,8 @@ func (r *QdrantRetriever) Retrieve(ctx context.Context, query string, opts ...re
 	return docs, nil
 }
 
-// qdrantPoint2Document 将 Qdrant ScoredPoint 转换为 Document
-func (r *QdrantRetriever) qdrantPoint2Document(_ context.Context, point *qdrant.ScoredPoint) (*schema.Document, error) {
+// qdrantPointToDocument 将 Qdrant ScoredPoint 转为 schema.Document，解析 payload（content、ext、_knowledge_name）与 score。
+func (r *QdrantRetriever) qdrantPointToDocument(_ context.Context, point *qdrant.ScoredPoint) (*schema.Document, error) {
 	var docID string
 	switch id := point.Id.GetPointIdOptions().(type) {
 	case *qdrant.PointId_Uuid:
@@ -199,7 +200,7 @@ func (r *QdrantRetriever) qdrantPoint2Document(_ context.Context, point *qdrant.
 	return doc, nil
 }
 
-// GetType 返回 retriever 类型
+// GetType 返回检索器类型标识，用于日志与调试。
 func (r *QdrantRetriever) GetType() string {
 	return "qdrant_retriever"
 }

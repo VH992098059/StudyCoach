@@ -17,12 +17,16 @@ type ChatTemplateConfig struct {
 
 // newChatTemplate component initialization function of node 'NormalChatTemplate' in graph 'NormalChat'
 func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+	systemTemplate := common.NormalSystemTemplate
+	if isNetwork, _ := ctx.Value("isNetwork").(bool); isNetwork {
+		systemTemplate = common.NormalSystemTemplateWithTools
+	}
 	config := &ChatTemplateConfig{
 		Role:       schema.User,
 		System:     schema.System,
 		FormatType: schema.FString,
 		Templates: []schema.MessagesTemplate{
-			schema.SystemMessage(common.NormalSystemTemplate),
+			schema.SystemMessage(systemTemplate),
 			schema.MessagesPlaceholder("chat_history", true),
 			schema.UserMessage(common.UserQuestion),
 		},

@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Button, Modal, Typography } from 'antd';
 import { DeleteOutlined, PlusOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -32,7 +32,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
 
   const { t } = useTranslation();
 
-  const groups = (() => {
+  const groups = useMemo(() => {
     const now = new Date();
     const todayKey = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toDateString();
     const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
@@ -48,7 +48,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
     }
     for (const label of Object.keys(bucket)) map.push({ label, items: bucket[label] });
     return map;
-  })();
+  }, [chatSessions, t]);
 
   return (
     <div
@@ -133,4 +133,4 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
   );
 };
 
-export default ChatSidebar;
+export default React.memo(ChatSidebar);

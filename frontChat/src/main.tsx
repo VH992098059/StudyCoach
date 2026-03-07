@@ -10,6 +10,13 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
+
+const theme = {
+  token: {
+    colorPrimary: '#2563eb',
+    borderRadius: 8,
+  },
+};
 import './i18n';
 import router from './router';
 
@@ -22,7 +29,7 @@ import router from './router';
  * - 设置React Router路由系统
  */
 createRoot(document.getElementById('root')!).render(
-  <ConfigProvider locale={zhCN}>
+  <ConfigProvider locale={zhCN} theme={theme}>
     <RouterProvider router={router} />
   </ConfigProvider>,
 )

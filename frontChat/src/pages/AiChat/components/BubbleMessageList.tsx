@@ -1,11 +1,11 @@
 /**
  * @fileoverview 气泡消息列表
  * @description 使用 Ant Design X 的 Bubble 渲染用户/AI 气泡消息，
- * 支持移动端样式、连接状态指示与实时回复展示。
+ * 支持移动端样式、连接状态指示、思维链展示与实时回复。
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, Avatar } from 'antd';
-import { Bubble, XProvider } from '@ant-design/x';
+import { Bubble, XProvider, ThoughtChain } from '@ant-design/x';
 import zhCN from '@ant-design/x/locale/zh_CN';
 import enUS from '@ant-design/x/locale/en_US';
 import XMarkdown, { type ComponentProps } from '@ant-design/x-markdown';
@@ -16,10 +16,10 @@ import { RobotOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import type { Message } from '@/types/chat';
 import { SSEConnectionState } from '@/utils/sse/sse';
+import type { ThoughtChainItemType } from '@ant-design/x';
 import '@ant-design/x-markdown/themes/light.css';
 import '@ant-design/x-markdown/themes/dark.css';
 import './BubbleMessageList.css';
-import ConnectionStatus from './ConnectionStatus';
 
 const Code: React.FC<ComponentProps> = (props) => {
   const { className, children } = props;
@@ -45,13 +45,6 @@ const renderMarkdown = (content: React.ReactNode) => {
   );
 };
 
-interface VoiceStateProps {
-  isReading: boolean;
-  currentReadingMsgId: string | null;
-  isLoading: boolean;
-  loadingMsgId: string | null;
-}
-
 interface BubbleMessageListProps {
   messages: Message[];
   isMobile: boolean;
@@ -62,8 +55,11 @@ interface BubbleMessageListProps {
   reconnectAttempts: number;
   maxReconnectAttempts: number;
   currentAiMessage: string;
-  voiceState: VoiceStateProps;
   messagesEndRef: React.RefObject<HTMLDivElement | null> | React.MutableRefObject<HTMLDivElement | null>;
+  /** 思维链：检索到的文档数量（用于展示「已检索到 N 条文档」） */
+  documentsCount?: number;
+  /** 是否选择了知识库（用于展示「检索知识库」步骤） */
+  hasKnowledgeBase?: boolean;
 }
 
 const hideAvatar = { display: 'none' } as React.CSSProperties;
@@ -80,11 +76,52 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
   reconnectAttempts,
   maxReconnectAttempts,
   currentAiMessage,
-  voiceState,
   messagesEndRef,
+  documentsCount = 0,
+  hasKnowledgeBase = false,
 }) => {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? enUS : zhCN;
+
+  const isConnecting = connectionState === 'connecting' || connectionState === 'reconnecting';
+  const isConnected = connectionState === 'connected';
+  const hasContent = currentAiMessage.length > 0;
+
+  const thoughtChainItems = useMemo<ThoughtChainItemType[]>(() => {
+    const items: ThoughtChainItemType[] = [];
+    items.push({
+      key: 'connecting',
+      title: t('chat.thinkChain.connecting'),
+      status: isConnecting ? 'loading' : 'success',
+      blink: isConnecting,
+    });
+    if (hasKnowledgeBase) {
+      items.push({
+        key: 'retrieving',
+        title: documentsCount > 0
+          ? t('chat.thinkChain.retrieved', { count: documentsCount })
+          : t('chat.thinkChain.retrieving'),
+        status: documentsCount > 0 ? 'success' : (isConnected ? 'loading' : undefined),
+        blink: isConnected && documentsCount === 0,
+      });
+    }
+    // 分析问题：不显示转动，仅在有内容时标记完成
+    items.push({
+      key: 'analyzing',
+      title: t('chat.thinkChain.analyzing'),
+      status: hasContent ? 'success' : undefined,
+      blink: false,
+    });
+    // 正在生成回答：连接后且（等待首字或已有流式内容）时显示转动，让流程更自然
+    const isGeneratingPhase = isConnected && (loading || hasContent);
+    items.push({
+      key: 'generating',
+      title: t('chat.thinkChain.generating'),
+      status: isGeneratingPhase ? 'loading' : undefined,
+      blink: isGeneratingPhase,
+    });
+    return items;
+  }, [isConnecting, isConnected, hasContent, documentsCount, hasKnowledgeBase, loading, t]);
 
   return (
     <XProvider locale={locale}>
@@ -98,13 +135,6 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
           onScroll={onScroll}
           ref={messagesEndRef}
         >
-          <ConnectionStatus
-            loading={loading}
-            connectionState={connectionState}
-            reconnectAttempts={reconnectAttempts}
-            maxReconnectAttempts={maxReconnectAttempts}
-          />
-
           <Bubble.List
             items={[
               ...messages.map((m) => ({
@@ -116,23 +146,38 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
                   : <Avatar icon={<RobotOutlined />} style={aiAvatarStyle} />,
                 content: m.content,
               })),
-              ...(loading || currentAiMessage
+              ...(loading && thoughtChainItems.length > 0 && !currentAiMessage
+                ? [
+                    {
+                      key: 'loading-thought-chain',
+                      role: 'assistant',
+                      placement: 'start' as 'start' | 'end',
+                      avatar: <Avatar icon={<RobotOutlined />} style={aiAvatarStyle} />,
+                      content: <ThoughtChain items={thoughtChainItems} line="solid" />,
+                    },
+                  ]
+                : []),
+              ...(currentAiMessage || (loading && thoughtChainItems.length === 0)
                 ? [
                     {
                       key: 'loading-message',
                       role: 'assistant',
                       placement: 'start' as 'start' | 'end',
                       avatar: <Avatar icon={<RobotOutlined />} style={aiAvatarStyle} />,
-                      typing: !currentAiMessage,
-                      content: currentAiMessage || t('chat.connecting'),
-                      styles: !currentAiMessage ? { avatar: hideAvatar } : undefined,
+                      typing: loading && !currentAiMessage,
+                      content: currentAiMessage || t('chat.thinkChain.generating'),
+                      styles: loading && !currentAiMessage ? { avatar: hideAvatar } : undefined,
                     },
                   ]
                 : []),
             ]}
             role={{
               user: { contentRender: renderMarkdown, styles: { content: { borderRadius: 17 } } },
-              assistant: { contentRender: renderMarkdown, styles: { content: {borderRadius: 17 } } },
+              assistant: {
+                contentRender: (content: React.ReactNode) =>
+                  typeof content === 'string' ? renderMarkdown(content) : content,
+                styles: { content: { borderRadius: 17 } },
+              },
             }}
           />
         </div>
@@ -141,4 +186,4 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
   );
 };
 
-export default BubbleMessageList;
+export default React.memo(BubbleMessageList);

@@ -62,5 +62,12 @@ func JWTMap(ctx context.Context) (claims jwt.MapClaims, err error) {
 		}
 		return []byte(consts.JwtKey), nil
 	})
-	return token.Claims.(jwt.MapClaims), nil
+	if err != nil || !token.Valid {
+		return nil, gerror.NewCode(gcode.CodeInvalidParameter, "token is invalid")
+	}
+	mapClaims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, gerror.NewCode(gcode.CodeInvalidParameter, "token claims invalid")
+	}
+	return mapClaims, nil
 }

@@ -3,6 +3,7 @@ package common
 import (
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -21,31 +22,30 @@ func (c *UserAgentTransport) RoundTrip(req *http.Request) (*http.Response, error
 	return c.Transport.RoundTrip(req)
 }
 
+// ClientProxy 返回用于 DuckDuckGo 等外部请求的 HTTP 客户端。
+// 支持环境变量 DDG_PROXY=0 或 DISABLE_PROXY=1 禁用代理，直连（适用于海外或无需代理的环境）。
+// 默认使用 http://127.0.0.1:10808 代理（需本地运行 Clash/V2Ray 等）。
 func ClientProxy() *http.Client {
+	// 可通过环境变量禁用代理，直连 DuckDuckGo
+	if os.Getenv("DDG_PROXY") == "0" || os.Getenv("DISABLE_PROXY") == "1" {
+		transport := &UserAgentTransport{Transport: http.DefaultTransport}
+		return &http.Client{Transport: transport, Timeout: 30 * time.Second}
+	}
+
 	// ⚠️ 注意：确认你的代理协议。
 	// 如果是 v2ray/clash 的 HTTP 端口，用 http://
 	// 如果是 SOCKS5 端口，用 socks5://127.0.0.1:10808
 	proxyURL, err := url.Parse("http://127.0.0.1:10808")
 	if err != nil {
-		return nil
+		// 解析失败时回退到直连，避免返回 nil
+		transport := &UserAgentTransport{Transport: http.DefaultTransport}
+		return &http.Client{Transport: transport, Timeout: 30 * time.Second}
 	}
 
-	// 基础的 Transport（负责代理）
 	baseTransport := &http.Transport{
 		Proxy:             http.ProxyURL(proxyURL),
-		DisableKeepAlives: false, // 建议开启 KeepAlive 提高连续请求速度
+		DisableKeepAlives: false,
 	}
-
-	// 2. 将基础 Transport 包装进我们的拦截器中
-	finalTransport := &UserAgentTransport{
-		Transport: baseTransport,
-	}
-
-	// 3. 创建 Client
-	client := &http.Client{
-		Transport: finalTransport,   // 使用包装后的 Transport
-		Timeout:   30 * time.Second, // 搜索通常很快，30秒足够，太长会卡死 Agent
-	}
-
-	return client
+	finalTransport := &UserAgentTransport{Transport: baseTransport}
+	return &http.Client{Transport: finalTransport, Timeout: 30 * time.Second}
 }

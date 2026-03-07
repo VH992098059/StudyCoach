@@ -2,7 +2,7 @@
  * @fileoverview 滚动处理 Hook
  * @description 提供页面与消息列表滚动的短暂状态标记与节流处理。
  */
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 
 const useScrollHandlers = () => {
   const [isScrolling, setIsScrolling] = useState(false);
@@ -10,17 +10,17 @@ const useScrollHandlers = () => {
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messageScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     setIsScrolling(true);
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => setIsScrolling(false), 1000);
-  };
+  }, []);
 
-  const handleMessageScroll = () => {
+  const handleMessageScroll = useCallback(() => {
     setIsMessageScrolling(true);
     if (messageScrollTimeoutRef.current) clearTimeout(messageScrollTimeoutRef.current);
     messageScrollTimeoutRef.current = setTimeout(() => setIsMessageScrolling(false), 1000);
-  };
+  }, []);
 
   return { isScrolling, isMessageScrolling, handleScroll, handleMessageScroll };
 };

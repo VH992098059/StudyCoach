@@ -9,5 +9,5 @@ gfcli:
   gen:
     dao:
 #      - link: "pgsql:postgres:root@tcp(127.0.0.1:5432)/postgres"
-      - link: "mysql:root:root@tcp(127.0.0.1:3306)/chat_history"
+      - link: "mysql:root:root@tcp(127.0.0.1:3306)/studyCoach"
         descriptionTag: true

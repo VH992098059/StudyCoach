@@ -87,20 +87,12 @@ const useChatComposer = (params: UseChatComposerParams) => {
     await sendQuestionByText(inputValue);
   }, [inputValue, streamingLoading, sendQuestionByText]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  }, [handleSend]);
-
   return {
     inputValue,
     setInputValue,
     formatUserInput,
     sendQuestionByText,
     handleSend,
-    handleKeyPress,
   };
 };
 

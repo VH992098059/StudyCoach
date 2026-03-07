@@ -23,30 +23,31 @@ func init() {
 	log.Println("数据库已启动")
 }
 
-func _init() {
+func _init() error {
 	client, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 	})
 	if err != nil {
-		log.Printf("NewClient of es8 failed, err=%v", err)
-		return
+		return fmt.Errorf("NewClient of es8 failed, err=%v", err)
 	}
 
 	cfg = &common.Config{
 		Client:    client,
 		IndexName: "study",
-		APIKey:    "sk-cmtnvcaupuoizcqogdbapkqyvdmyumolprmgwetjmxsxmwtk",
+		APIKey:    "sk-*",
 		BaseURL:   "https://api.siliconflow.cn/v1",
 		ChatModel: "Qwen/Qwen3-Embedding-8B",
 	}
 	ragNew, err = api.NewRagChat(context.Background(), cfg)
 	if err != nil {
-		log.Printf("New of rag failed, err=%v", err)
-		return
+		return fmt.Errorf("New of rag failed, err=%v", err)
 	}
+	return nil
 }
 func TestIndex(t *testing.T) {
-	_init()
+	if err := _init(); err != nil {
+		t.Skipf("跳过测试: %v", err)
+	}
 	ctx := context.Background()
 	uriList := []string{
 		//"./test_file/readme.md",
@@ -72,13 +73,15 @@ func TestIndex(t *testing.T) {
 }
 
 func TestRetriever(t *testing.T) {
-	_init()
+	if err := _init(); err != nil {
+		t.Skipf("跳过测试: %v", err)
+	}
 	ctx := context.Background()
 	req := &api.RetrieveReq{
-		Query:         "战地风云6配置",
+		Query:         "生化危机",
 		TopK:          5,
 		Score:         0.5,
-		KnowledgeName: "测试知识库",
+		KnowledgeName: "ai学习测试内容",
 	}
 	msg, err := ragNew.Retriever(ctx, req)
 	if err != nil {
@@ -90,7 +93,9 @@ func TestRetriever(t *testing.T) {
 }
 
 func TestChat(T *testing.T) {
-	_init()
+	if err := _init(); err != nil {
+		T.Skipf("跳过测试: %v", err)
+	}
 	const userCount = 10
 	var wg sync.WaitGroup
 	wg.Add(userCount)
@@ -108,7 +113,7 @@ func TestChat(T *testing.T) {
 				IsNetwork:     false,
 				IsStudyMode:   false,
 			}
-			model, err := api.ChatAiModel(context.Background(), req)
+			model, _, err := api.ChatAiModel(context.Background(), req)
 			if err != nil {
 				// 注意：在并发测试中，建议用 t.Log 或 fmt 打印错误，而不是直接 return 整个 Test
 				fmt.Printf("[User %d] Error: %v\n", userIndex, err)

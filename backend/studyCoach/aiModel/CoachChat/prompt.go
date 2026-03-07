@@ -25,7 +25,6 @@ type ChatTemplateConfig struct {
 // 分析用户问题模版
 // newChatTemplate component initialization function of node 'AnalysisChatTemplate' in graph 'studyCoachFor'
 func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
-	// TODO Modify component configuration here.
 	config := &ChatTemplateConfig{
 		Role:       schema.User,
 		System:     schema.System,

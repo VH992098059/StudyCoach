@@ -13,9 +13,9 @@ import (
 type CronExecute struct {
 	g.Meta      `orm:"table:cron_execute, do:true"`
 	Id          any         //
-	CronNameFk  any         // 定时任务名
-	ExecuteTime *gtime.Time // 执行时间
-	NextTime    *gtime.Time // 下次执行时间
+	CronNameFk  any         //
+	ExecuteTime *gtime.Time //
+	NextTime    *gtime.Time //
 	CreatedAt   *gtime.Time //
 	UpdatedAt   *gtime.Time //
 }

@@ -11,6 +11,8 @@ import (
 	"backend/internal/controller/rag"
 	"backend/internal/controller/voice"
 	logicCron "backend/internal/logic/cron"
+	"backend/internal/logic/middleware"
+	createTable "backend/internal/model/gorm"
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -25,6 +27,11 @@ var (
 		Usage: "main",
 		Brief: "start http server",
 		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
+			// 启动时自动迁移：表不存在则创建，已存在则跳过
+			if err := createTable.RunMigrateOnStartup(ctx); err != nil {
+				g.Log().Warningf(ctx, "database migrate failed (non-fatal): %v", err)
+			}
+
 			s := g.Server()
 
 			// 初始化定时任务调度器
@@ -62,22 +69,25 @@ var (
 
 			s.Group("/gateway", func(group *ghttp.RouterGroup) {
 				group.Middleware(ghttp.MiddlewareHandlerResponse)
+				// 无需 JWT 校验的路由
 				group.Bind(
 					check_jwt.NewV1(),
 					login.NewV1(),
 					file_controller.NewV1(),
-				)
-				//中间件拦截
-				//group.Middleware(middleware.Auth)
-
-				group.Bind(
 					ai_chat.NewV1(),
-					rag.NewV1(),
-					cron.NewV1(),
-					files.NewV1(),
-					voice.NewV1(),
-					cron_execute.NewV1(),
 				)
+
+				// 需要 JWT 校验的路由
+				group.Group("/", func(authGroup *ghttp.RouterGroup) {
+					authGroup.Middleware(middleware.Auth)
+					authGroup.Bind(
+						rag.NewV1(),
+						cron.NewV1(),
+						files.NewV1(),
+						voice.NewV1(),
+						cron_execute.NewV1(),
+					)
+				})
 
 				// Add WebSocket endpoint
 				group.GET("/ws", func(r *ghttp.Request) {

@@ -10,9 +10,9 @@ import (
 
 // CronLog is the golang structure for table cron_log.
 type CronLog struct {
-	Id         int         `json:"id"         orm:"id"           description:""`                   //
-	CronNameFk string      `json:"cronNameFk" orm:"cron_name_fk" description:"定时任务名外键"`            // 定时任务名外键
-	Content    string      `json:"content"    orm:"content"      description:"日志内容"`               // 日志内容
-	Level      string      `json:"level"      orm:"level"        description:"日志级别 (INFO, ERROR)"` // 日志级别 (INFO, ERROR)
-	CreateTime *gtime.Time `json:"createTime" orm:"create_time"  description:"创建时间"`               // 创建时间
+	Id         int64       `json:"id"         orm:"id"          description:""` //
+	CronId     int64       `json:"cronId"     orm:"cron_id"     description:""` //
+	Content    string      `json:"content"    orm:"content"     description:""` //
+	Level      string      `json:"level"      orm:"level"       description:""` //
+	CreateTime *gtime.Time `json:"createTime" orm:"create_time" description:""` //
 }

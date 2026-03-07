@@ -23,26 +23,26 @@ func (c *ControllerV1) AiChat(ctx context.Context, req *v1.AiChatReq) (res *v1.A
 	var streamReader *schema.StreamReader[*schema.Message]
 	fmt.Printf("使用联网状态：%t，知识库使用：%s\n", req.IsNetwork, req.KnowledgeName)
 	if req.IsStudyMode != true {
-		streamReader, err = api.ChatNormalModel(ctx, req)
+		streamReader, documents, err := api.ChatNormalModel(ctx, req)
 		if err != nil {
 			g.Log().Error(ctx, err)
 			return nil, err
 		}
 		defer streamReader.Close()
-		err = common.SteamResponse(ctx, streamReader, nil)
+		err = common.SteamResponse(ctx, streamReader, documents)
 		if err != nil {
 			g.Log().Error(ctx, err)
 			return nil, err
 		}
 		return &v1.AiChatRes{}, nil
 	}
-	streamReader, err = api.ChatAiModel(ctx, req)
+	streamReader, documents, err := api.ChatAiModel(ctx, req)
 	if err != nil {
 		g.Log().Error(ctx, err)
 		return nil, err
 	}
 	defer streamReader.Close()
-	err = common.SteamResponse(ctx, streamReader, nil)
+	err = common.SteamResponse(ctx, streamReader, documents)
 	if err != nil {
 		g.Log().Error(ctx, err)
 		return nil, err

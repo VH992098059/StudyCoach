@@ -13,20 +13,31 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/create"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/exists"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/densevectorsimilarity"
 	"github.com/gogf/gf/v2/frame/g"
 )
 
 func createEsIndex(ctx context.Context, client *elasticsearch.Client, indexName string) error {
 	_, err := create.NewCreateFunc(client)(indexName).Request(&create.Request{
+		Settings: &types.IndexSettings{
+			// 缩短 refresh 周期，使新写入文档更快可被搜索（默认 1s，显式设置避免被调大）
+			RefreshInterval: "1s",
+		},
 		Mappings: &types.TypeMapping{
 			Properties: map[string]types.Property{
 				FieldContent:  types.NewTextProperty(),
 				FieldExtra:    types.NewTextProperty(),
 				FieldCronID:   types.NewKeywordProperty(),
-				KnowledgeName: types.NewTextProperty(),
+				KnowledgeName: types.NewKeywordProperty(), // 必须为 keyword，SearchDocumentsByIDs 用 Match 精确匹配
 				FieldContentVector: &types.DenseVectorProperty{
-					Dims:  TypeOf(1024),
-					Index: TypeOf(true),
+					Dims:       TypeOf(1024),
+					Index:      TypeOf(true),
+					Similarity: TypeOf(densevectorsimilarity.Cosine),
+				},
+				FieldQAContentVector: &types.DenseVectorProperty{
+					Dims:       TypeOf(1024),
+					Index:      TypeOf(true),
+					Similarity: TypeOf(densevectorsimilarity.Cosine),
 				},
 			},
 		},

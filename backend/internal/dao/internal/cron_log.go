@@ -22,16 +22,16 @@ type CronLogDao struct {
 // CronLogColumns defines and stores column names for the table cron_log.
 type CronLogColumns struct {
 	Id         string //
-	CronNameFk string // 定时任务名外键
-	Content    string // 日志内容
-	Level      string // 日志级别 (INFO, ERROR)
-	CreateTime string // 创建时间
+	CronId     string //
+	Content    string //
+	Level      string //
+	CreateTime string //
 }
 
 // cronLogColumns holds the columns for the table cron_log.
 var cronLogColumns = CronLogColumns{
 	Id:         "id",
-	CronNameFk: "cron_name_fk",
+	CronId:     "cron_id",
 	Content:    "content",
 	Level:      "level",
 	CreateTime: "create_time",

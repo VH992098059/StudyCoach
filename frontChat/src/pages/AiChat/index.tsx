@@ -5,7 +5,7 @@
  * - 状态：会话列表与当前会话、SSE连接、文件上传、语音朗读、知识库选择
  * - 交互：发送消息、停止生成、滚动行为、打开/关闭抽屉与高级设置
  */
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button, Alert, message, Empty } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +51,7 @@ const AIChat: React.FC = () => {
     isReferenceScrolling,
     handleKnowledgeChange,
     handleAdvancedSettingsChange,
+    handleToggleReferences,
     handleReferenceScroll,
     fetchReferenceDocuments,
     setReferenceDocuments,
@@ -61,6 +62,8 @@ const AIChat: React.FC = () => {
   // 联网功能状态
   const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);
   const [isStudyMode, setIsStudyMode] = useState(false);
+  // 深度思考（仅 NormalChat 生效）
+  const [isDeepThinking, setIsDeepThinking] = useState(false);
   // SSE 连接相关状态
   const {
     connectionState,
@@ -69,6 +72,7 @@ const AIChat: React.FC = () => {
     setConnectionError,
     currentAiMessage,
     loading: streamingLoading,
+    documentsCount,
     send,
     stop,
   } = useSSEChat({
@@ -76,6 +80,7 @@ const AIChat: React.FC = () => {
     advancedSettings,
     isNetworkEnabled,
     isStudyMode,
+    isDeepThinking,
     generateMsgId,
     setMessages,
   });
@@ -83,8 +88,8 @@ const AIChat: React.FC = () => {
   // 文件上传相关状态
   const [currentUploadedFiles, setCurrentUploadedFiles] = useState<UploadedFile[]>([]);
 
-  // 朗读功能相关状态 - 使用语音服务
-  const { voiceState } = useVoiceService();
+  // 朗读功能 - 初始化语音服务（供消息气泡内调用 voiceService 使用）
+  useVoiceService();
 
   // 响应式断点
   const { isMobile, isTablet } = useBreakpoints();
@@ -94,13 +99,6 @@ const AIChat: React.FC = () => {
 
   // 常量配置
   const MAX_RECONNECT_ATTEMPTS = 3;
-
-  // 更新会话消息
-  useEffect(() => {
-    if (currentSessionId && messages.length > 1) {
-      updateCurrentSession(messages);
-    }
-  }, [messages, currentSessionId, updateCurrentSession]);
 
   // 清理资源
   useEffect(() => {
@@ -132,7 +130,6 @@ const AIChat: React.FC = () => {
     setInputValue,
     sendQuestionByText,
     handleSend,
-    handleKeyPress,
   } = useChatComposer({
     messages,
     generateMsgId,
@@ -151,10 +148,9 @@ const AIChat: React.FC = () => {
   };
 
   // 处理文件上传完成
-  const handleUploadComplete = (files: UploadedFile[]) => {
-    console.log('文件上传完成:', files);
-    // 这里可以添加上传完成后的处理逻辑
-  };
+  const handleUploadComplete = useCallback((files: UploadedFile[]) => {
+    setCurrentUploadedFiles(files);
+  }, []);
 
   /**
    * 切换联网状态
@@ -177,9 +173,22 @@ const AIChat: React.FC = () => {
   };
 
   /**
+   * 切换深度思考
+   * @description 仅 NormalChat 模式下生效，启用 ark 模型的思考能力
+   */
+  const handleToggleDeepThinking = useCallback(() => {
+    setIsDeepThinking(prev => !prev);
+  }, []);
+
+  const handleCloseDrawer = useCallback(() => setDrawerVisible(false), []);
+  const handleOpenSidebar = useCallback(() => setDrawerVisible(true), []);
+  const handleCloseSessionInfoDrawer = useCallback(() => setSessionInfoDrawerVisible(false), []);
+  const handleOpenInfo = useCallback(() => setSessionInfoDrawerVisible(true), []);
+
+  /**
    * 复制文档内容到剪贴板
    */
-  const copyToClipboard = async (text: string) => {
+  const copyToClipboard = useCallback(async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       message.success(t('chat.copySuccess'));
@@ -187,7 +196,7 @@ const AIChat: React.FC = () => {
       console.error('复制失败:', error);
       message.error(t('chat.copyFailed'));
     }
-  };
+  }, [t]);
 
   return (
     <div style={{
@@ -213,7 +222,7 @@ const AIChat: React.FC = () => {
 
       <SidebarDrawer
         open={drawerVisible}
-        onClose={() => setDrawerVisible(false)}
+        onClose={handleCloseDrawer}
         chatSessions={chatSessions}
         currentSessionId={currentSessionId}
         onCreateSession={createNewSession}
@@ -235,7 +244,7 @@ const AIChat: React.FC = () => {
           height: '88vh',
           flexDirection: 'column'
         }}>
-          <ChatTopBar isMobile={isMobile} onOpenSidebar={() => setDrawerVisible(true)} onOpenInfo={() => setSessionInfoDrawerVisible(true)} />
+          <ChatTopBar isMobile={isMobile} onOpenSidebar={handleOpenSidebar} onOpenInfo={handleOpenInfo} />
           {/* 连接错误提示 */}
           {connectionError && (
             <Alert
@@ -244,7 +253,8 @@ const AIChat: React.FC = () => {
               icon={<ExclamationCircleOutlined />}
               style={{ marginBottom: '16px' }}
               showIcon
-              closable={{onClose:() => setConnectionError(null)}}
+              closable
+              onClose={() => setConnectionError(null)}
             />
           )}
 
@@ -260,8 +270,9 @@ const AIChat: React.FC = () => {
                 reconnectAttempts={reconnectAttempts}
                 maxReconnectAttempts={MAX_RECONNECT_ATTEMPTS}
                 currentAiMessage={currentAiMessage}
-                voiceState={voiceState}
                 messagesEndRef={messagesEndRef}
+                documentsCount={documentsCount}
+                hasKnowledgeBase={selectedKnowledge !== 'none' && !!selectedKnowledge}
               />
 
               {/* 输入区域 */}
@@ -270,14 +281,15 @@ const AIChat: React.FC = () => {
                 loading={streamingLoading}
                 isNetworkEnabled={isNetworkEnabled}
                 isStudyMode={isStudyMode}
+                isDeepThinking={isDeepThinking}
                 currentUploadedFiles={currentUploadedFiles}
                 onVoiceTranscript={(text) => sendQuestionByText(text)}
                 onInputChange={setInputValue}
-                onKeyPress={handleKeyPress}
                 onSend={handleSend}
                 onStop={handleStop}
                 onToggleNetwork={handleToggleNetwork}
                 onToggleStudyMode={handleToggleStudyMode}
+                onToggleDeepThinking={handleToggleDeepThinking}
                 onFilesChange={handleFilesChange}
                 onUploadComplete={handleUploadComplete}
               />
@@ -322,7 +334,7 @@ const AIChat: React.FC = () => {
               onAdvancedSettingsChange={handleAdvancedSettingsChange}
               referenceDocuments={referenceDocuments}
               showReferences={showReferences}
-              onToggleReferences={() => setShowReferences(!showReferences)}
+              onToggleReferences={handleToggleReferences}
               isReferenceScrolling={isReferenceScrolling}
               onReferenceScroll={handleReferenceScroll}
               onCopyDocumentContent={copyToClipboard}
@@ -335,7 +347,7 @@ const AIChat: React.FC = () => {
       {chatSessions.length > 0 && currentSessionId && (
         <SessionInfoDrawer
           open={sessionInfoDrawerVisible}
-          onClose={() => setSessionInfoDrawerVisible(false)}
+          onClose={handleCloseSessionInfoDrawer}
           showReferences={showReferences}
           onToggleReferences={() => setShowReferences(!showReferences)}
           currentSessionId={currentSessionId}

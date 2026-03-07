@@ -213,4 +213,4 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
   );
 };
 
-export default SessionInfoPanel;
+export default React.memo(SessionInfoPanel);

@@ -20,8 +20,22 @@ func newIndexer(ctx context.Context, conf *common.Config) (idr indexer.Indexer, 
 		return nil, err
 	}
 
-	// 根据向量存储类型创建不同的 indexer
-	if conf.Client != nil {
+	// 根据向量引擎创建 indexer：milvus > qdrant > es(默认)
+	if conf.UseMilvus() {
+		idr, err = NewMilvusIndexer(ctx, &MilvusIndexerConfig{
+			Client:       conf.MilvusClient,
+			ClientConfig: conf.MilvusConfig,
+			Collection:   conf.IndexName,
+			VectorDim:    1024,
+			Embedding:    embeddingIns11,
+			BatchSize:    10,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return idr, nil
+	}
+	if conf.UseES() {
 		// ES indexer
 		indexerConfig := &es8.IndexerConfig{
 			Client:    conf.Client,
@@ -67,7 +81,8 @@ func newIndexer(ctx context.Context, conf *common.Config) (idr indexer.Indexer, 
 			return nil, err
 		}
 		return idr, nil
-	} else if conf.QdrantClient != nil {
+	}
+	if conf.UseQdrant() {
 		// Qdrant indexer
 		idr, err = NewQdrantIndexer(ctx, &QdrantIndexerConfig{
 			Client:     conf.QdrantClient,
@@ -82,11 +97,9 @@ func newIndexer(ctx context.Context, conf *common.Config) (idr indexer.Indexer, 
 			return nil, err
 		}
 		return idr, nil
-	} else {
-		return nil, fmt.Errorf("no valid client configuration found")
 	}
+	return nil, fmt.Errorf("no valid client configuration found")
 }
-
 func getExtData(doc *schema.Document) map[string]any {
 	if doc.MetaData == nil {
 		return nil

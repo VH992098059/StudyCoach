@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -53,7 +54,7 @@ func Login(ctx context.Context, username, password string) (id uint64, uuid, tok
 
 	/*JWT生成*/
 	us := &utility.JwtClaims{
-		Id:       user.Id,
+		Id:       uint64(user.Id),
 		Username: user.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
@@ -66,12 +67,12 @@ func Login(ctx context.Context, username, password string) (id uint64, uuid, tok
 	}
 
 	/*JWT存储Redis*/
-	err = utility.SetJWT(ctx, user.Username, signedString, 3600*24) //设置24小时
+	err = utility.SetJWT(ctx, user.Username, signedString, 24*time.Hour)
 	if err != nil {
 		log.Println("redis出错！")
 		return 0, "", "", gerror.New("缓存存储失败！")
 	}
-	return user.Id, user.Uuid, signedString, nil
+	return uint64(user.Id), user.Uuid, signedString, nil
 }
 func RegisterUser(ctx context.Context, in *entity.Users) (id int64, err error) {
 	/*查询用户是否注册*/
@@ -125,7 +126,10 @@ func UpdatePassword(ctx context.Context, username, oldPassword, newPassword stri
 	}
 
 	/*更新密码*/
-	encryptedNewPassword, _ := utility.Encrypt(newPassword)
+	encryptedNewPassword, err := utility.Encrypt(newPassword)
+	if err != nil {
+		return err
+	}
 	_, err = dao.Users.Ctx(ctx).Data(do.Users{
 		Password: encryptedNewPassword,
 	}).Where("id", user.Id).Update()
@@ -139,34 +143,55 @@ func LogoutUser(ctx context.Context) (msg string, err error) {
 	if err != nil {
 		return "", gerror.NewCode(gcode.New(500, "token有误，退出失败", ""))
 	}
-	log.Println("jwt的ID：", jwtMap["Id"].(float64))
-	log.Println("jwt的Username：", jwtMap["Username"].(string))
-	_, err = dao.Users.Ctx(ctx).Fields("logout_at").Where("id", jwtMap["Id"].(float64)).Data(do.Users{LogoutAt: gtime.Now()}).Update()
+	username, ok := jwtMap["Username"].(string)
+	if !ok || username == "" {
+		return "", gerror.NewCode(gcode.New(500, "token有误，退出失败", ""))
+	}
+	var userID int64
+	switch v := jwtMap["Id"].(type) {
+	case float64:
+		userID = int64(v)
+	case int64:
+		userID = v
+	case int:
+		userID = int64(v)
+	case string:
+		parsed, parseErr := strconv.ParseInt(v, 10, 64)
+		if parseErr != nil {
+			return "", gerror.NewCode(gcode.New(500, "token有误，退出失败", ""))
+		}
+		userID = parsed
+	default:
+		return "", gerror.NewCode(gcode.New(500, "token有误，退出失败", ""))
+	}
+	log.Println("jwt的ID：", userID)
+	log.Println("jwt的Username：", username)
+	_, err = dao.Users.Ctx(ctx).Fields("logout_at").Where("id", userID).Data(do.Users{LogoutAt: gtime.Now()}).Update()
 	if err != nil {
 		return "", gerror.NewCode(gcode.New(500, "退出失败", ""))
 	}
 
 	/*检查JWT是否存在*/
-	userKey := fmt.Sprintf("user:%s", jwtMap["Username"].(string))
+	userKey := fmt.Sprintf("user:%s", username)
 	checkJWT, err := utility.CheckJWT(ctx, userKey, utility.GetJWT(ctx))
 	if err != nil {
 		return "", gerror.NewCode(gcode.New(500, "token检查失败，退出失败", ""))
 	}
 
 	/*JWT实现黑名单*/
-	checkJWTBlack, err := utility.CheckBlackTokens(ctx, jwtMap["Username"].(string), utility.GetJWT(ctx))
+	checkJWTBlack, err := utility.CheckBlackTokens(ctx, username, utility.GetJWT(ctx))
 	if err != nil {
 		return "", gerror.NewCode(gcode.New(500, "退出失败", ""))
 	}
 	if !checkJWT || checkJWTBlack {
 		return "", gerror.NewCode(gcode.CodeInvalidParameter, "token已失效或不存在")
 	}
-	err = utility.AddBlackTokens(ctx, jwtMap["Username"].(string), utility.GetJWT(ctx))
+	err = utility.AddBlackTokens(ctx, username, utility.GetJWT(ctx))
 	if err != nil {
 		return "", gerror.NewCode(gcode.CodeInvalidParameter, "退出失败")
 	}
 
 	/*Redis删除token*/
-	utility.DeleteJWT(ctx, jwtMap["Username"].(string))
+	utility.DeleteJWT(ctx, username)
 	return "退出成功", nil
 }

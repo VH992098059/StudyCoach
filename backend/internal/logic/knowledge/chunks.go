@@ -10,12 +10,13 @@ import (
 	"github.com/google/uuid"
 )
 
-// SaveChunksData 批量保存知识块数据
+// SaveChunksData 批量保存知识块数据。
+// 仅当所有 chunk 均保存失败时才标记文档为 Failed；若有任一成功，保持 Indexing，由后续 QA 回调更新为 Active。
 func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.KnowledgeChunks) error {
 	if len(chunks) == 0 {
 		return nil
 	}
-	status := int(v1.StatusIndexing)
+	successCount := 0
 	for _, chunk := range chunks {
 		if chunk.KnowledgeDocId == 0 {
 			chunk.KnowledgeDocId = documentsId
@@ -40,7 +41,8 @@ func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.Know
 				Update()
 			if err != nil {
 				g.Log().Errorf(ctx, "SaveChunksData update failed for chunk_id=%s, err=%+v", chunk.ChunkId, err)
-				status = int(v1.StatusFailed)
+			} else {
+				successCount++
 			}
 		} else {
 			// 不存在，插入（id 设为 0 让数据库自动分配）
@@ -48,11 +50,17 @@ func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.Know
 			_, err = dao.KnowledgeChunks.Ctx(ctx).Data(chunk).OmitEmpty().Insert()
 			if err != nil {
 				g.Log().Errorf(ctx, "SaveChunksData insert failed for chunk_id=%s, err=%+v", chunk.ChunkId, err)
-				status = int(v1.StatusFailed)
+			} else {
+				successCount++
 			}
 		}
 	}
 
+	// 有切片内容成功落库时保持 Indexing，仅全部失败时才标记 Failed
+	status := int(v1.StatusIndexing)
+	if successCount == 0 {
+		status = int(v1.StatusFailed)
+	}
 	UpdateDocumentsStatus(ctx, documentsId, status)
 	return nil
 }

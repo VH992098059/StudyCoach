@@ -10,7 +10,7 @@ import (
 
 func (c *ControllerV1) CronUpdateOne(ctx context.Context, req *v1.CronUpdateOneReq) (res *v1.CronUpdateOneRes, err error) {
 	update, err := cron.RuCronUpdate(ctx, &entity.KnowledgeBaseCronSchedule{
-		Id:                int(req.Id),
+		Id:                req.Id,
 		CronName:          req.CronName,
 		CronExpression:    req.CronExpression,
 		SchedulingMethod:  req.SchedulingMethod,

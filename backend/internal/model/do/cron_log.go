@@ -13,8 +13,8 @@ import (
 type CronLog struct {
 	g.Meta     `orm:"table:cron_log, do:true"`
 	Id         any         //
-	CronNameFk any         // 定时任务名外键
-	Content    any         // 日志内容
-	Level      any         // 日志级别 (INFO, ERROR)
-	CreateTime *gtime.Time // 创建时间
+	CronId     any         //
+	Content    any         //
+	Level      any         //
+	CreateTime *gtime.Time //
 }

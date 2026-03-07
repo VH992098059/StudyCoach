@@ -1,7 +1,26 @@
 import { ApiClient } from '@/utils/axios';
+
+/** 未登录时的会话消息 */
+export interface AnonymousMessage {
+  id?: number;
+  msg_id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: string;
+}
+
+/** 未登录时的会话，登录后由后端合并到用户历史 */
+export interface AnonymousSession {
+  id: string;
+  title: string;
+  messages: AnonymousMessage[];
+}
+
 export interface LoginReq {
   username: string;
   password: string;
+  /** 未登录时的会话，登录后由后端合并 */
+  anonymousSessions?: AnonymousSession[];
 }
 export interface LoginRes {
     id:number

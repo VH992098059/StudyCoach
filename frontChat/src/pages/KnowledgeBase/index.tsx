@@ -25,6 +25,7 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useTranslation } from 'react-i18next';
+import { useBreakpoints } from '@/hooks/useMediaQuery';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '../../services/knowledgeBase';
 import './index.scss';
 import Documents from './Documents';
@@ -34,6 +35,7 @@ const { TextArea } = Input;
 
 const KnowledgeBase: React.FC = () => {
   const { t } = useTranslation();
+  const { isMobile } = useBreakpoints();
   const [knowledgeBaseList, setKnowledgeBaseList] = useState<KnowledgeBase[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -388,7 +390,7 @@ const KnowledgeBase: React.FC = () => {
       <Drawer
         title={`${t('kb.drawerTitle')} - ${selectedKbForDocuments}`}
         placement="right"
-        size={1000}
+        width={isMobile ? '100%' : 1000}
         onClose={() => setDocumentsDrawerVisible(false)}
         open={documentsDrawerVisible}
         destroyOnHidden 

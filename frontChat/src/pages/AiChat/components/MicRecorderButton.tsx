@@ -112,7 +112,6 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     if (disabled || working) return;
     stoppedRef.current = false;
     fetchAbortRef.current = new AbortController();
-    console.log(window.location.href);
     
     try {
       //使用VAD识别语音

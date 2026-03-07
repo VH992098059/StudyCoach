@@ -28,17 +28,27 @@ func (c *ControllerV1) CheckJwtInfo(ctx context.Context, req *v1.CheckJwtInfoReq
 		}
 		return []byte(consts.JwtKey), nil
 	})
-	claims, _ := token.Claims.(jwt.MapClaims) //通过类型断言获取map的属性
-	userKey := fmt.Sprintf("user:%s", claims["Username"].(string))
+	if err != nil || !token.Valid {
+		return nil, gerror.NewCode(gcode.CodeInvalidParameter, "token已失效或不存在")
+	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, gerror.NewCode(gcode.CodeInvalidParameter, "token claims 无效")
+	}
+	username, ok := claims["Username"].(string)
+	if !ok || username == "" {
+		return nil, gerror.NewCode(gcode.CodeInvalidParameter, "token中缺少用户名")
+	}
+	userKey := fmt.Sprintf("user:%s", username)
 	checkJWT, err := utility.CheckJWT(ctx, userKey, getJwt)
 	if err != nil {
 		return nil, err
 	}
-	checkJWTBlack, err := utility.CheckBlackTokens(ctx, claims["Username"].(string), getJwt)
+	checkJWTBlack, err := utility.CheckBlackTokens(ctx, username, getJwt)
 	log.Println("验证token是否在redis黑名单：", checkJWTBlack)
 	if err != nil {
-		log.Fatal("check_jwt出错")
-		return nil, err
+		log.Printf("check_jwt出错: %v", err)
+		return nil, gerror.NewCode(gcode.CodeInternalError, "验证失败")
 	}
 	if !checkJWT || checkJWTBlack {
 		return nil, gerror.NewCode(gcode.CodeInvalidParameter, "token已失效或不存在")

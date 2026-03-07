@@ -3,6 +3,7 @@ package CoachChat
 import (
 	"backend/studyCoach/common"
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/aws/smithy-go/ptr"
@@ -15,10 +16,23 @@ import (
 
 // newChatModel component initialization function of node 'AnalysisChatModel' in graph 'StudyCoachFor'
 func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
+	cfg := g.Cfg()
+	modelName, err := cfg.Get(ctx, "Analysis.model")
+	if err != nil || modelName.String() == "" {
+		return nil, fmt.Errorf("config missing: Analysis.model")
+	}
+	apiKey, err := cfg.Get(ctx, "Analysis.apiKey")
+	if err != nil || apiKey.String() == "" {
+		return nil, fmt.Errorf("config missing: Analysis.apiKey")
+	}
+	baseURL, err := cfg.Get(ctx, "Analysis.baseURL")
+	if err != nil || baseURL.String() == "" {
+		return nil, fmt.Errorf("config missing: Analysis.baseURL")
+	}
 	config := &openai.ChatModelConfig{
-		Model:   g.Cfg().MustGet(ctx, "Analysis.model").String(),
-		APIKey:  g.Cfg().MustGet(ctx, "Analysis.apiKey").String(),
-		BaseURL: g.Cfg().MustGet(ctx, "Analysis.baseURL").String(),
+		Model:   modelName.String(),
+		APIKey:  apiKey.String(),
+		BaseURL: baseURL.String(),
 	}
 	cm, err = openai.NewChatModel(ctx, config)
 	log.Println("意图分析模型")
@@ -88,10 +102,23 @@ func newChatModel3(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 }
 
 func RewriteModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+	cfg := g.Cfg()
+	apiKey, err := cfg.Get(ctx, "rewrite.apiKey")
+	if err != nil || apiKey.String() == "" {
+		return nil, fmt.Errorf("config missing: rewrite.apiKey")
+	}
+	baseURL, err := cfg.Get(ctx, "rewrite.baseURL")
+	if err != nil || baseURL.String() == "" {
+		return nil, fmt.Errorf("config missing: rewrite.baseURL")
+	}
+	modelName, err := cfg.Get(ctx, "rewrite.model")
+	if err != nil || modelName.String() == "" {
+		return nil, fmt.Errorf("config missing: rewrite.model")
+	}
 	config := &ark.ChatModelConfig{
-		APIKey:  g.Cfg().MustGet(ctx, "rewrite.apiKey").String(),
-		BaseURL: g.Cfg().MustGet(ctx, "rewrite.baseURL").String(),
-		Model:   g.Cfg().MustGet(ctx, "rewrite.model").String(),
+		APIKey:  apiKey.String(),
+		BaseURL: baseURL.String(),
+		Model:   modelName.String(),
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	if err != nil {
@@ -101,10 +128,23 @@ func RewriteModel(ctx context.Context) (cm model.ToolCallingChatModel, err error
 }
 
 func QaModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+	cfg := g.Cfg()
+	apiKey, err := cfg.Get(ctx, "qa.apiKey")
+	if err != nil || apiKey.String() == "" {
+		return nil, fmt.Errorf("config missing: qa.apiKey")
+	}
+	baseURL, err := cfg.Get(ctx, "qa.baseURL")
+	if err != nil || baseURL.String() == "" {
+		return nil, fmt.Errorf("config missing: qa.baseURL")
+	}
+	modelName, err := cfg.Get(ctx, "qa.model")
+	if err != nil || modelName.String() == "" {
+		return nil, fmt.Errorf("config missing: qa.model")
+	}
 	config := &openai.ChatModelConfig{
-		APIKey:  g.Cfg().MustGet(ctx, "qa.apiKey").String(),
-		BaseURL: g.Cfg().MustGet(ctx, "qa.baseURL").String(),
-		Model:   g.Cfg().MustGet(ctx, "qa.model").String(),
+		APIKey:  apiKey.String(),
+		BaseURL: baseURL.String(),
+		Model:   modelName.String(),
 	}
 	cm, err = openai.NewChatModel(ctx, config)
 	if err != nil {
@@ -114,14 +154,30 @@ func QaModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 }
 
 func BranchNewChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
+	cfg := g.Cfg()
+	apiKey, err := cfg.Get(ctx, "Branch.apiKey")
+	if err != nil || apiKey.String() == "" {
+		return nil, fmt.Errorf("config missing: Branch.apiKey")
+	}
+	baseURL, err := cfg.Get(ctx, "Branch.baseURL")
+	if err != nil || baseURL.String() == "" {
+		return nil, fmt.Errorf("config missing: Branch.baseURL")
+	}
+	modelName, err := cfg.Get(ctx, "Branch.model")
+	if err != nil || modelName.String() == "" {
+		return nil, fmt.Errorf("config missing: Branch.model")
+	}
 	config := &ark.ChatModelConfig{
-		APIKey:           g.Cfg().MustGet(ctx, "Branch.apiKey").String(),
-		BaseURL:          g.Cfg().MustGet(ctx, "Branch.baseURL").String(),
-		Model:            g.Cfg().MustGet(ctx, "Branch.model").String(),
+		APIKey:           apiKey.String(),
+		BaseURL:          baseURL.String(),
+		Model:            modelName.String(),
 		FrequencyPenalty: ptr.Float32(0.5),
 		PresencePenalty:  ptr.Float32(0.3),
 		Temperature:      ptr.Float32(0.8),
 		TopP:             ptr.Float32(0.8),
+		Thinking: &ark.Thinking{
+			Type: "disable",
+		},
 	}
 	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("分支模型分析")

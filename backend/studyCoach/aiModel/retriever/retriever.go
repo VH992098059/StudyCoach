@@ -25,7 +25,21 @@ func newRetriever(ctx context.Context, conf *common.Config) (rtr retriever.Retri
 		return nil, err
 	}
 
-	if conf.Client != nil {
+	if conf.UseMilvus() {
+		rtr, err = NewMilvusRetriever(ctx, &MilvusRetrieverConfig{
+			Client:       conf.MilvusClient,
+			ClientConfig: conf.MilvusConfig,
+			Collection:   conf.IndexName,
+			VectorField:  vectorField,
+			TopK:         10,
+			Embedding:    embeddingIns,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return rtr, nil
+	}
+	if conf.UseES() {
 		retrieverConfig := &es8.RetrieverConfig{
 			Client: conf.Client,
 			Index:  conf.IndexName,
@@ -41,7 +55,8 @@ func newRetriever(ctx context.Context, conf *common.Config) (rtr retriever.Retri
 			return nil, err
 		}
 		return rtr, nil
-	} else if conf.QdrantClient != nil {
+	}
+	if conf.UseQdrant() {
 		// Qdrant retriever
 		rtr, err = NewQdrantRetriever(ctx, &QdrantRetrieverConfig{
 			Client:      conf.QdrantClient,
@@ -89,8 +104,12 @@ func EsHit2Document(ctx context.Context, hit types.Hit) (doc *schema.Document, e
 			doc.MetaData[common.FieldExtra] = val.(string)
 		case common.KnowledgeName:
 			doc.MetaData[common.KnowledgeName] = val.(string)
+		case common.FieldCronID:
+			// cron_id 可能为 nil（手动索引时未设置），检索时忽略即可
+			continue
 		default:
-			return nil, fmt.Errorf("unexpected field=%s, val=%v", field, val)
+			// 忽略未知字段，避免因索引 schema 扩展（如 cron_id 等）导致检索失败
+			continue
 		}
 	}
 

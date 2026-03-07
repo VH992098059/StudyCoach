@@ -53,6 +53,12 @@ const Login: React.FC = ()=> {
    * @description 通过检查location.state或document.referrer来判断
    */
   useEffect(() => {
+    // 从需鉴权页面跳转过来时弹出提示
+    const state = location.state as { authRequired?: boolean } | null;
+    if (state?.authRequired) {
+      message.warning(t('auth.loginRequired'));
+    }
+
     // 检查是否有记住的账号密码
     const remembered = localStorage.getItem('remembered_credentials');
     if (remembered) {
@@ -94,9 +100,31 @@ const Login: React.FC = ()=> {
   const handleSubmit = async (values: LoginFormData): Promise<void> => {
     setLoading(true);
     try {
+      // 读取未登录时的本地会话，由后端合并到用户历史
+      let anonymousSessions: { id: string; title: string; messages: { msg_id: string; content: string; isUser: boolean; timestamp: string }[] }[] = [];
+      try {
+        const stored = localStorage.getItem('ai_chat_sessions_local');
+        if (stored) {
+          const sessions = JSON.parse(stored);
+          anonymousSessions = (Array.isArray(sessions) ? sessions : []).map((s: any) => ({
+            id: s.id || '',
+            title: s.title || '新对话',
+            messages: (s.messages || []).map((m: any) => ({
+              msg_id: m.msg_id || String(m.id || Date.now()),
+              content: m.content || '',
+              isUser: !!m.isUser,
+              timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : (m.timestamp || new Date().toISOString()),
+            })),
+          })).filter((s: any) => s.id && s.messages?.length > 0);
+        }
+      } catch {
+        // 解析失败则忽略
+      }
+
       const result = await LoginRegisterService.login({
         username: values.username,
-        password: values.password
+        password: values.password,
+        anonymousSessions: anonymousSessions.length > 0 ? anonymousSessions : undefined,
       });
 
       console.log(result);
@@ -113,6 +141,11 @@ const Login: React.FC = ()=> {
 
         // 存储 token 供拦截器使用
         localStorage.setItem('access_token', result.token);
+
+        // 已合并到云端，清除本地未登录会话
+        if (anonymousSessions.length > 0) {
+          localStorage.removeItem('ai_chat_sessions_local');
+        }
 
         if (values.remember) {
           localStorage.setItem('userInfo', JSON.stringify(userInfo));
@@ -250,11 +283,10 @@ const Login: React.FC = ()=> {
           </Button>
         </Form.Item>
 
-        <Divider plain>{t('auth.noAccount')}</Divider>
-        
-        <Form.Item>
+        <Divider plain />
+        <Form.Item style={{ marginBottom: 0 }}>
           <div className="register-link">
-            <span>{t('auth.noAccount')}</span>
+            {t('auth.noAccount')}
             <Link to="/register" className="register-btn">
               {t('auth.registerNow')}
             </Link>

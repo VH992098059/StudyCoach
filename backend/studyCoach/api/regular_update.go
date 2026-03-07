@@ -38,8 +38,8 @@ func RunRegularUpdateTask(ctx context.Context, task *entity.KnowledgeBaseCronSch
 func ExecuteRegularUpdate(ctx context.Context, task *entity.KnowledgeBaseCronSchedule, rag *Rag) error {
 	log.Printf("[Cron] 开始执行任务: %s (ID: %d)", task.CronName, task.Id)
 
-	// 调用 AI 模型获取更新内容
-	msg, err := regularUpdateModel(ctx, task.CronName)
+	// 调用 AI 模型获取更新内容（传入完整 task 和 rag，支持知识库预检索）
+	msg, err := regularUpdateModel(ctx, task, rag)
 	if err != nil {
 		log.Printf("[Cron] 任务 %s AI生成失败: %v", task.CronName, err)
 		return err
@@ -52,7 +52,7 @@ func ExecuteRegularUpdate(ctx context.Context, task *entity.KnowledgeBaseCronSch
 		// 使用 cron_id 删除该任务产生的所有文档
 		cronID := fmt.Sprintf("%d", task.Id)
 		log.Printf("[Cron] 全量更新，正在清理旧数据: CronID=%s", cronID)
-		if err := common.DeleteDocumentsByCronID(ctx, rag.client, cronID); err != nil {
+		if err := rag.conf.DeleteDocumentsByCronID(ctx, cronID); err != nil {
 			log.Printf("[Cron] 清理旧数据失败(可能不存在): %v", err)
 			// 继续执行，不因删除失败而终止
 		}
@@ -98,21 +98,61 @@ func ExecuteRegularUpdate(ctx context.Context, task *entity.KnowledgeBaseCronSch
 	return nil
 }
 
-func regularUpdateModel(ctx context.Context, input string) (*schema.Message, error) {
+func regularUpdateModel(ctx context.Context, task *entity.KnowledgeBaseCronSchedule, rag *Rag) (*schema.Message, error) {
 	log.Printf("[RegularUpdateModel] 开始处理请求")
+	input := task.CronName
 	var sources []string
 	log.Println("用户内容：", input)
+
+	// 1. 从知识库预检索已有内容，让 AI 了解当前知识库状态
+	var knowledgeContent string
+	if task.KnowledgeBaseName != "" && rag != nil {
+		kbCtx, kbCancel := context.WithTimeout(ctx, 60*time.Second)
+		kbDocs, kbErr := rag.Retriever(kbCtx, &RetrieveReq{
+			Query:         input,
+			TopK:          5,
+			Score:         1.3,
+			KnowledgeName: task.KnowledgeBaseName,
+		})
+		kbCancel()
+		if kbErr != nil {
+			log.Printf("[RegularUpdateModel] 知识库检索失败(继续执行): %v", kbErr)
+		} else if len(kbDocs) > 0 {
+			var kbParts []string
+			for i, doc := range kbDocs {
+				kbParts = append(kbParts, fmt.Sprintf("[%d] %s", i+1, doc.Content))
+			}
+			knowledgeContent = fmt.Sprintf(
+				"## 以下是知识库「%s」的现有内容，请参考并基于这些内容进行更新和补充：\n\n%s",
+				task.KnowledgeBaseName, strings.Join(kbParts, "\n\n"),
+			)
+			log.Printf("[RegularUpdateModel] 从知识库检索到 %d 条相关内容", len(kbDocs))
+		}
+	}
+
+	// 2. 外部网络搜索获取最新信息
 	searchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-
-	// 使用 search.go 中定义的 SearchConcurrentlyWithCache
 	sources = append(sources, SearchConcurrentlyWithCache(searchCtx, input)...)
 	sources = append(sources, input)
 
+	cfg := g.Cfg()
+	apiKey, err := cfg.Get(ctx, "cron.apiKey")
+	if err != nil || apiKey.String() == "" {
+		return nil, fmt.Errorf("config missing: cron.apiKey")
+	}
+	baseURL, err := cfg.Get(ctx, "cron.baseURL")
+	if err != nil || baseURL.String() == "" {
+		return nil, fmt.Errorf("config missing: cron.baseURL")
+	}
+	chatModel, err := cfg.Get(ctx, "cron.model")
+	if err != nil || chatModel.String() == "" {
+		return nil, fmt.Errorf("config missing: cron.model")
+	}
 	conf := &common.Config{
-		APIKey:    g.Cfg().MustGet(ctx, "cron.apiKey").String(),
-		BaseURL:   g.Cfg().MustGet(ctx, "cron.baseURL").String(),
-		ChatModel: g.Cfg().MustGet(ctx, "cron.model").String(),
+		APIKey:    apiKey.String(),
+		BaseURL:   baseURL.String(),
+		ChatModel: chatModel.String(),
 		IndexName: "NetworkUpdate",
 	}
 
@@ -127,15 +167,14 @@ func regularUpdateModel(ctx context.Context, input string) (*schema.Message, err
 			continue
 		}
 
-		// 创建一个新的 map，避免并发修改全局变量 common.CronTemplate
 		output := make(map[string]any)
 		for k, v := range common.CronTemplate {
 			output[k] = v
 		}
 
-		// 动态设置 time_now
 		output["time_now"] = time.Now().Format(time.RFC3339)
-		output["question"] = strings.Join(sources, "\n\n") // 将所有内容合并为字符串
+		output["question"] = strings.Join(sources, "\n\n")
+		output["knowledge"] = knowledgeContent
 
 		invoke, err := model.Invoke(ctx, output)
 		if err != nil {
@@ -145,7 +184,6 @@ func regularUpdateModel(ctx context.Context, input string) (*schema.Message, err
 				return nil, ctx.Err()
 			}
 			continue
-
 		}
 		log.Printf("生成成功 (尝试 %d/%d)", attempt+1, maxRetries)
 		return invoke, nil

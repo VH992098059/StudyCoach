@@ -68,7 +68,7 @@ func AddJob(ctx context.Context, schedule *entity.KnowledgeBaseCronSchedule) err
 }
 
 // RemoveJob 从调度器移除任务
-func RemoveJob(id int) {
+func RemoveJob(id int64) {
 	if val, ok := jobMap.Load(id); ok {
 		entryID := val.(cron.EntryID)
 		CronScheduler.Remove(entryID)

@@ -22,7 +22,7 @@ type ChatTemplateConfig struct {
 func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	config := &ChatTemplateConfig{
 		Templates: []schema.MessagesTemplate{
-			schema.SystemMessage("{{style}} Current time: {{time_now}}"),
+			schema.SystemMessage("{{style}} Current time: {{time_now}}\n\n{{knowledge}}"),
 			schema.MessagesPlaceholder("chat_history", true),
 			schema.UserMessage("{{question}}"),
 		},

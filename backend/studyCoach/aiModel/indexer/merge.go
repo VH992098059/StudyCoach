@@ -12,8 +12,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// docAddIDAndMerge component initialization function of node 'Lambda1' in graph 't'
-func docAddIDAndMerge(ctx context.Context, docs []*schema.Document) (output []*schema.Document, err error) {
+// addDocIDAndMerge 为文档添加 ID 并按扩展名合并（Markdown 按标题合并，Excel 按行序列化）。
+func addDocIDAndMerge(ctx context.Context, docs []*schema.Document) (output []*schema.Document, err error) {
 	if len(docs) == 0 {
 		return docs, nil
 	}
@@ -22,15 +22,15 @@ func docAddIDAndMerge(ctx context.Context, docs []*schema.Document) (output []*s
 	}
 	switch docs[0].MetaData[file.MetaKeyExtension] {
 	case ".md":
-		return mergeMD(ctx, docs)
+		return mergeMarkdown(ctx, docs)
 	case ".xlsx":
-		return mergeXLSX(ctx, docs)
+		return mergeExcel(ctx, docs)
 	default:
 		return docs, nil
 	}
 }
 
-func mergeMD(ctx context.Context, docs []*schema.Document) (output []*schema.Document, err error) {
+func mergeMarkdown(ctx context.Context, docs []*schema.Document) (output []*schema.Document, err error) {
 	ndocs := make([]*schema.Document, 0, len(docs))
 	var nd *schema.Document
 	maxLen := 512
@@ -73,7 +73,7 @@ func mergeMD(ctx context.Context, docs []*schema.Document) (output []*schema.Doc
 	return ndocs, nil
 }
 
-func mergeXLSX(ctx context.Context, docs []*schema.Document) (output []*schema.Document, err error) {
+func mergeExcel(ctx context.Context, docs []*schema.Document) (output []*schema.Document, err error) {
 	for _, doc := range docs {
 		marshal, _ := sonic.Marshal(doc.MetaData[common.XlsxRow])
 		doc.Content = string(marshal)

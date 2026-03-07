@@ -3,6 +3,14 @@ import { message } from 'antd';
 import type { ApiResponse, ApiError } from './types';
 import i18n from '../../i18n';
 
+/** 清除所有认证相关存储（token、userInfo、localStorage、sessionStorage） */
+export const clearAuthStorage = () => {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('userInfo');
+  sessionStorage.removeItem('userInfo');
+  window.dispatchEvent(new CustomEvent('auth:logout'));
+};
+
 /**
  * 请求拦截器
  */
@@ -68,18 +76,29 @@ export const responseInterceptor = {
     if (data && typeof data === 'object' && 'code' in data && (data as any).code === 0) {
       return (data as any).data;
     } else {
+      const bizCode = (data as any)?.code ?? -1;
       const error: ApiError = {
-        code: (data as any)?.code ?? -1,
+        code: bizCode,
         message: (data as any)?.message ?? i18n.t('api.requestFailed'),
         details: (data as any)?.data,
       };
-      
-      // 显示错误信息
-      const showError = (config as any).showError !== false;
-      if (showError) {
-        message.error(error.message);
+
+      // 业务层返回 401 未授权时，优先使用后端返回的 message
+      if (bizCode === 401 || bizCode === 4010) {
+        const isLoginRequest = String(config?.url || '').includes('/login') && (config?.method?.toLowerCase() === 'post');
+        if (!isLoginRequest) {
+          clearAuthStorage();
+        }
+        if ((config as any).showError !== false) {
+          message.error((data as any)?.message || i18n.t('api.loginExpired'));
+        }
+      } else {
+        const showError = (config as any).showError !== false;
+        if (showError) {
+          message.error(error.message);
+        }
       }
-      
+
       return Promise.reject(error);
     }
   },
@@ -93,18 +112,17 @@ export const responseInterceptor = {
 
       switch (status) {
         case 401:
-          errorMessage = i18n.t('api.unauthorized');
-          localStorage.removeItem('access_token');
-          window.location.href = '/login';
+          errorMessage = (data as any)?.message || i18n.t('api.loginExpired');
+          clearAuthStorage();
           break;
         case 403:
-          errorMessage = i18n.t('api.forbidden');
+          errorMessage = (data as any)?.message || i18n.t('api.forbidden');
           break;
         case 404:
-          errorMessage = i18n.t('api.notFound');
+          errorMessage = (data as any)?.message || i18n.t('api.notFound');
           break;
         case 500:
-          errorMessage = i18n.t('api.internalServerError');
+          errorMessage = (data as any)?.message || i18n.t('api.internalServerError');
           break;
         default:
           errorMessage = (data as any)?.message || i18n.t('api.requestFailedWithStatus', { status });

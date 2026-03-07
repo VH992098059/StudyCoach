@@ -1,7 +1,7 @@
 .main-layout {
   display: flex;
   flex-direction: column;
-  background: #f0f2f5;
+  background: #f8fafc;
 }
 
 .main-content {
@@ -15,8 +15,8 @@
   flex: 1;
   width: 100%;
   margin: 0 auto;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 /* 加载状态 */
@@ -54,18 +54,18 @@
 }
 
 .error-retry-btn {
-  background: #1890ff;
+  background: #2563eb;
   color: #fff;
   border: none;
-  border-radius: 4px;
-  padding: 4px 12px;
+  border-radius: 8px;
+  padding: 6px 14px;
   cursor: pointer;
-  font-size: 12px;
-  transition: background-color 0.3s;
+  font-size: 13px;
+  transition: background-color 0.2s;
 }
 
 .error-retry-btn:hover {
-  background: #40a9ff;
+  background: #3b82f6;
 }
 
 /* 全屏布局模式 */

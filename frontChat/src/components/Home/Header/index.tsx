@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Layout, Menu, Button, Avatar, Dropdown, Space, Drawer, Switch } from 'antd';
-import { UserOutlined, LoginOutlined, LogoutOutlined, MenuOutlined, GlobalOutlined } from '@ant-design/icons';
+import { UserOutlined, LoginOutlined, LogoutOutlined, MenuOutlined, GlobalOutlined, MoonOutlined, SunOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import type { MenuProps } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -235,8 +235,8 @@ const Header: React.FC<HeaderProps> = ({
           <Switch
             checked={!!isDark}
             onChange={onToggleTheme}
-            checkedChildren="🌙"
-            unCheckedChildren="☀️"
+            checkedChildren={<MoonOutlined />}
+            unCheckedChildren={<SunOutlined />}
             style={{ marginRight: 12 }}
           />
           {user ? (

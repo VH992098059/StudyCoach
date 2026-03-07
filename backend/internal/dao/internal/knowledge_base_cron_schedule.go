@@ -22,12 +22,11 @@ type KnowledgeBaseCronScheduleDao struct {
 // KnowledgeBaseCronScheduleColumns defines and stores column names for the table knowledge_base_cron_schedule.
 type KnowledgeBaseCronScheduleColumns struct {
 	Id                string //
-	CronName          string // 定时任务名
-	KnowledgeBaseName string // 知识库id
-	SchedulingMethod  string // 调度方式
-	CronExpression    string // cron表达式
-	Status            string // 使用状态 1启用，2暂停，0停止
-	ContentType       string // 更新内容状态 1为全量更新，2为增量更新
+	CronName          string //
+	KnowledgeBaseName string //
+	CronExpression    string //
+	Status            string //
+	ContentType       string //
 	CreatedAt         string //
 	UpdatedAt         string //
 	DeletedAt         string //
@@ -38,7 +37,6 @@ var knowledgeBaseCronScheduleColumns = KnowledgeBaseCronScheduleColumns{
 	Id:                "id",
 	CronName:          "cron_name",
 	KnowledgeBaseName: "knowledge_base_name",
-	SchedulingMethod:  "scheduling_method",
 	CronExpression:    "cron_expression",
 	Status:            "status",
 	ContentType:       "content_type",

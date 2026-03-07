@@ -2,7 +2,8 @@ package login
 
 import (
 	v1 "backend/api/login/v1"
-	"backend/internal/logic/login"
+	logicChat "backend/internal/logic/ai_chat"
+	logicLogin "backend/internal/logic/login"
 	"backend/internal/model/entity"
 	"backend/utility"
 	"backend/utility/consts"
@@ -15,9 +16,30 @@ import (
 )
 
 func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.LoginRes, err error) {
-	id, uuid, token, err := login.Login(ctx, req.Username, req.Password)
+	id, uuid, token, err := logicLogin.Login(ctx, req.Username, req.Password)
 	if err != nil {
 		return nil, err
+	}
+	// 登录成功后，将未登录时的会话合并到用户历史
+	if len(req.AnonymousSessions) > 0 {
+		sessions := make([]logicChat.MergeSessionInput, 0, len(req.AnonymousSessions))
+		for _, s := range req.AnonymousSessions {
+			msgs := make([]logicChat.MergeMessageInput, 0, len(s.Messages))
+			for _, m := range s.Messages {
+				msgs = append(msgs, logicChat.MergeMessageInput{
+					MsgId:     m.MsgId,
+					Content:   m.Content,
+					IsUser:    m.IsUser,
+					Timestamp: m.Timestamp,
+				})
+			}
+			sessions = append(sessions, logicChat.MergeSessionInput{
+				Id:       s.Id,
+				Title:    s.Title,
+				Messages: msgs,
+			})
+		}
+		_ = logicChat.GetChat().MergeAnonymousSessions(ctx, req.Username, sessions)
 	}
 	return &v1.LoginRes{
 		Id:    id,
@@ -27,7 +49,7 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 }
 
 func (c *ControllerV1) Register(ctx context.Context, req *v1.RegisterReq) (res *v1.RegisterRes, err error) {
-	id, err := login.RegisterUser(ctx, &entity.Users{
+	id, err := logicLogin.RegisterUser(ctx, &entity.Users{
 		Username: req.Username,
 		Password: req.Password,
 		Email:    req.Email,
@@ -69,7 +91,7 @@ func (c *ControllerV1) UpdatePassword(ctx context.Context, req *v1.UpdatePasswor
 	}
 
 	// 3. Call Logic
-	err = login.UpdatePassword(ctx, username, req.OldPassword, req.NewPassword)
+	err = logicLogin.UpdatePassword(ctx, username, req.OldPassword, req.NewPassword)
 	if err != nil {
 		return nil, err
 	}

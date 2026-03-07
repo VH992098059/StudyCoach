@@ -28,7 +28,7 @@ func RuCronCreate(ctx context.Context, schedule *entity.KnowledgeBaseCronSchedul
 
 	// 如果状态为启用，添加到调度器
 	if schedule.Status == 1 {
-		schedule.Id = int(id)
+		schedule.Id = id
 		if err := AddJob(ctx, schedule); err != nil {
 			// 仅记录日志，不影响创建成功
 			// log.Printf("[Cron] Failed to schedule job after create: %v", err)
@@ -40,7 +40,7 @@ func RuCronCreate(ctx context.Context, schedule *entity.KnowledgeBaseCronSchedul
 
 func RuCronDelete(ctx context.Context, id int64) (isOk string, err error) {
 	// 先移除调度任务
-	RemoveJob(int(id))
+	RemoveJob(id)
 
 	_, err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Where("id", id).Unscoped().Delete()
 	if err != nil {
@@ -110,7 +110,7 @@ func RuCronUpdateStatus(ctx context.Context, id int64, status int64) (success st
 			AddJob(ctx, &schedule)
 		}
 	} else {
-		RemoveJob(int(id))
+		RemoveJob(id)
 	}
 
 	return "success", nil

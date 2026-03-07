@@ -7,13 +7,14 @@ import (
 	"github.com/cloudwego/eino/compose"
 )
 
-func BuildIndexer(ctx context.Context, conf *common.Config) (r compose.Runnable[any, []string], err error) {
+// BuildIndexer 构建索引图。onIndexed 在向量库写入完成后异步执行（QA 生成 + 状态更新）。
+// 若 onIndexed 非空，将包装 indexer 实现：先落库 MySQL chunks，再写向量库，最后触发 onIndexed。
+func BuildIndexer(ctx context.Context, conf *common.Config, onIndexed OnIndexedCallback) (r compose.Runnable[any, []string], err error) {
 	const (
 		Loader1              = "Loader"
 		Indexer2             = "Indexer"
 		DocumentTransformer3 = "DocumentTransformer"
 		DocAddIDAndMerge     = "DocAddIDAndMerge"
-		// QA                   = "QA"
 	)
 
 	g := compose.NewGraph[any, []string]()
@@ -22,16 +23,20 @@ func BuildIndexer(ctx context.Context, conf *common.Config) (r compose.Runnable[
 		return nil, err
 	}
 	_ = g.AddLoaderNode(Loader1, loader1KeyOfLoader)
-	indexer2KeyOfIndexer, err := newIndexer(ctx, conf)
+	innerIndexer, err := newIndexer(ctx, conf)
 	if err != nil {
 		return nil, err
+	}
+	indexer2KeyOfIndexer := innerIndexer
+	if onIndexed != nil {
+		indexer2KeyOfIndexer = wrapIndexerWithChunks(innerIndexer, onIndexed)
 	}
 	_ = g.AddIndexerNode(Indexer2, indexer2KeyOfIndexer)
 	documentTransformer2KeyOfDocumentTransformer, err := newDocumentTransformer(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddLambdaNode(DocAddIDAndMerge, compose.InvokableLambda(docAddIDAndMerge))
+	_ = g.AddLambdaNode(DocAddIDAndMerge, compose.InvokableLambda(addDocIDAndMerge))
 	// _ = g.AddLambdaNode(QA, compose.InvokableLambda(qa)) // qa 异步 执行
 
 	_ = g.AddDocumentTransformerNode(DocumentTransformer3, documentTransformer2KeyOfDocumentTransformer)

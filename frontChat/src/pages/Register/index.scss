@@ -8,42 +8,42 @@
 
 .register-form .ant-input-affix-wrapper,
 .register-form .ant-input {
-  border-radius: 8px;
-  border: 1px solid #d9d9d9;
-  transition: all 0.3s;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .register-form .ant-input-affix-wrapper:hover,
 .register-form .ant-input:hover {
-  border-color: #40a9ff;
+  border-color: #94a3b8;
 }
 
 .register-form .ant-input-affix-wrapper:focus,
 .register-form .ant-input-affix-wrapper-focused,
 .register-form .ant-input:focus {
-  border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .site-form-item-icon {
-  color: #8c8c8c;
+  color: #94a3b8;
   font-size: 16px;
 }
 
 .register-submit-btn {
   height: 48px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 16px;
   font-weight: 500;
-  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   border: none;
-  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
-  transition: all 0.3s;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .register-submit-btn:hover {
-  background: linear-gradient(135deg, #73d13d 0%, #52c41a 100%);
-  box-shadow: 0 6px 16px rgba(82, 196, 26, 0.4);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
   transform: translateY(-1px);
 }
 
@@ -53,32 +53,32 @@
 
 .login-link {
   text-align: center;
-  color: #8c8c8c;
+  color: #64748b;
   font-size: 14px;
 }
 
 .login-btn {
-  color: #1890ff;
+  color: #2563eb;
   text-decoration: none;
-  margin-left: 8px;
+  margin-left: 6px;
   font-weight: 500;
-  transition: color 0.3s;
+  transition: color 0.2s;
 }
 
 .login-btn:hover {
-  color: #40a9ff;
+  color: #3b82f6;
   text-decoration: underline;
 }
 
 .agreement-link {
-  color: #1890ff;
+  color: #2563eb;
   text-decoration: none;
   margin: 0 4px;
-  transition: color 0.3s;
+  transition: color 0.2s;
 }
 
 .agreement-link:hover {
-  color: #40a9ff;
+  color: #3b82f6;
   text-decoration: underline;
 }
 
@@ -102,12 +102,12 @@
 }
 
 .register-form .ant-checkbox-wrapper:hover .ant-checkbox-inner {
-  border-color: #1890ff;
+  border-color: #2563eb;
 }
 
 .register-form .ant-checkbox-checked .ant-checkbox-inner {
-  background-color: #1890ff;
-  border-color: #1890ff;
+  background-color: #2563eb;
+  border-color: #2563eb;
 }
 
 /* 密码强度提示 */
@@ -152,8 +152,6 @@
 
 /* 响应式设计 */
 @media (max-width: 480px) {
-  .register-form .ant-input-affix-wrapper,
-  
   .register-submit-btn {
     height: 44px;
     font-size: 15px;
@@ -189,10 +187,10 @@
 
 @keyframes inputFocus {
   0% {
-    box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.2);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.12);
   }
   100% {
-    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
 }
 
@@ -210,13 +208,13 @@
 }
 
 .back-button:hover {
-  color: #1890ff;
-  background-color: rgba(24, 144, 255, 0.06);
+  color: #2563eb;
+  background-color: rgba(37, 99, 235, 0.06);
 }
 
 .back-button:focus {
-  color: #1890ff;
-  background-color: rgba(24, 144, 255, 0.1);
+  color: #2563eb;
+  background-color: rgba(37, 99, 235, 0.1);
 }
 
 .back-button .anticon {

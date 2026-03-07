@@ -94,7 +94,9 @@ func fetchURLContentWithCache(ctx context.Context, url string) (string, error) {
 	cacheKey := generateCacheKey(url)
 	//检查缓存
 	if cached, found := urlCache.Get(cacheKey); found {
-		return cached.(string), nil
+		if cachedStr, ok := cached.(string); ok {
+			return cachedStr, nil
+		}
 	}
 	//使用singleflight防止重复请求
 	result, err, _ := urlGroup.Do(url, func() (interface{}, error) {
@@ -107,8 +109,14 @@ func fetchURLContentWithCache(ctx context.Context, url string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(result.(string))
-	return result.(string), err
+	if result == nil {
+		return "", nil
+	}
+	content, ok := result.(string)
+	if !ok {
+		return "", nil
+	}
+	return content, nil
 }
 
 func SearchConcurrentlyWithCache(ctx context.Context, input string) []string {
@@ -116,7 +124,9 @@ func SearchConcurrentlyWithCache(ctx context.Context, input string) []string {
 	cacheKey := generateCacheKey(input)
 	//检查缓存
 	if cached, found := searchCache.Get(cacheKey); found {
-		return cached.([]string)
+		if cachedList, ok := cached.([]string); ok {
+			return cachedList
+		}
 	}
 	//使用singleflight防止重复请求
 	result, err, _ := searchGroup.Do(input, func() (interface{}, error) {
@@ -126,7 +136,10 @@ func SearchConcurrentlyWithCache(ctx context.Context, input string) []string {
 		log.Printf("%v", err)
 		return nil
 	}
-	sources := result.([]string)
+	sources, ok := result.([]string)
+	if !ok {
+		return nil
+	}
 
 	// 缓存搜索结果，TTL 30分钟
 	if len(sources) > 0 {

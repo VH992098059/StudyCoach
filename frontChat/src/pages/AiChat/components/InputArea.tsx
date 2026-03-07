@@ -18,28 +18,31 @@ interface InputAreaProps {
   loading: boolean;
   isNetworkEnabled: boolean;
   isStudyMode: boolean;
+  isDeepThinking?: boolean;
   currentUploadedFiles: UploadedFile[];
   onVoiceTranscript?: (text: string) => void;
 
   onInputChange: (val: string) => void;
-  onKeyPress: (e: React.KeyboardEvent) => void;
   onSend: () => void;
   onStop: () => void;
   onToggleNetwork: () => void;
   onFilesChange: (files: UploadedFile[]) => void;
   onUploadComplete: (files: UploadedFile[]) => void;
   onToggleStudyMode: () => void;
+  onToggleDeepThinking?: () => void;
 }
 
 const InputArea: React.FC<InputAreaProps> = ({
   inputValue,
   loading,
   isNetworkEnabled,
+  isStudyMode,
+  isDeepThinking = false,
   currentUploadedFiles,
-   isStudyMode,
   onVoiceTranscript,
   onInputChange,
   onToggleStudyMode,
+  onToggleDeepThinking,
   onSend,
   onStop,
   onToggleNetwork,
@@ -49,10 +52,7 @@ const InputArea: React.FC<InputAreaProps> = ({
   const { token } = theme.useToken();
   const { isMobile } = useBreakpoints();
   const { t } = useTranslation();
-  const iconStyle = {
-    fontSize: 18,
-    color: token.colorText,
-  };
+  const iconStyle = React.useMemo(() => ({ fontSize: 18, color: token.colorText }), [token.colorText]);
 
   return (
     <div style={{ 
@@ -90,7 +90,7 @@ const InputArea: React.FC<InputAreaProps> = ({
                   
                   <Divider orientation="vertical" style={{ margin: '0 4px' }} />
                   
-                  {/* 深度思考 / 学习模式 */}
+                  {/* 学习模式 */}
                   {!isMobile && <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{t('chat.input.studyMode')}</span>}
                   <Switch
                     size="small"
@@ -99,6 +99,23 @@ const InputArea: React.FC<InputAreaProps> = ({
                     checkedChildren={isMobile ? t('chat.input.studyModeShort') : undefined}
                     unCheckedChildren={isMobile ? t('chat.input.studyModeShort') : undefined}
                   />
+                  
+                  <Divider orientation="vertical" style={{ margin: '0 4px' }} />
+                  
+                  {/* 深度思考（仅普通模式生效） */}
+                  <Tooltip title={t('chat.input.deepThinkingTip')}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {!isMobile && <span style={{ fontSize: 12, color: token.colorTextSecondary }}>{t('chat.input.deepThinking')}</span>}
+                      <Switch
+                        size="small"
+                        checked={isDeepThinking}
+                        disabled={isStudyMode}
+                        onChange={() => onToggleDeepThinking?.()}
+                        checkedChildren={isMobile ? t('chat.input.deepThinkingShort') : undefined}
+                        unCheckedChildren={isMobile ? t('chat.input.deepThinkingShort') : undefined}
+                      />
+                    </span>
+                  </Tooltip>
                   
                   <Divider orientation="vertical" style={{ margin: '0 4px' }} />
                   
@@ -152,4 +169,4 @@ const InputArea: React.FC<InputAreaProps> = ({
   );
 };
 
-export default InputArea;
+export default React.memo(InputArea);

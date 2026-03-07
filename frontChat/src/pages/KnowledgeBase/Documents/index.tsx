@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Button, Space, Select, message, Empty, Drawer } from 'antd';
 import { SearchOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
+import { useBreakpoints } from '@/hooks/useMediaQuery';
 import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '@/services/knowledgeBase';
 import { DocumentsService, type DocumentData } from '@/services/documents';
 import './index.scss';
@@ -22,6 +23,7 @@ interface DocumentsProps {
 
 const Documents: React.FC<DocumentsProps> = (props) => {
   const { t } = useTranslation();
+  const { isMobile } = useBreakpoints();
   const [documentsList, setDocumentsList] = useState<DocumentData[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedKnowledge, setSelectedKnowledge] = useState<string>(props.knowledgeBaseName || '');
@@ -224,7 +226,7 @@ const Documents: React.FC<DocumentsProps> = (props) => {
       <Drawer
         title={t('kb.chunks.listTitle', { name: selectedDocumentForChunks?.fileName || '' })}
         placement="right"
-        width={900}
+        width={isMobile ? '100%' : 900}
         onClose={() => setChunksDrawerVisible(false)}
         open={chunksDrawerVisible}
         destroyOnClose

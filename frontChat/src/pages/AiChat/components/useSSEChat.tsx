@@ -4,7 +4,8 @@
  */
 import { useRef, useState, useCallback } from 'react';
 import { SSEConnectionState } from '@/utils/sse/sse';
-import { XRequest, XStream } from '@ant-design/x-sdk';
+import { XRequest } from '@ant-design/x-sdk';
+import { API_CONFIG } from '@/utils/axios/config';
 import type { Message } from '@/types/chat';
 import { useTranslation } from 'react-i18next';
 
@@ -20,6 +21,7 @@ interface UseSSEChatParams {
   generateMsgId: () => string;
   setMessages: (updater: (prev: Message[]) => Message[]) => void;
   isStudyMode: boolean;
+  isDeepThinking?: boolean;
 }
 
 interface ChatParams {
@@ -30,10 +32,11 @@ interface ChatParams {
   score: number;
   is_network: boolean;
   is_study_mode: boolean;
+  is_deep_thinking?: boolean;
 }
 
 const useSSEChat = (params: UseSSEChatParams) => {
-  const { selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, generateMsgId, setMessages } = params;
+  const { selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, isDeepThinking = false, generateMsgId, setMessages } = params;
   const { t } = useTranslation();
 
   // --- Refs ---
@@ -52,6 +55,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [currentAiMessage, setCurrentAiMessage] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [documentsCount, setDocumentsCount] = useState(0);
 
   const MAX_RECONNECT_ATTEMPTS = 3;
 
@@ -78,7 +82,8 @@ const useSSEChat = (params: UseSSEChatParams) => {
     // 已停止则不发起请求
     if (isUserStoppedRef.current) return;
 
-    const endpoint = (import.meta as any).env?.MODE === 'production' ? '/api/gateway/chat' : '/gateway/chat';
+    const base = API_CONFIG.BASE_URL.replace(/\/$/, '');
+    const endpoint = (import.meta as any).env?.MODE === 'production' ? '/api/gateway/chat' : `${base}/gateway/chat`;
 
     setLoading(true);
     setConnectionState(attempt === 0 ? SSEConnectionState.CONNECTING : SSEConnectionState.RECONNECTING);
@@ -86,6 +91,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     if (attempt === 0) {
         setCurrentAiMessage('');
         accumulatedMessageRef.current = '';
+        setDocumentsCount(0);
     }
 
     try {
@@ -105,6 +111,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
           score: advancedSettings.score,
           is_network: isNetworkEnabled,
           is_study_mode: isStudyMode,
+          is_deep_thinking: isDeepThinking,
         },
         // 处理 SSE 流
     
@@ -141,6 +148,18 @@ const useSSEChat = (params: UseSSEChatParams) => {
                setConnectionState(SSEConnectionState.CONNECTED);
                setReconnectAttempts(0);
                isFirstChunk = false;
+            }
+
+            // 解析 documents 事件（SSE 格式为 documents: {...}，XStream 解析为 chunk.documents 字符串）
+            const documentsStr = chunk?.documents;
+            if (typeof documentsStr === 'string') {
+              try {
+                const parsed = JSON.parse(documentsStr);
+                const docArr = parsed?.document ?? parsed?.Document;
+                if (Array.isArray(docArr) && docArr.length > 0) {
+                  setDocumentsCount(docArr.length);
+                }
+              } catch { /* ignore */ }
             }
 
             let data = chunk?.data ?? '';
@@ -271,7 +290,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
        setLoading(false);
        setConnectionState(SSEConnectionState.ERROR);
     }
-  }, [selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, generateMsgId, setMessages, connectionState]);
+  }, [selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, isDeepThinking, generateMsgId, setMessages, connectionState]);
 
   // --- 导出方法 ---
 
@@ -321,6 +340,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     setConnectionError,
     currentAiMessage,
     loading,
+    documentsCount,
     send,
     stop,
   };

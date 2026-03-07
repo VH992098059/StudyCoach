@@ -37,14 +37,25 @@ func Auth(r *ghttp.Request) {
 		}
 		return []byte(consts.JwtKey), nil
 	})
-	claims, _ := token.Claims.(jwt.MapClaims) //通过类型断言获取map的属性
-	userKey := fmt.Sprintf("user:%s", claims["Username"].(string))
 	//验证JWT是否过期
 	if err != nil || !token.Valid {
 		r.Response.WriteJsonExit(ghttp.DefaultHandlerResponse{Code: 401, Message: "验证已过期，请重新登录", Data: nil})
 		r.Exit()
 		return
 	}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		r.Response.WriteJsonExit(ghttp.DefaultHandlerResponse{Code: 401, Message: "验证已过期，请重新登录", Data: nil})
+		r.Exit()
+		return
+	}
+	username, ok := claims["Username"].(string)
+	if !ok || username == "" {
+		r.Response.WriteJsonExit(ghttp.DefaultHandlerResponse{Code: 401, Message: "验证已过期，请重新登录", Data: nil})
+		r.Exit()
+		return
+	}
+	userKey := fmt.Sprintf("user:%s", username)
 
 	//检查redis是否存在JWT
 	checkJWT, err := utility.CheckJWT(ctx, userKey, tokenString)
@@ -55,7 +66,7 @@ func Auth(r *ghttp.Request) {
 	}
 
 	//检查jwt是否存在黑名单
-	checkBlack, err := utility.CheckBlackTokens(ctx, claims["Username"].(string), tokenString)
+	checkBlack, err := utility.CheckBlackTokens(ctx, username, tokenString)
 	if err != nil || checkBlack {
 		r.Response.WriteJson("验证非法，请重新登录")
 		r.Exit()

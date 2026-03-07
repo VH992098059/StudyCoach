@@ -21,26 +21,22 @@ type ChatSessionsDao struct {
 
 // ChatSessionsColumns defines and stores column names for the table chat_sessions.
 type ChatSessionsColumns struct {
-	Id             string // 会话ID，主键
-	UserId         string // 用户ID，外键关联users表
-	ConversationId string // 对话ID，关联chat_history.messages表的conversation_id
-	Title          string // 会话标题，默认为"新对话"
-	CreatedAt      string // 会话创建时间
-	UpdatedAt      string // 会话最后更新时间
-	MessageCount   string // 消息数量，冗余字段便于快速查询
-	IsDeleted      string // 软删除标记：0-正常，1-已删除
+	Id        string //
+	Uuid      string //
+	UserId    string //
+	Title     string //
+	CreatedAt string //
+	UpdatedAt string //
 }
 
 // chatSessionsColumns holds the columns for the table chat_sessions.
 var chatSessionsColumns = ChatSessionsColumns{
-	Id:             "id",
-	UserId:         "user_id",
-	ConversationId: "conversation_id",
-	Title:          "title",
-	CreatedAt:      "created_at",
-	UpdatedAt:      "updated_at",
-	MessageCount:   "message_count",
-	IsDeleted:      "is_deleted",
+	Id:        "id",
+	Uuid:      "uuid",
+	UserId:    "user_id",
+	Title:     "title",
+	CreatedAt: "created_at",
+	UpdatedAt: "updated_at",
 }
 
 // NewChatSessionsDao creates and returns a new DAO object for table data access.

@@ -18,7 +18,21 @@ func newAsyncIndexer(ctx context.Context, conf *common.Config) (idr indexer.Inde
 	if err != nil {
 		return nil, err
 	}
-	if conf.Client != nil {
+	if conf.UseMilvus() {
+		idr, err = NewMilvusIndexer(ctx, &MilvusIndexerConfig{
+			Client:       conf.MilvusClient,
+			ClientConfig: conf.MilvusConfig,
+			Collection:   conf.IndexName,
+			VectorDim:    1024,
+			Embedding:    embeddingIns11,
+			BatchSize:    10,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return idr, nil
+	}
+	if conf.UseES() {
 		// ES indexer
 		indexerConfig := &es8.IndexerConfig{
 			Client:    conf.Client,
@@ -64,7 +78,8 @@ func newAsyncIndexer(ctx context.Context, conf *common.Config) (idr indexer.Inde
 			return nil, err
 		}
 		return idr, nil
-	} else if conf.QdrantClient != nil {
+	}
+	if conf.UseQdrant() {
 		// Qdrant indexer
 		idr, err = NewQdrantIndexer(ctx, &QdrantIndexerConfig{
 			Client:     conf.QdrantClient,
@@ -79,7 +94,6 @@ func newAsyncIndexer(ctx context.Context, conf *common.Config) (idr indexer.Inde
 			return nil, err
 		}
 		return idr, nil
-	} else {
-		return nil, fmt.Errorf("no valid client configuration found")
 	}
+	return nil, fmt.Errorf("no valid client configuration found")
 }

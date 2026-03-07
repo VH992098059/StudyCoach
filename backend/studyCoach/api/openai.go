@@ -2,6 +2,8 @@ package api
 
 import (
 	v1 "backend/api/ai_chat/v1"
+	v1rag "backend/api/rag/v1"
+	"backend/internal/logic/knowledge"
 	"backend/studyCoach/aiModel/CoachChat"
 	"backend/studyCoach/aiModel/NormalChat"
 	"backend/studyCoach/aiModel/indexer"
@@ -10,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/cloudwego/eino/components/model"
@@ -22,8 +25,7 @@ import (
 
 const (
 	//scoreThreshold = 1.05 // 设置一个很小的阈值
-	esTopK       = 50
-	esTryFindDoc = 10
+	esTopK = 50
 )
 
 var client *elasticsearch.Client
@@ -35,7 +37,7 @@ type Rag struct {
 	idxerAsync compose.Runnable[[]*schema.Document, []string]
 	rtrvr      compose.Runnable[string, []*schema.Document]
 	qaRtrvr    compose.Runnable[string, []*schema.Document]
-	client     *elasticsearch.Client
+	client     *elasticsearch.Client // ES 客户端，仅 UseES 时非空
 	cm         model.BaseChatModel
 	conf       *common.Config
 }
@@ -51,24 +53,28 @@ type StreamType struct {
 
 func init() {
 	ctx := context.Background()
-	client, _ = elasticsearch.NewClient(elasticsearch.Config{
-		Addresses: []string{g.Cfg().MustGet(ctx, "es.address").String()},
-	})
-	esConf = &common.Config{
-		Client:    client,
-		APIKey:    g.Cfg().MustGet(ctx, "embedding.apiKey").String(),
-		BaseURL:   g.Cfg().MustGet(ctx, "embedding.baseURL").String(),
-		ChatModel: g.Cfg().MustGet(ctx, "embedding.model").String(),
-		IndexName: g.Cfg().MustGet(ctx, "es.indexName").String(),
+	var err error
+	esConf, err = common.BuildVectorConfig(ctx)
+	if err != nil {
+		g.Log().Errorf(ctx, "BuildVectorConfig failed: %v", err)
+		return
 	}
-	eh = eino.NewEinoHistory(g.Cfg().MustGet(context.Background(), "db.mysql").String())
+	if esConf.UseES() {
+		client = esConf.Client
+	}
+	dbConf, err := g.Cfg().Get(ctx, "db.mysql")
+	if err != nil || dbConf.String() == "" {
+		g.Log().Warningf(ctx, "config missing: db.mysql, err=%v", err)
+		return
+	}
+	eh = eino.NewEinoHistory(dbConf.String())
 }
-func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*schema.Message], error) {
+func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*schema.Message], []*schema.Document, error) {
 	var rag *Rag
 	var documents []*schema.Document
 	g.Log().Infof(ctx, "[ChatAiModel] 开始处理请求 - ID: %s, 网络搜索: %v, 知识库: %s", req.ID, req.IsNetwork, req.KnowledgeName)
 
-	g.Log().Infof(ctx, "用户内容：", req.Question)
+	g.Log().Infof(ctx, "用户内容：%s", req.Question)
 	//硅基流动
 	conf := &common.Config{
 		APIKey:    g.Cfg().MustGet(ctx, "siliconflow.apiKey").String(),
@@ -78,7 +84,7 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 	// 初始化 RAG 组件，避免后续调用空指针
 	rag, err := NewRagChat(ctx, esConf)
 	if err != nil {
-		return nil, fmt.Errorf("init rag failed: %w", err)
+		return nil, nil, fmt.Errorf("init rag failed: %w", err)
 	}
 	// 知识库检索
 	if req.KnowledgeName != "" {
@@ -90,13 +96,15 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 			KnowledgeName: req.KnowledgeName,
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		g.Log().Infof(ctx, "[ChatAiModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
 	} else {
 		g.Log().Infof(ctx, "知识库未启用")
 	}
-
+	// 将 isNetwork、isDeepThinking 添加到上下文中，传递给 stream 函数
+	ctxWithNetwork := context.WithValue(ctx, "isNetwork", req.IsNetwork)
+	ctxWithNetwork = context.WithValue(ctxWithNetwork, common.IsDeepThinking, "true")
 	streamType := StreamType{
 		Conf:        conf,
 		Question:    req.Question,
@@ -111,20 +119,21 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 	streamData, err := stream(ctxNew, &streamType, common.GetSafeTemplateParams())
 	g.Log().Infof(ctx, "[ChatAiModel] stream函数调用完成 - ID: %s, 错误: %v", req.ID, err)
 	if err != nil {
-		return nil, fmt.Errorf("生成答案失败：%w", err)
+		return nil, nil, fmt.Errorf("生成答案失败：%w", err)
 	}
 	srs := streamData.Copy(2)
-	return chanOutput(ctx, srs, req, eh)
+	sr, err := chanOutput(ctx, srs, req, eh)
+	return sr, documents, err
 }
 
-func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*schema.Message], error) {
+func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*schema.Message], []*schema.Document, error) {
 	var rag *Rag
 	var documents []*schema.Document
 	g.Log().Info(ctx, "用户内容：", req.Question)
 	// 初始化RAG组件
 	rag, err := NewRagChat(ctx, esConf)
 	if err != nil {
-		return nil, fmt.Errorf("init rag failed: %w", err)
+		return nil, nil, fmt.Errorf("init rag failed: %w", err)
 	}
 	// 知识库检索
 	if req.KnowledgeName != "" {
@@ -136,7 +145,7 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 			KnowledgeName: req.KnowledgeName,
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		g.Log().Infof(ctx, "[ChatNormalModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
 	} else {
@@ -150,16 +159,18 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 		Eh:          eh,
 		IsStudyMode: req.IsStudyMode,
 	}
-	// 将isNetwork参数添加到上下文中，传递给stream函数
+	// 将 isNetwork、isDeepThinking 添加到上下文中，传递给 stream 函数
 	ctxWithNetwork := context.WithValue(ctx, "isNetwork", req.IsNetwork)
-	g.Log().Infof(ctx, "[ChatNormalModel] 开始调用stream函数 - ID: %s", req.ID)
+	ctxWithNetwork = context.WithValue(ctxWithNetwork, common.IsDeepThinking, req.IsDeepThinking)
+	g.Log().Infof(ctx, "[ChatNormalModel] 开始调用stream函数 - ID: %s, 深度思考: %v", req.ID, req.IsDeepThinking)
 	streamData, err := stream(ctxWithNetwork, &streamType, common.GetSafeNormalOutput())
 	g.Log().Infof(ctx, "[ChatNormalModel] stream函数调用完成 - ID: %s, 错误: %v", req.ID, err)
 	if err != nil {
-		return nil, fmt.Errorf("生成答案失败：%w", err)
+		return nil, nil, fmt.Errorf("生成答案失败：%w", err)
 	}
 	srs := streamData.Copy(2)
-	return chanOutput(ctx, srs, req, eh)
+	sr, err := chanOutput(ctx, srs, req, eh)
+	return sr, documents, err
 }
 
 // 流式输出
@@ -198,7 +209,11 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		res, err = modelStream.Stream(ctx, output)
 		if err != nil {
-			g.Log().Infof(ctx, "流式生成失败 (尝试 %d/%d): %v", attempt+1, maxRetries, err)
+			mode := "NormalChat"
+			if streamType.IsStudyMode {
+				mode = "CoachChat"
+			}
+			g.Log().Errorf(ctx, "流式生成失败 (模式=%s, 尝试 %d/%d): %v", mode, attempt+1, maxRetries, err)
 
 			// 检查上下文是否已取消，避免无意义的重试
 			if ctx.Err() != nil {
@@ -207,7 +222,12 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 
 			// 如果是最后一次尝试，直接返回错误
 			if attempt == maxRetries-1 {
-				return nil, fmt.Errorf("llm generate failed after %d attempts: %v", maxRetries, err)
+				errMsg := fmt.Sprintf("llm generate failed after %d attempts: %v", maxRetries, err)
+				// 403 通常是 API Key 无效、过期或模型无权限，给出更明确的提示
+				if strings.Contains(err.Error(), "403") || strings.Contains(err.Error(), "RequestError") {
+					errMsg += " (提示: 403 通常表示 API Key 无效/过期或该模型无访问权限，请检查 config.yaml 中的 siliconflow/qa/Analysis/ark 等配置)"
+				}
+				return nil, fmt.Errorf("%s", errMsg)
 			}
 
 			// 使用指数退避策略，但限制最大延迟时间
@@ -279,16 +299,26 @@ func NewRagChat(ctx context.Context, conf *common.Config) (*Rag, error) {
 	if len(conf.IndexName) == 0 {
 		return nil, fmt.Errorf("indexName is empty")
 	}
-	// 确保es index存在
-	err := common.CreateIndexIfNotExists(ctx, conf.Client, conf.IndexName)
-	if err != nil {
-		return nil, err
+	// 确保索引/集合存在
+	if conf.UseES() {
+		if err := common.CreateIndexIfNotExists(ctx, conf.Client, conf.IndexName); err != nil {
+			return nil, err
+		}
 	}
-	buildIndex, err := indexer.BuildIndexer(ctx, conf)
-	if err != nil {
-		return nil, err
-	}
+	// Qdrant/Milvus 由 indexer.Store 首次写入时自动创建
 	buildIndexAsync, err := indexer.BuildIndexerAsync(ctx, conf)
+	if err != nil {
+		return nil, err
+	}
+	onIndexed := func(ctx context.Context, docs []*schema.Document, documentsId int64) {
+		_, err := buildIndexAsync.Invoke(ctx, docs)
+		if err != nil {
+			g.Log().Errorf(ctx, "IndexAsync (QA) failed, documentsId=%d, err=%v", documentsId, err)
+			return
+		}
+		knowledge.UpdateDocumentsStatus(ctx, documentsId, int(v1rag.StatusActive))
+	}
+	buildIndex, err := indexer.BuildIndexer(ctx, conf, onIndexed)
 	if err != nil {
 		return nil, err
 	}

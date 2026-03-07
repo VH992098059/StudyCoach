@@ -22,9 +22,9 @@ type CronExecuteDao struct {
 // CronExecuteColumns defines and stores column names for the table cron_execute.
 type CronExecuteColumns struct {
 	Id          string //
-	CronNameFk  string // 定时任务名
-	ExecuteTime string // 执行时间
-	NextTime    string // 下次执行时间
+	CronNameFk  string //
+	ExecuteTime string //
+	NextTime    string //
 	CreatedAt   string //
 	UpdatedAt   string //
 }

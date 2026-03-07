@@ -52,23 +52,33 @@ func NewRerank(ctx context.Context, query string, docs []*schema.Document, topK 
 	return
 }
 
-func GetConf(ctx context.Context) *Conf {
+func GetConf(ctx context.Context) (*Conf, error) {
 	if rerankCfg != nil {
-		return rerankCfg
+		return rerankCfg, nil
 	}
-	baseUrl := g.Cfg().MustGet(ctx, "rerank.baseURL").String()
-	apiKey := g.Cfg().MustGet(ctx, "rerank.apiKey").String()
-	model := g.Cfg().MustGet(ctx, "rerank.model").String()
+	cfg := g.Cfg()
+	baseUrl, err := cfg.Get(ctx, "rerank.baseURL")
+	if err != nil || baseUrl.String() == "" {
+		return nil, fmt.Errorf("config missing: rerank.baseURL")
+	}
+	apiKey, err := cfg.Get(ctx, "rerank.apiKey")
+	if err != nil || apiKey.String() == "" {
+		return nil, fmt.Errorf("config missing: rerank.apiKey")
+	}
+	model, err := cfg.Get(ctx, "rerank.model")
+	if err != nil || model.String() == "" {
+		return nil, fmt.Errorf("config missing: rerank.model")
+	}
 	url := fmt.Sprintf("%s/rerank", baseUrl)
 	rerankCfg = &Conf{
-		apiKey:          apiKey,
-		Model:           model,
+		apiKey:          apiKey.String(),
+		Model:           model.String(),
 		ReturnDocuments: false,
 		MaxChunksPerDoc: 1024,
 		OverlapTokens:   80,
 		url:             url,
 	}
-	return rerankCfg
+	return rerankCfg, nil
 }
 
 func rerank(ctx context.Context, query string, docs []*schema.Document, topK int) (output []*schema.Document, err error) {
@@ -96,7 +106,10 @@ func rerank(ctx context.Context, query string, docs []*schema.Document, topK int
 }
 
 func rerankDoHttp(ctx context.Context, data *Data) ([]*Result, error) {
-	cfg := GetConf(ctx)
+	cfg, err := GetConf(ctx)
+	if err != nil {
+		return nil, err
+	}
 	reqData := &Req{
 		Data: data,
 		Conf: cfg,

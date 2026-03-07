@@ -1,7 +1,8 @@
 /* Override XMarkdown table width issue */
 .x-markdown table:not(pre) {
   display: block;
-  width: 100vh;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
   margin-bottom: 1em;
@@ -25,7 +26,7 @@
 @media (max-width:1024px) {
   .x-markdown table:not(pre) {
     display: block;
-    width: 50vh;
+    width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
     margin-bottom: 1em;
@@ -37,7 +38,7 @@
 @media (max-width:600px) {
   .x-markdown table:not(pre) {
     display: block;
-    width: 30vh;
+    width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch; /* For smooth scrolling on iOS */
     margin-bottom: 1em;

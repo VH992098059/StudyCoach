@@ -7,6 +7,8 @@ import (
 
 	"github.com/gogf/gf/contrib/nosql/redis/v2"
 	"github.com/gogf/gf/v2/database/gredis"
+	"github.com/gogf/gf/v2/errors/gcode"
+	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gctx"
 )
@@ -33,7 +35,11 @@ func init() {
 
 // SetJWT 将 token 存入 Redis 白名单，expiration 与 JWT 自身过期时间保持一致
 func SetJWT(ctx context.Context, key, token string, expiration time.Duration) error {
-	err := g.Redis().SetEX(ctx, "user:"+key, token, int64(expiration))
+	ttlSeconds := int64(expiration.Seconds())
+	if ttlSeconds <= 0 {
+		ttlSeconds = int64((24 * time.Hour).Seconds())
+	}
+	err := g.Redis().SetEX(ctx, "user:"+key, token, ttlSeconds)
 	if err != nil {
 		log.Println("创建jwt报错")
 	}
@@ -48,7 +54,9 @@ func SetJWT(ctx context.Context, key, token string, expiration time.Duration) er
 func CheckJWT(ctx context.Context, key, token string) (bool, error) {
 	value, err := g.Redis().Get(ctx, key)
 	if err != nil {
-		// key 不存在或其他错误
+		if gerror.HasCode(err, gcode.CodeNotFound) {
+			return false, nil
+		}
 		return false, err
 	}
 	return value.String() == token, nil
@@ -67,6 +75,9 @@ func AddBlackTokens(ctx context.Context, userKey, token string) error {
 func CheckBlackTokens(ctx context.Context, userKey, token string) (bool, error) {
 	value, err := g.Redis().Get(ctx, "jwt_blacklist:"+userKey)
 	if err != nil {
+		if gerror.HasCode(err, gcode.CodeNotFound) {
+			return false, nil
+		}
 		return false, err
 	}
 	return value.String() == token, nil

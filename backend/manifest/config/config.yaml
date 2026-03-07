@@ -94,7 +94,7 @@ database:
   default:
     #  - link: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
     #  - link: "pgsql:postgres:root@tcp(studycoach-postgres:5432)/postgres"
-    - link: "mysql:root:root@tcp(localhost:3306)/chat_history?loc=Local&parseTime=true"
+    - link: "mysql:root:root@tcp(localhost:3306)/studyCoach?loc=Local&parseTime=true&charset=utf8mb4"
       debug: true
 # database:
 #   分组名称:
@@ -135,7 +135,7 @@ redis:
     idleTimeout: "60s"
 
 db:
-  mysql: "root:root@tcp(127.0.0.1:3306)/chat_history?loc=Local&parseTime=true"
+  mysql: "root:root@tcp(127.0.0.1:3306)/studyCoach?loc=Local&parseTime=true&charset=utf8mb4"
 #  history: "host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 #  history: "host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 
@@ -150,7 +150,7 @@ Branch:
 Analysis:
   apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
-  model: "Qwen/Qwen3-14B"
+  model: "Qwen/Qwen3-Next-80B-A3B-Instruct"
 
 embedding:
   apiKey: "*"
@@ -165,7 +165,7 @@ embeddingArk:
 rewrite:
   apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
-  model: "MiniMaxAI/MiniMax-M2"
+  model: "Qwen/Qwen3-Next-80B-A3B-Instruct"
 
 qa:
   apiKey: "*"
@@ -191,12 +191,31 @@ seaweedfs:
   filer: "http://localhost:8888"
 
 
+# 向量引擎: es(默认) | qdrant | milvus
+vectorEngine: "es"
+
 es:
   #  address: "http://studycoach-elasticsearch:9200"
   address: "http://localhost:9200"
   indexName: "study"
 #  username: "elastic"
 #  password: "123456"
+
+# qdrant 配置（vectorEngine 为 qdrant 时生效）
+# qdrant:
+#   address: "localhost:6333"
+#   collection: "study"
+
+# milvus 配置（vectorEngine 为 milvus 时生效）
+# milvus:
+#   address: "localhost:19530"
+#   username: ""
+#   password: ""
+#   collection: "study"
+
+# Skill 目录（SKILL.md 所在根目录，每个子目录一个 skill）
+skills:
+  baseDir: "skills"
 
 cron:
   apiKey: "*"

@@ -21,13 +21,13 @@ type KnowledgeBaseDao struct {
 
 // KnowledgeBaseColumns defines and stores column names for the table knowledge_base.
 type KnowledgeBaseColumns struct {
-	Id          string // 知识库ID，主键
-	Name        string // 知识库名称
-	Description string // 知识库描述
-	Category    string // 知识库分类
-	Status      string // 状态：1-启用，2-禁用
-	CreatedAt   string // 创建时间
-	UpdatedAt   string // 更新时间
+	Id          string //
+	Name        string //
+	Description string //
+	Category    string //
+	Status      string //
+	CreatedAt   string //
+	UpdatedAt   string //
 }
 
 // knowledgeBaseColumns holds the columns for the table knowledge_base.

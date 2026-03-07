@@ -21,13 +21,13 @@ type FilesDao struct {
 
 // FilesColumns defines and stores column names for the table files.
 type FilesColumns struct {
-	Id             string // 文件ID
-	Filename       string // 文件名
-	Size           string // 文件大小
-	ConversationId string // 对话ID
-	CreateAt       string // 创建时间
-	UpdateAt       string // 修改时间
-	DeleteAt       string // 软删除
+	Id             string //
+	Filename       string //
+	Size           string //
+	ConversationId string //
+	CreateAt       string //
+	UpdateAt       string //
+	DeleteAt       string //
 }
 
 // filesColumns holds the columns for the table files.

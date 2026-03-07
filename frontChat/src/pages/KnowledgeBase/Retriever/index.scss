@@ -13,8 +13,8 @@
 .retriever-card {
   max-width: 1200px;
   margin: 0 auto;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 /* 卡片头部 */
@@ -276,13 +276,13 @@
 }
 
 .ant-btn-primary {
-  background: #1890ff;
-  border-color: #1890ff;
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 .ant-btn-primary:hover {
-  background: #40a9ff;
-  border-color: #40a9ff;
+  background: #3b82f6;
+  border-color: #3b82f6;
 }
 
 /* 表单样式 */

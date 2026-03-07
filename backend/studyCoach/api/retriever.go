@@ -9,11 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudwego/eino-ext/components/retriever/es8"
-	er "github.com/cloudwego/eino/components/retriever"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/gogf/gf/v2/frame/g"
 )
 
@@ -55,6 +52,7 @@ func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Do
 		return
 	}
 	wg := &sync.WaitGroup{}
+	var loopErr error
 	// 尝试N次重写关键词进行搜索,后续可以考虑做成配置
 	for i := 0; i < 3; i++ {
 		question := req.Query
@@ -64,25 +62,26 @@ func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Do
 		)
 		optMessages, err = CoachChat.GetOptimizedQueryMessages(used, question, req.KnowledgeName)
 		if err != nil {
-			return
+			loopErr = err
+			break
 		}
 		// 为rewrite模型调用设置30秒超时
 		rewriteCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
 		rewriteMessage, err = rewriteModel.Generate(rewriteCtx, optMessages)
+		cancel()
 		if err != nil {
-			return
+			loopErr = err
+			break
 		}
 		optimizedQuery := rewriteMessage.Content
 		used += optimizedQuery + " "
 		req.optQuery = optimizedQuery
 		wg.Add(1)
-		go func() {
+		go func(reqCopy *RetrieveReq) {
 			defer wg.Done()
-			rDocs := make([]*schema.Document, 0)
-			rDocs, err = x.retrieveDoOnce(ctx, req.copy())
-			if err != nil {
-				g.Log().Errorf(ctx, "retrieveDoOnce failed, err=%v", err)
+			rDocs, retrieveErr := x.retrieveDoOnce(ctx, reqCopy)
+			if retrieveErr != nil {
+				g.Log().Errorf(ctx, "retrieveDoOnce failed, err=%v", retrieveErr)
 				return
 			}
 			for _, doc := range rDocs {
@@ -94,9 +93,13 @@ func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Do
 				}
 			}
 
-		}()
+		}(req.copy())
 	}
 	wg.Wait()
+	if loopErr != nil {
+		err = loopErr
+		return
+	}
 	// 整理需要返回的数据
 	relatedDocs.Range(func(key, value any) bool {
 		msg = append(msg, value.(*schema.Document))
@@ -152,23 +155,9 @@ func (x *Rag) retrieveDoOnce(ctx context.Context, req *RetrieveReq) (relatedDocs
 	return
 }
 func (x *Rag) retrieve(ctx context.Context, req *RetrieveReq, qa bool) (msg []*schema.Document, err error) {
-	esQuery := []types.Query{
-		{
-			Bool: &types.BoolQuery{
-				Must: []types.Query{{Match: map[string]types.MatchQuery{common.KnowledgeName: {Query: req.KnowledgeName}}}},
-			},
-		},
-	}
-	if len(req.excludeIDs) > 0 {
-		esQuery[0].Bool.MustNot = []types.Query{
-			{
-				Terms: &types.TermsQuery{
-					TermsQuery: map[string]types.TermsQueryField{
-						"_id": req.excludeIDs,
-					},
-				},
-			},
-		}
+	filterOpts, err := buildRetrieverFilterOptions(x.conf, req.KnowledgeName, req.excludeIDs, esTopK)
+	if err != nil {
+		return nil, err
 	}
 	// 选择 retriever，若未初始化则直接返回空结果
 	var r compose.Runnable[string, []*schema.Document]
@@ -180,21 +169,15 @@ func (x *Rag) retrieve(ctx context.Context, req *RetrieveReq, qa bool) (msg []*s
 	if r == nil {
 		return nil, nil
 	}
-	msg, err = r.Invoke(ctx, req.optQuery,
-		compose.WithRetrieverOption(
-			// er.WithScoreThreshold(req.Score), // 不限制分数，只限制数量，最终分数由rerank给
-			er.WithTopK(esTopK),
-			es8.WithFilters(esQuery),
-		),
-	)
+	msg, err = r.Invoke(ctx, req.optQuery, compose.WithRetrieverOption(filterOpts...))
+	if err != nil {
+		return nil, err
+	}
 	for _, s := range msg {
 		if s.Score() > 1 {
 			// 本身没意义，最终分数由rerank给，这里只是为了方便测试观察
 			s.WithScore(s.Score() - 1)
 		}
 	}
-	if err != nil {
-		return
-	}
-	return
+	return msg, nil
 }

@@ -49,6 +49,7 @@
     "updatePasswordFailed": "Failed to update password"
   },
   "auth": {
+    "loginRequired": "Please login first",
     "loginTitle": "User Login",
     "loginSubtitle": "Welcome back, please enter your credentials",
     "registerTitle": "User Registration",
@@ -204,6 +205,9 @@
       "placeholder": "Enter your message...",
       "studyMode": "Study Mode",
       "studyModeShort": "Study",
+      "deepThinking": "Deep Thinking",
+      "deepThinkingShort": "Think",
+      "deepThinkingTip": "Only in normal mode, enables AI deep reasoning",
       "network": "Net",
       "networkEnabled": "Net On",
       "networkSearch": "Net Search"
@@ -272,12 +276,21 @@
        "unknownError": "Unknown error",
        "reconnecting": "Connection interrupted, retrying attempt {{attempt}}...",
        "connectionFailed": "Connection failed, please try again later"
+    },
+    "thinkChain": {
+      "connecting": "Connecting to AI",
+      "retrieving": "Retrieving knowledge base",
+      "retrieved": "Retrieved {{count}} relevant documents",
+      "analyzing": "Analyzing question",
+      "generating": "Generating response",
+      "complete": "Response complete"
     }
   },
   "api": {
     "requestFailed": "Request failed",
     "requestFailedWithStatus": "Request failed ({{status}})",
     "unauthorized": "Session expired, please login again",
+    "loginExpired": "Session expired, please refresh the page",
     "forbidden": "Permission denied",
     "notFound": "Resource not found",
     "internalServerError": "Internal server error",

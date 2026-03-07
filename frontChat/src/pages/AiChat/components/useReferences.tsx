@@ -31,23 +31,23 @@ const useReferences = () => {
   const [isReferenceScrolling, setIsReferenceScrolling] = useState(false);
   const referenceScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleKnowledgeChange = (knowledgeId: string) => {
+  const handleKnowledgeChange = useCallback((knowledgeId: string) => {
     setSelectedKnowledge(knowledgeId);
-  };
+  }, []);
 
-  const handleAdvancedSettingsChange = (field: keyof AdvancedSettings, value: number) => {
+  const handleAdvancedSettingsChange = useCallback((field: keyof AdvancedSettings, value: number) => {
     setAdvancedSettings((prev) => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
-  const handleToggleAdvancedSettings = () => {
+  const handleToggleAdvancedSettings = useCallback(() => {
     setShowAdvancedSettings((prev) => !prev);
-  };
+  }, []);
 
-  const handleToggleReferences = () => {
+  const handleToggleReferences = useCallback(() => {
     setShowReferences((prev) => !prev);
-  };
+  }, []);
 
-  const handleReferenceScroll = () => {
+  const handleReferenceScroll = useCallback(() => {
     setIsReferenceScrolling(true);
     if (referenceScrollTimeoutRef.current) {
       clearTimeout(referenceScrollTimeoutRef.current);
@@ -55,7 +55,7 @@ const useReferences = () => {
     referenceScrollTimeoutRef.current = setTimeout(() => {
       setIsReferenceScrolling(false);
     }, 1000);
-  };
+  }, []);
 
   const fetchReferenceDocuments = useCallback(async (query: string): Promise<ReferenceDocument[]> => {
     if (!selectedKnowledge || selectedKnowledge === 'none') return [];

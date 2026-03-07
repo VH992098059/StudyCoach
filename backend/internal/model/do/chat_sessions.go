@@ -11,13 +11,11 @@ import (
 
 // ChatSessions is the golang structure of table chat_sessions for DAO operations like Where/Data.
 type ChatSessions struct {
-	g.Meta         `orm:"table:chat_sessions, do:true"`
-	Id             any         // 会话ID，主键
-	UserId         any         // 用户ID，外键关联users表
-	ConversationId any         // 对话ID，关联chat_history.messages表的conversation_id
-	Title          any         // 会话标题，默认为"新对话"
-	CreatedAt      *gtime.Time // 会话创建时间
-	UpdatedAt      *gtime.Time // 会话最后更新时间
-	MessageCount   any         // 消息数量，冗余字段便于快速查询
-	IsDeleted      any         // 软删除标记：0-正常，1-已删除
+	g.Meta    `orm:"table:chat_sessions, do:true"`
+	Id        any         //
+	Uuid      any         //
+	UserId    any         //
+	Title     any         //
+	CreatedAt *gtime.Time //
+	UpdatedAt *gtime.Time //
 }
