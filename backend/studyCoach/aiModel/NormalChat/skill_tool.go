@@ -6,6 +6,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/cloudwego/eino-ext/adk/backend/local"
 	"github.com/cloudwego/eino/adk/middlewares/skill"
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
@@ -67,21 +68,36 @@ func (t *skillTool) InvokableRun(ctx context.Context, argumentsInJSON string, op
 }
 
 // newSkillTool 创建 Skill 工具
+// 使用 eino v0.8+ 的 NewBackendFromFilesystem + eino-ext local filesystem backend
 func newSkillTool(ctx context.Context) (tool.InvokableTool, error) {
 	baseDir := "skills"
 	if v, err := g.Cfg().Get(ctx, "skills.baseDir"); err == nil && v.String() != "" {
 		baseDir = v.String()
 	}
-	// 相对 backend 工作目录
+	// 相对 backend 工作目录，转为绝对路径（filesystem.Backend 要求绝对路径）
 	absDir, err := filepath.Abs(baseDir)
 	if err != nil {
 		absDir = baseDir
 	}
-	be, err := skill.NewLocalBackend(&skill.LocalBackendConfig{BaseDir: absDir})
+
+	// eino-ext local 实现 filesystem.Backend，用于读取本地 SKILL.md
+	// 注意：local 的 Execute 使用 /bin/sh，仅 Unix/MacOS；Read/GlobInfo 在 Windows 上可用
+	fsBackend, err := local.NewBackend(ctx, &local.Config{})
 	if err != nil {
-		log.Printf("[NormalChat] skill NewLocalBackend failed: %v", err)
+		log.Printf("[NormalChat] skill local.NewBackend failed: %v", err)
 		return nil, err
 	}
+
+	// 确保 absDir 为 filesystem 期望的绝对路径格式（Windows 下如 K:\path 已满足）
+	skillBackend, err := skill.NewBackendFromFilesystem(ctx, &skill.BackendFromFilesystemConfig{
+		Backend: fsBackend,
+		BaseDir: absDir,
+	})
+	if err != nil {
+		log.Printf("[NormalChat] skill NewBackendFromFilesystem failed: %v", err)
+		return nil, err
+	}
+
 	log.Printf("[NormalChat] 已加载 Skill 工具 (skill), baseDir=%s", absDir)
-	return &skillTool{backend: be}, nil
+	return &skillTool{backend: skillBackend}, nil
 }
