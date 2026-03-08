@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Drawer, List, Button, Modal } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +26,12 @@ const SidebarDrawer: React.FC<SidebarDrawerProps> = (props: SidebarDrawerProps) 
     onDeleteSession,
   } = props;
 
+  // 按 id 去重，防止重复显示
+  const uniqueSessions = useMemo(
+    () => chatSessions.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i),
+    [chatSessions]
+  );
+
   return (
     <Drawer
       title={t('chat.sidebar.title')}
@@ -48,7 +54,7 @@ const SidebarDrawer: React.FC<SidebarDrawerProps> = (props: SidebarDrawerProps) 
       <List
         size="small"
         itemLayout="horizontal"
-        dataSource={chatSessions}
+        dataSource={uniqueSessions}
         renderItem={(item) => (
           <List.Item
             style={{ cursor: 'pointer' }}

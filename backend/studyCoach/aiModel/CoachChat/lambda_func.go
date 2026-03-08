@@ -20,6 +20,7 @@ func newLambda(ctx context.Context, input *schema.Message) (output map[string]an
 	output["question"] = input.Content
 	output["chat_history"] = ctx.Value("chat_history")
 	output["knowledge"] = ctx.Value("knowledge")
+	output["current_time"] = common.GetCurrentTimeString()
 	log.Println("EmotionAndCompanionShipLambda已处理消息")
 	return output, nil
 }
@@ -35,6 +36,7 @@ func newLambda1(ctx context.Context, input *schema.Message) (output map[string]a
 	output["question"] = input.Content
 	output["chat_history"] = ctx.Value("chat_history")
 	output["knowledge"] = ctx.Value("knowledge")
+	output["current_time"] = common.GetCurrentTimeString()
 	log.Println("ChatLambda已处理消息")
 	return output, nil
 }
@@ -49,6 +51,7 @@ func newLambda2(ctx context.Context, input *schema.Message) (output map[string]a
 	output["question"] = input.Content
 	output["chat_history"] = ctx.Value("chat_history")
 	output["knowledge"] = ctx.Value("knowledge")
+	output["current_time"] = common.GetCurrentTimeString()
 	log.Println("ToStudyLambda不使用Es搜索引擎分支内容输出")
 	return output, nil
 }

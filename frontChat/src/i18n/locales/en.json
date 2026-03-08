@@ -201,6 +201,8 @@
       "confirm": "Delete",
       "cancel": "Cancel"
     },
+    "confirmSavePlan": "Confirm Save Plan",
+    "planSavedSuccess": "Study plan saved successfully",
     "input": {
       "placeholder": "Enter your message...",
       "studyMode": "Study Mode",
@@ -283,7 +285,10 @@
       "retrieved": "Retrieved {{count}} relevant documents",
       "analyzing": "Analyzing question",
       "generating": "Generating response",
-      "complete": "Response complete"
+      "thinking": "Thinking...",
+      "complete": "Response complete",
+      "viewThinking": "View thinking process",
+      "hideThinking": "Hide thinking process"
     }
   },
   "api": {

@@ -506,6 +506,8 @@
       "confirm": "删除",
       "cancel": "取消"
     },
+    "confirmSavePlan": "确认保存计划",
+    "planSavedSuccess": "学习计划已保存成功",
     "input": {
       "placeholder": "输入你的消息...",
       "studyMode": "学习模式",
@@ -588,7 +590,10 @@
       "retrieved": "已检索到 {{count}} 条相关文档",
       "analyzing": "分析问题",
       "generating": "正在生成回答",
-      "complete": "回答完成"
+      "thinking": "思考中...",
+      "complete": "回答完成",
+      "viewThinking": "查看思考过程",
+      "hideThinking": "收起思考过程"
     }
   },
   "api": {

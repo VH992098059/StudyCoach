@@ -39,7 +39,8 @@ export const useChatSessions = (): UseChatSessionsReturn => {
               msg_id: msg.msg_id,
               content: msg.content,
               isUser: msg.isUser,
-              timestamp: msg.timestamp.toISOString()
+              timestamp: msg.timestamp.toISOString(),
+              ...(msg.reasoningContent ? { reasoningContent: msg.reasoningContent } : {}),
             }));
 
             const res = await ChatHistoryService.saveSession({
@@ -76,13 +77,15 @@ export const useChatSessions = (): UseChatSessionsReturn => {
         try {
           const res = await ChatHistoryService.getHistory();
           if (res.list && res.list.length > 0) {
-            const sessions: ChatSession[] = res.list.map((session: any) => ({
-              id: session.id,
-              title: session.title,
-              messages: [],
-              createdAt: new Date(session.createdAt),
-              updatedAt: new Date(session.updatedAt)
-            }));
+            const sessions: ChatSession[] = res.list
+              .map((session: any) => ({
+                id: session.id,
+                title: session.title,
+                messages: [],
+                createdAt: new Date(session.createdAt),
+                updatedAt: new Date(session.updatedAt)
+              }))
+              .filter((s: ChatSession, i: number, arr: ChatSession[]) => arr.findIndex(x => x.id === s.id) === i);
 
             setChatSessions(sessions);
 
@@ -96,7 +99,8 @@ export const useChatSessions = (): UseChatSessionsReturn => {
                 msg_id: msg.msg_id,
                 content: msg.content,
                 isUser: msg.isUser,
-                timestamp: new Date(msg.timestamp)
+                timestamp: new Date(msg.timestamp),
+                ...(msg.reasoningContent ? { reasoningContent: msg.reasoningContent } : {}),
               }))
             };
 
@@ -115,16 +119,18 @@ export const useChatSessions = (): UseChatSessionsReturn => {
       // 未登录：从本地存储加载
       const stored = localStorage.getItem(STORAGE_KEY_LOCAL);
       if (stored) {
-        const sessions: ChatSession[] = JSON.parse(stored).map((session: any) => ({
-          ...session,
-          createdAt: new Date(session.createdAt),
-          updatedAt: new Date(session.updatedAt),
-          messages: (session.messages || []).map((msg: any) => ({
-            ...msg,
-            msg_id: msg.msg_id || generateMsgId(),
-            timestamp: new Date(msg.timestamp)
+        const sessions: ChatSession[] = JSON.parse(stored)
+          .map((session: any) => ({
+            ...session,
+            createdAt: new Date(session.createdAt),
+            updatedAt: new Date(session.updatedAt),
+            messages: (session.messages || []).map((msg: any) => ({
+              ...msg,
+              msg_id: msg.msg_id || generateMsgId(),
+              timestamp: new Date(msg.timestamp)
+            }))
           }))
-        }));
+          .filter((s: ChatSession, i: number, arr: ChatSession[]) => arr.findIndex(x => x.id === s.id) === i);
         setChatSessions(sessions);
         if (sessions.length > 0) {
           setCurrentSessionId(sessions[0].id);
@@ -158,13 +164,17 @@ export const useChatSessions = (): UseChatSessionsReturn => {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
+
     setChatSessions(prevSessions => {
+      // 防止重复添加（如 React Strict Mode 双次调用、快速双击等）
+      if (prevSessions.some(s => s.id === newSessionId)) {
+        return prevSessions;
+      }
       const updatedSessions = [newSession, ...prevSessions];
       saveChatSessions(updatedSessions);
       return updatedSessions;
     });
-    
+
     setCurrentSessionId(newSessionId);
     setMessages(newSession.messages);
   }, [generateMsgId, saveChatSessions]);
@@ -191,7 +201,8 @@ export const useChatSessions = (): UseChatSessionsReturn => {
           msg_id: msg.msg_id,
           content: msg.content,
           isUser: msg.isUser,
-          timestamp: new Date(msg.timestamp)
+          timestamp: new Date(msg.timestamp),
+          ...(msg.reasoningContent ? { reasoningContent: msg.reasoningContent } : {}),
         }));
 
         setMessages(messages);

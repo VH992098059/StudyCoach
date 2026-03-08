@@ -3,8 +3,9 @@
  * @description 使用 Ant Design X 的 Bubble 渲染用户/AI 气泡消息，
  * 支持移动端样式、连接状态指示、思维链展示与实时回复。
  */
-import React, { useMemo } from 'react';
-import { Card, Avatar } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Card, Avatar, Button } from 'antd';
+import { DownOutlined, UpOutlined } from '@ant-design/icons';
 import { Bubble, XProvider, ThoughtChain } from '@ant-design/x';
 import zhCN from '@ant-design/x/locale/zh_CN';
 import enUS from '@ant-design/x/locale/en_US';
@@ -45,6 +46,56 @@ const renderMarkdown = (content: React.ReactNode) => {
   );
 };
 
+/** AI 消息内容：主内容 + 可展开的思考过程 */
+const AssistantMessageContent: React.FC<{
+  content: string;
+  reasoningContent?: string;
+  renderMarkdown: (c: React.ReactNode) => React.ReactNode;
+  t: (key: string) => string;
+}> = ({ content, reasoningContent, renderMarkdown, t }) => {
+  const [expanded, setExpanded] = useState(false);
+  if (!reasoningContent) {
+    return <>{renderMarkdown(content)}</>;
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {renderMarkdown(content)}
+      <div style={{ marginTop: 4 }}>
+        <Button
+          type="text"
+          size="small"
+          icon={expanded ? <UpOutlined /> : <DownOutlined />}
+          onClick={() => setExpanded((e) => !e)}
+          style={{ color: '#8c8c8c', fontSize: 12, padding: '0 4px', height: 24 }}
+        >
+          {expanded ? t('chat.thinkChain.hideThinking') : t('chat.thinkChain.viewThinking')}
+        </Button>
+        {expanded && (
+          <div
+            style={{
+              marginTop: 8,
+              padding: '12px 16px',
+              borderRadius: 12,
+              background: 'rgba(0,0,0,0.03)',
+              border: '1px solid rgba(0,0,0,0.06)',
+              fontSize: 13,
+              color: '#666',
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 14 }}>💭</span>
+              {t('chat.thinkChain.thinking')}
+            </div>
+            {reasoningContent}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 interface BubbleMessageListProps {
   messages: Message[];
   isMobile: boolean;
@@ -55,6 +106,8 @@ interface BubbleMessageListProps {
   reconnectAttempts: number;
   maxReconnectAttempts: number;
   currentAiMessage: string;
+  /** 思考过程（深度思考模式下的推理内容） */
+  currentReasoningContent?: string;
   messagesEndRef: React.RefObject<HTMLDivElement | null> | React.MutableRefObject<HTMLDivElement | null>;
   /** 思维链：检索到的文档数量（用于展示「已检索到 N 条文档」） */
   documentsCount?: number;
@@ -76,6 +129,7 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
   reconnectAttempts,
   maxReconnectAttempts,
   currentAiMessage,
+  currentReasoningContent = '',
   messagesEndRef,
   documentsCount = 0,
   hasKnowledgeBase = false,
@@ -144,7 +198,11 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
                 avatar: m.isUser
                   ? <Avatar icon={<UserOutlined />} style={userAvatarStyle} />
                   : <Avatar icon={<RobotOutlined />} style={aiAvatarStyle} />,
-                content: m.content,
+                content: m.isUser
+                  ? m.content
+                  : m.reasoningContent
+                    ? <AssistantMessageContent content={m.content} reasoningContent={m.reasoningContent} renderMarkdown={renderMarkdown} t={t} />
+                    : m.content,
               })),
               ...(loading && thoughtChainItems.length > 0 && !currentAiMessage
                 ? [
@@ -154,6 +212,35 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
                       placement: 'start' as 'start' | 'end',
                       avatar: <Avatar icon={<RobotOutlined />} style={aiAvatarStyle} />,
                       content: <ThoughtChain items={thoughtChainItems} line="solid" />,
+                    },
+                  ]
+                : []),
+              ...(currentReasoningContent && loading
+                ? [
+                    {
+                      key: 'reasoning-content',
+                      role: 'assistant',
+                      placement: 'start' as 'start' | 'end',
+                      avatar: <Avatar icon={<RobotOutlined />} style={aiAvatarStyle} />,
+                      content: (
+                        <div
+                          style={{
+                            padding: '12px 16px',
+                            borderRadius: 12,
+                            background: 'rgba(0,0,0,0.03)',
+                            border: '1px solid rgba(0,0,0,0.06)',
+                            maxWidth: '100%',
+                          }}
+                        >
+                          <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontSize: 14 }}>💭</span>
+                            {t('chat.thinkChain.thinking')}
+                          </div>
+                          <div style={{ fontSize: 13, color: '#666', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                            {currentReasoningContent}
+                          </div>
+                        </div>
+                      ),
                     },
                   ]
                 : []),

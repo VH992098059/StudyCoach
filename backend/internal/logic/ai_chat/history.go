@@ -95,11 +95,12 @@ func (c *ChatBase) SaveSession(ctx context.Context, userId string, req *v1.SaveS
 			for _, msg := range req.Messages {
 				msgEntity := entity.ChatMessages{
 					// Id will be set below based on lookup
-					SessionUuid: sessionUuid,
-					MsgId:       msg.MsgId,
-					Content:     msg.Content,
-					IsUser:      0,
-					Timestamp:   msg.Timestamp,
+					SessionUuid:      sessionUuid,
+					MsgId:            msg.MsgId,
+					Content:          msg.Content,
+					IsUser:           0,
+					Timestamp:        msg.Timestamp,
+					ReasoningContent: msg.ReasoningContent,
 				}
 
 				// Use existing ID if found by msg_id, otherwise 0 (Insert, let DB auto-increment generate ID)
@@ -185,11 +186,12 @@ func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId stri
 			isUser = true
 		}
 		res.Messages = append(res.Messages, v1.ChatMessage{
-			Id:        m.Id,
-			MsgId:     m.MsgId,
-			Content:   m.Content,
-			IsUser:    isUser,
-			Timestamp: m.Timestamp,
+			Id:               m.Id,
+			MsgId:            m.MsgId,
+			Content:          m.Content,
+			IsUser:           isUser,
+			Timestamp:        m.Timestamp,
+			ReasoningContent: m.ReasoningContent,
 		})
 	}
 
@@ -215,10 +217,11 @@ type MergeSessionInput struct {
 
 // MergeMessageInput 合并消息的输入
 type MergeMessageInput struct {
-	MsgId     string
-	Content   string
-	IsUser    bool
-	Timestamp *gtime.Time
+	MsgId            string
+	Content          string
+	IsUser           bool
+	Timestamp        *gtime.Time
+	ReasoningContent string
 }
 
 // MergeAnonymousSessions 将未登录时的会话合并到用户历史（登录后由后端调用）
@@ -234,10 +237,11 @@ func (c *ChatBase) MergeAnonymousSessions(ctx context.Context, userId string, se
 		}
 		for _, m := range s.Messages {
 			req.Messages = append(req.Messages, v1.ChatMessage{
-				MsgId:     m.MsgId,
-				Content:   m.Content,
-				IsUser:    m.IsUser,
-				Timestamp: m.Timestamp,
+				MsgId:            m.MsgId,
+				Content:          m.Content,
+				IsUser:           m.IsUser,
+				Timestamp:        m.Timestamp,
+				ReasoningContent: m.ReasoningContent,
 			})
 		}
 		_, err := c.SaveSession(ctx, userId, req)

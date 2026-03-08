@@ -6,6 +6,7 @@ import (
 	"backend/internal/logic/knowledge"
 	"backend/studyCoach/aiModel/CoachChat"
 	"backend/studyCoach/aiModel/NormalChat"
+	"backend/studyCoach/aiModel/eino_tools/studyplan"
 	"backend/studyCoach/aiModel/indexer"
 	"backend/studyCoach/aiModel/retriever"
 	"backend/studyCoach/common"
@@ -193,6 +194,7 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 	} else {
 		ctx = context.WithValue(ctx, "chat_history", history)
 		ctx = context.WithValue(ctx, "knowledge", streamType.Knowledge)
+		ctx = context.WithValue(ctx, studyplan.SessionIDContextKey{}, streamType.Id)
 		modelStream, err = CoachChat.BuildstudyCoachFor(ctx, streamType.Conf)
 		if err != nil {
 			g.Log().Errorf(ctx, "构建模型失败: %v", err)
@@ -204,6 +206,7 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 	output["question"] = streamType.Question // 保持兼容性
 	output["chat_history"] = history
 	output["knowledge"] = streamType.Knowledge
+	output["current_time"] = common.GetCurrentTimeString() // 每次请求注入当前时间，供提示词使用
 	// 添加重试机制，最多重试3次，但只重试Stream调用
 	maxRetries := 3
 	for attempt := 0; attempt < maxRetries; attempt++ {
@@ -223,9 +226,13 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 			// 如果是最后一次尝试，直接返回错误
 			if attempt == maxRetries-1 {
 				errMsg := fmt.Sprintf("llm generate failed after %d attempts: %v", maxRetries, err)
-				// 403 通常是 API Key 无效、过期或模型无权限，给出更明确的提示
-				if strings.Contains(err.Error(), "403") || strings.Contains(err.Error(), "RequestError") {
-					errMsg += " (提示: 403 通常表示 API Key 无效/过期或该模型无访问权限，请检查 config.yaml 中的 siliconflow/qa/Analysis/ark 等配置)"
+				// 401/403 或 RequestError：API Key 无效/过期或模型无权限
+				if strings.Contains(err.Error(), "401") || strings.Contains(err.Error(), "403") || strings.Contains(err.Error(), "RequestError") {
+					errMsg += " (提示: 401/403 通常表示 API Key 无效/过期或该模型无访问权限，请检查 config.yaml 中的 siliconflow/qa/Analysis/ark 等配置)"
+				}
+				// 当 API 返回纯文本错误（如 "Unauthorized"）而非 JSON 时，SDK 会报 unmarshal 错误，给出友好说明
+				if strings.Contains(err.Error(), "cannot unmarshal string into Go value of type model.ErrorResponse") {
+					errMsg = "llm generate failed: API 返回了非 JSON 格式的错误响应（可能是 401 未授权）。请检查 config.yaml 中的 API Key 配置是否正确（siliconflow/qa/Analysis/ark 等）"
 				}
 				return nil, fmt.Errorf("%s", errMsg)
 			}

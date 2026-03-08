@@ -21,22 +21,24 @@ type ChatMessagesDao struct {
 
 // ChatMessagesColumns defines and stores column names for the table chat_messages.
 type ChatMessagesColumns struct {
-	Id          string //
-	SessionUuid string //
-	MsgId       string //
-	Content     string //
-	IsUser      string //
-	Timestamp   string //
+	Id               string //
+	SessionUuid      string //
+	MsgId            string //
+	Content          string //
+	IsUser           string //
+	Timestamp        string //
+	ReasoningContent string //
 }
 
 // chatMessagesColumns holds the columns for the table chat_messages.
 var chatMessagesColumns = ChatMessagesColumns{
-	Id:          "id",
-	SessionUuid: "session_uuid",
-	MsgId:       "msg_id",
-	Content:     "content",
-	IsUser:      "is_user",
-	Timestamp:   "timestamp",
+	Id:               "id",
+	SessionUuid:      "session_uuid",
+	MsgId:            "msg_id",
+	Content:          "content",
+	IsUser:           "is_user",
+	Timestamp:        "timestamp",
+	ReasoningContent: "reasoning_content",
 }
 
 // NewChatMessagesDao creates and returns a new DAO object for table data access.

@@ -170,7 +170,7 @@ rewrite:
 qa:
   apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
-  model: "deepseek-ai/DeepSeek-V3"
+  model: "moonshotai/Kimi-K2-Thinking"
 
 rerank:
   apiKey: "*"
@@ -185,7 +185,7 @@ ark:
 siliconflow:
   apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
-  model: "deepseek-ai/DeepSeek-V3.2"
+  model: "moonshotai/Kimi-K2-Thinking"
 
 seaweedfs:
   filer: "http://localhost:8888"
@@ -220,6 +220,10 @@ skills:
 # PlanTask 任务存储目录（TaskCreate/TaskGet/TaskUpdate/TaskList 的 JSON 文件）
 plantask:
   baseDir: "plantask_tasks"
+
+# 学习计划（save_plan/read_plan）本地回退目录，SeaweedFS 不可用时使用
+studyplan:
+  localDir: "study_plans_local"
 
 cron:
   apiKey: "*"

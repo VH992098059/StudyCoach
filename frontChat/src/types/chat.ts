@@ -11,6 +11,8 @@ export interface Message {
   content: string;
   isUser: boolean;
   timestamp: Date;
+  /** 思考过程（深度思考模式下的推理内容，可展开查看） */
+  reasoningContent?: string;
 }
 
 /**

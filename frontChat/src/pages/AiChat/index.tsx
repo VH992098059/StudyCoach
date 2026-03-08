@@ -5,7 +5,7 @@
  * - 状态：会话列表与当前会话、SSE连接、文件上传、语音朗读、知识库选择
  * - 交互：发送消息、停止生成、滚动行为、打开/关闭抽屉与高级设置
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Button, Alert, message, Empty } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
@@ -71,6 +71,7 @@ const AIChat: React.FC = () => {
     connectionError,
     setConnectionError,
     currentAiMessage,
+    currentReasoningContent,
     loading: streamingLoading,
     documentsCount,
     send,
@@ -120,7 +121,7 @@ const AIChat: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, currentAiMessage]);
+  }, [messages, currentAiMessage, currentReasoningContent]);
 
   // 发送消息
   const handleStop = () => { stop(); };
@@ -184,6 +185,35 @@ const AIChat: React.FC = () => {
   const handleOpenSidebar = useCallback(() => setDrawerVisible(true), []);
   const handleCloseSessionInfoDrawer = useCallback(() => setSessionInfoDrawerVisible(false), []);
   const handleOpenInfo = useCallback(() => setSessionInfoDrawerVisible(true), []);
+
+  /** 检测上一条 AI 消息是否为学习计划（含番茄钟、项目启动计划等关键词） */
+  const showConfirmSavePlan = useMemo(() => {
+    if (streamingLoading || messages.length === 0) return false;
+    const last = messages[messages.length - 1];
+    if (last.isUser) return false;
+    const content = (last.content || '').toString();
+    const keywords = ['番茄钟', '项目启动计划', '模版 A', '费曼实战计划', '任务切片', '🍅', 'MVP'];
+    return keywords.some((k) => content.includes(k)) && content.length > 80;
+  }, [messages, streamingLoading]);
+
+  /** 点击「确认保存计划」：发送固定文案触发后端 save_plan */
+  const handleConfirmSavePlan = useCallback(() => {
+    sendQuestionByText('我确认采纳这个计划，请保存');
+  }, [sendQuestionByText]);
+
+  /** 保存成功提示：当 AI 回复包含「已保存」时显示 Toast */
+  const lastToastMsgIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.isUser) return;
+    const content = (last.content || '').toString();
+    const msgKey = (last.msg_id || last.id) + '';
+    if (content.includes('已保存') && lastToastMsgIdRef.current !== msgKey) {
+      lastToastMsgIdRef.current = msgKey;
+      message.success(t('chat.planSavedSuccess'));
+    }
+  }, [messages, t]);
 
   /**
    * 复制文档内容到剪贴板
@@ -270,6 +300,7 @@ const AIChat: React.FC = () => {
                 reconnectAttempts={reconnectAttempts}
                 maxReconnectAttempts={MAX_RECONNECT_ATTEMPTS}
                 currentAiMessage={currentAiMessage}
+                currentReasoningContent={currentReasoningContent}
                 messagesEndRef={messagesEndRef}
                 documentsCount={documentsCount}
                 hasKnowledgeBase={selectedKnowledge !== 'none' && !!selectedKnowledge}
@@ -283,6 +314,8 @@ const AIChat: React.FC = () => {
                 isStudyMode={isStudyMode}
                 isDeepThinking={isDeepThinking}
                 currentUploadedFiles={currentUploadedFiles}
+                showConfirmSavePlan={showConfirmSavePlan}
+                onConfirmSavePlan={handleConfirmSavePlan}
                 onVoiceTranscript={(text) => sendQuestionByText(text)}
                 onInputChange={setInputValue}
                 onSend={handleSend}

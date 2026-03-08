@@ -27,10 +27,11 @@ func (c *ControllerV1) Login(ctx context.Context, req *v1.LoginReq) (res *v1.Log
 			msgs := make([]logicChat.MergeMessageInput, 0, len(s.Messages))
 			for _, m := range s.Messages {
 				msgs = append(msgs, logicChat.MergeMessageInput{
-					MsgId:     m.MsgId,
-					Content:   m.Content,
-					IsUser:    m.IsUser,
-					Timestamp: m.Timestamp,
+					MsgId:            m.MsgId,
+					Content:          m.Content,
+					IsUser:           m.IsUser,
+					Timestamp:        m.Timestamp,
+					ReasoningContent: m.ReasoningContent,
 				})
 			}
 			sessions = append(sessions, logicChat.MergeSessionInput{

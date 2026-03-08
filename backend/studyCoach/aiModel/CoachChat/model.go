@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/aws/smithy-go/ptr"
 
@@ -13,6 +14,11 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/gogf/gf/v2/frame/g"
 )
+
+// isOpenAICompatible 判断 baseURL 是否为 OpenAI 兼容接口（如 Siliconflow）
+func isOpenAICompatible(baseURL string) bool {
+	return strings.Contains(baseURL, "siliconflow") || strings.Contains(baseURL, "openai")
+}
 
 // newChatModel component initialization function of node 'AnalysisChatModel' in graph 'StudyCoachFor'
 func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
@@ -44,17 +50,29 @@ func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallin
 
 // NewChatModel1 component initialization function of node 'EmotionAndCompanionChatModel' in graph 'studyCoachFor'
 func newChatModel1(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
-	config := &ark.ChatModelConfig{
-		Model:            conf.ChatModel,
-		APIKey:           conf.APIKey,
-		BaseURL:          conf.BaseURL,
-		FrequencyPenalty: ptr.Float32(0.5),
-		PresencePenalty:  ptr.Float32(0.3),
-		Temperature:      ptr.Float32(0.8),
-		TopP:             ptr.Float32(0.8),
+	if isOpenAICompatible(conf.BaseURL) {
+		config := &openai.ChatModelConfig{
+			Model:            conf.ChatModel,
+			APIKey:           conf.APIKey,
+			BaseURL:          conf.BaseURL,
+			FrequencyPenalty: ptr.Float32(0.5),
+			PresencePenalty:  ptr.Float32(0.3),
+			Temperature:      ptr.Float32(0.8),
+			TopP:             ptr.Float32(0.8),
+		}
+		cm, err = openai.NewChatModel(ctx, config)
+	} else {
+		config := &ark.ChatModelConfig{
+			Model:            conf.ChatModel,
+			APIKey:           conf.APIKey,
+			BaseURL:          conf.BaseURL,
+			FrequencyPenalty: ptr.Float32(0.5),
+			PresencePenalty:  ptr.Float32(0.3),
+			Temperature:      ptr.Float32(0.8),
+			TopP:             ptr.Float32(0.8),
+		}
+		cm, err = ark.NewChatModel(ctx, config)
 	}
-	cm, err = ark.NewChatModel(ctx, config)
-
 	if err != nil {
 		return nil, err
 	}
@@ -62,19 +80,33 @@ func newChatModel1(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 }
 
 func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
-	config := &ark.ChatModelConfig{
-		Model:            conf.ChatModel,
-		APIKey:           conf.APIKey,
-		BaseURL:          conf.BaseURL,
-		FrequencyPenalty: ptr.Float32(0.5),
-		PresencePenalty:  ptr.Float32(0.3),
-		Temperature:      ptr.Float32(0.8),
-		TopP:             ptr.Float32(0.8),
-		Thinking: &ark.Thinking{
-			Type: "disable",
-		},
+	if isOpenAICompatible(conf.BaseURL) {
+		// Siliconflow 等 OpenAI 兼容接口：使用 openai 客户端，避免 Ark 特有参数导致 400
+		config := &openai.ChatModelConfig{
+			Model:            conf.ChatModel,
+			APIKey:           conf.APIKey,
+			BaseURL:          conf.BaseURL,
+			FrequencyPenalty: ptr.Float32(0.5),
+			PresencePenalty:  ptr.Float32(0.3),
+			Temperature:      ptr.Float32(0.8),
+			TopP:             ptr.Float32(0.8),
+		}
+		cm, err = openai.NewChatModel(ctx, config)
+	} else {
+		config := &ark.ChatModelConfig{
+			Model:            conf.ChatModel,
+			APIKey:           conf.APIKey,
+			BaseURL:          conf.BaseURL,
+			FrequencyPenalty: ptr.Float32(0.5),
+			PresencePenalty:  ptr.Float32(0.3),
+			Temperature:      ptr.Float32(0.8),
+			TopP:             ptr.Float32(0.8),
+			Thinking: &ark.Thinking{
+				Type: "disable",
+			},
+		}
+		cm, err = ark.NewChatModel(ctx, config)
 	}
-	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("ReAct模型分析")
 	if err != nil {
 		return nil, err
@@ -84,17 +116,30 @@ func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 
 // newChatModel3 component initialization function of node 'ToStudyChatModel' in graph 'studyCoachFor'
 func newChatModel3(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
-	config := &ark.ChatModelConfig{
-		Model:            conf.ChatModel,
-		APIKey:           conf.APIKey,
-		BaseURL:          conf.BaseURL,
-		FrequencyPenalty: ptr.Float32(0.5),
-		PresencePenalty:  ptr.Float32(0.3),
-		Temperature:      ptr.Float32(0.8),
-		TopP:             ptr.Float32(0.8),
+	if isOpenAICompatible(conf.BaseURL) {
+		config := &openai.ChatModelConfig{
+			Model:            conf.ChatModel,
+			APIKey:           conf.APIKey,
+			BaseURL:          conf.BaseURL,
+			FrequencyPenalty: ptr.Float32(0.5),
+			PresencePenalty:  ptr.Float32(0.3),
+			Temperature:      ptr.Float32(0.8),
+			TopP:             ptr.Float32(0.8),
+		}
+		cm, err = openai.NewChatModel(ctx, config)
+	} else {
+		config := &ark.ChatModelConfig{
+			Model:            conf.ChatModel,
+			APIKey:           conf.APIKey,
+			BaseURL:          conf.BaseURL,
+			FrequencyPenalty: ptr.Float32(0.5),
+			PresencePenalty:  ptr.Float32(0.3),
+			Temperature:      ptr.Float32(0.8),
+			TopP:             ptr.Float32(0.8),
+		}
+		cm, err = ark.NewChatModel(ctx, config)
 	}
-	cm, err = ark.NewChatModel(ctx, config)
-	log.Println("ReAct模型分析")
+	log.Println("ToStudyChatModel 模型")
 	if err != nil {
 		return nil, err
 	}

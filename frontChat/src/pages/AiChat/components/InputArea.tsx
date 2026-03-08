@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { Button, Switch, Tooltip, Flex, Divider, theme } from 'antd';
-import { GlobalOutlined } from '@ant-design/icons';
+import { GlobalOutlined, CheckOutlined } from '@ant-design/icons';
 import { Sender } from '@ant-design/x';
 import MicRecorderButton from './MicRecorderButton';
 import FileUpload from './FileUpload';
@@ -21,6 +21,10 @@ interface InputAreaProps {
   isDeepThinking?: boolean;
   currentUploadedFiles: UploadedFile[];
   onVoiceTranscript?: (text: string) => void;
+  /** 是否显示「确认保存计划」按钮（上一条 AI 消息为学习计划时） */
+  showConfirmSavePlan?: boolean;
+  /** 点击「确认保存计划」时触发 */
+  onConfirmSavePlan?: () => void;
 
   onInputChange: (val: string) => void;
   onSend: () => void;
@@ -40,6 +44,8 @@ const InputArea: React.FC<InputAreaProps> = ({
   isDeepThinking = false,
   currentUploadedFiles,
   onVoiceTranscript,
+  showConfirmSavePlan = false,
+  onConfirmSavePlan,
   onInputChange,
   onToggleStudyMode,
   onToggleDeepThinking,
@@ -58,6 +64,21 @@ const InputArea: React.FC<InputAreaProps> = ({
     <div style={{ 
       borderRadius: '8px',
     }}>
+      {/* 确认保存计划按钮：学习模式下，上一条为计划时显示 */}
+      {showConfirmSavePlan && isStudyMode && onConfirmSavePlan && (
+        <div style={{ marginBottom: 8 }}>
+          <Button
+            type="primary"
+            ghost
+            size="small"
+            icon={<CheckOutlined />}
+            onClick={onConfirmSavePlan}
+            disabled={loading}
+          >
+            {t('chat.confirmSavePlan')}
+          </Button>
+        </div>
+      )}
 
       {/* 输入区：使用 Ant Design X Sender */}
       <Sender

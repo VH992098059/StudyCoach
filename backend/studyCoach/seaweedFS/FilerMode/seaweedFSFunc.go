@@ -3,6 +3,7 @@ package FilerMode
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,21 +14,31 @@ import (
 	"time"
 )
 
+// defaultClient 默认 Filer 客户端，由 init 或首次调用时初始化
+var defaultClient *FilerClient
+
+// GetDefaultClient 获取默认 Filer 客户端
+func GetDefaultClient() *FilerClient {
+	return defaultClient
+}
+
 // FilerClient 封装 SeaweedFS Filer 的操作
 type FilerClient struct {
 	BaseURL    string       // Filer 地址，例如 http://localhost:8888
 	HttpClient *http.Client // HTTP 客户端
 }
 
-// NewFilerClient 初始化客户端
+// NewFilerClient 初始化客户端并设为默认客户端
 // endpoint: Filer 的地址，如 "http://192.168.1.100:8888"
 func NewFilerClient(endpoint string) *FilerClient {
-	return &FilerClient{
+	c := &FilerClient{
 		BaseURL: strings.TrimRight(endpoint, "/"),
 		HttpClient: &http.Client{
 			Timeout: 30 * time.Second, // 设置超时，防止请求卡死
 		},
 	}
+	defaultClient = c
+	return c
 }
 
 // SeaweedFSUpload 上传文件
@@ -79,6 +90,33 @@ func (c *FilerClient) SeaweedFSUpload(ctx context.Context, remotePath string, fi
 	}
 
 	return nil
+}
+
+// SeaweedFSExists 检查远程文件是否存在（HEAD 不支持时回退 GET）
+func (c *FilerClient) SeaweedFSExists(ctx context.Context, remotePath string) (bool, error) {
+	fullUrl := c.BaseURL + "/" + strings.TrimLeft(remotePath, "/")
+	req, err := http.NewRequestWithContext(ctx, "HEAD", fullUrl, nil)
+	if err != nil {
+		return false, err
+	}
+	resp, err := c.HttpClient.Do(req)
+	if err != nil {
+		return false, err
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		return true, nil
+	}
+	if resp.StatusCode == http.StatusMethodNotAllowed {
+		req, _ = http.NewRequestWithContext(ctx, "GET", fullUrl, nil)
+		resp2, err := c.HttpClient.Do(req)
+		if err != nil {
+			return false, err
+		}
+		_ = resp2.Body.Close()
+		return resp2.StatusCode == http.StatusOK, nil
+	}
+	return false, nil
 }
 
 // SeaweedFSDownload 下载文件
@@ -140,4 +178,69 @@ func (c *FilerClient) SeaweedFSDelete(remotePath string, recursive bool) error {
 	}
 
 	return nil
+}
+
+// listResponse SeaweedFS 目录列表 JSON 响应
+type listResponse struct {
+	Path    string `json:"Path"`
+	Entries []struct {
+		FullPath string `json:"FullPath"`
+		Mtime    string `json:"Mtime"`
+		Mode     int    `json:"Mode"`
+	} `json:"Entries"`
+	Limit                 int    `json:"Limit"`
+	LastFileName          string `json:"LastFileName"`
+	ShouldDisplayLoadMore bool   `json:"ShouldDisplayLoadMore"`
+}
+
+// SeaweedFSList 列出目录下的子项（文件/子目录）
+// remotePath: 目录路径，如 "study_plans/session123"
+// 返回子项名称列表（不含路径前缀）
+func (c *FilerClient) SeaweedFSList(ctx context.Context, remotePath string) ([]string, error) {
+	fullUrl := c.BaseURL + "/" + strings.TrimLeft(remotePath, "/")
+	if !strings.HasSuffix(fullUrl, "/") {
+		fullUrl += "/"
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", fullUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HttpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("Filer连接失败: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return []string{}, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("列表失败，状态码: %d", resp.StatusCode)
+	}
+
+	var data listResponse
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, fmt.Errorf("解析列表响应失败: %v", err)
+	}
+
+	names := make([]string, 0, len(data.Entries))
+	basePath := "/" + strings.Trim(strings.TrimSuffix(remotePath, "/"), "/")
+	prefix := basePath
+	if !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
+	}
+	for _, e := range data.Entries {
+		rel := strings.TrimPrefix(e.FullPath, prefix)
+		rel = strings.TrimSuffix(rel, "/")
+		if idx := strings.Index(rel, "/"); idx >= 0 {
+			rel = rel[:idx]
+		}
+		if rel != "" {
+			names = append(names, rel)
+		}
+	}
+	return names, nil
 }

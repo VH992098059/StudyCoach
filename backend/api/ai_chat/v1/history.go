@@ -14,11 +14,12 @@ type SaveSessionReq struct {
 }
 
 type ChatMessage struct {
-	Id        int64       `json:"id" description:"消息ID"`
-	MsgId     string      `json:"msg_id" description:"前端消息ID"`
-	Content   string      `json:"content" description:"消息内容"`
-	IsUser    bool        `json:"isUser" description:"是否为用户发送"`
-	Timestamp *gtime.Time `json:"timestamp" description:"发送时间"`
+	Id               int64       `json:"id" description:"消息ID"`
+	MsgId            string      `json:"msg_id" description:"前端消息ID"`
+	Content          string      `json:"content" description:"消息内容"`
+	IsUser           bool        `json:"isUser" description:"是否为用户发送"`
+	Timestamp        *gtime.Time `json:"timestamp" description:"发送时间"`
+	ReasoningContent string      `json:"reasoningContent,omitempty" description:"思考过程（深度思考模式）"`
 }
 
 type SaveSessionRes struct {

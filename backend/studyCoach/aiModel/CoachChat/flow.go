@@ -1,8 +1,9 @@
 package CoachChat
 
 import (
-	"backend/studyCoach/aiModel/plantask"
-	"backend/studyCoach/aiModel/skill"
+	"backend/studyCoach/aiModel/eino_tools/plantask"
+	"backend/studyCoach/aiModel/eino_tools/skill"
+	"backend/studyCoach/aiModel/eino_tools/studyplan"
 	"backend/studyCoach/common"
 	"context"
 	"log"
@@ -32,6 +33,7 @@ func newLambda3(ctx context.Context, conf *common.Config) (lba *compose.Lambda, 
 	}
 	config.ToolCallingModel = chatModelIns11
 
+	// 系统时间已通过提示词注入 current_time，无需 get_system_time 工具
 	// Skill 工具：按需加载 SKILL.md
 	if skillTool, err := skill.NewTool(ctx); err == nil {
 		config.ToolsConfig.Tools = append(config.ToolsConfig.Tools, skillTool)
@@ -45,6 +47,13 @@ func newLambda3(ctx context.Context, conf *common.Config) (lba *compose.Lambda, 
 		log.Printf("[ReActLambda] 已添加 PlanTask 工具")
 	} else {
 		log.Printf("[ReActLambda] PlanTask 工具加载失败(跳过): %v", err)
+	}
+	// 学习计划持久化：save_plan/read_plan
+	if studyPlanTools, err := studyplan.NewTools(ctx); err == nil {
+		config.ToolsConfig.Tools = append(config.ToolsConfig.Tools, studyPlanTools...)
+		log.Printf("[ReActLambda] 已添加 StudyPlan 工具 (save_plan/read_plan)")
+	} else {
+		log.Printf("[ReActLambda] StudyPlan 工具加载失败(跳过): %v", err)
 	}
 
 	if isNetwork {
@@ -85,6 +94,7 @@ func newLambda4(ctx context.Context, conf *common.Config) (lba *compose.Lambda, 
 	}
 	config.ToolsConfig.Tools = []tool.BaseTool{toolIns21}
 
+	// 系统时间已通过提示词注入 current_time，无需 get_system_time 工具
 	// Skill 工具
 	if skillTool, err := skill.NewTool(ctx); err == nil {
 		config.ToolsConfig.Tools = append(config.ToolsConfig.Tools, skillTool)
@@ -98,6 +108,13 @@ func newLambda4(ctx context.Context, conf *common.Config) (lba *compose.Lambda, 
 		log.Printf("[ToStudyChatModel] 已添加 PlanTask 工具")
 	} else {
 		log.Printf("[ToStudyChatModel] PlanTask 工具加载失败(跳过): %v", err)
+	}
+	// 学习计划持久化
+	if studyPlanTools, err := studyplan.NewTools(ctx); err == nil {
+		config.ToolsConfig.Tools = append(config.ToolsConfig.Tools, studyPlanTools...)
+		log.Printf("[ToStudyChatModel] 已添加 StudyPlan 工具")
+	} else {
+		log.Printf("[ToStudyChatModel] StudyPlan 工具加载失败(跳过): %v", err)
 	}
 
 	ins, err := react.NewAgent(ctx, config)

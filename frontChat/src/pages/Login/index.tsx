@@ -114,6 +114,7 @@ const Login: React.FC = ()=> {
               content: m.content || '',
               isUser: !!m.isUser,
               timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : (m.timestamp || new Date().toISOString()),
+              ...(m.reasoningContent ? { reasoningContent: m.reasoningContent } : {}),
             })),
           })).filter((s: any) => s.id && s.messages?.length > 0);
         }

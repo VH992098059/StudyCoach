@@ -37,7 +37,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = (props: ChatSidebarProps) => {
     const todayKey = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toDateString();
     const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
     const yesterdayKey = yesterday.toDateString();
-    const sorted = [...chatSessions].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    // 按 id 去重，防止重复显示
+    const uniqueSessions = chatSessions.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i);
+    const sorted = [...uniqueSessions].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     const map: { label: string; items: ChatSession[] }[] = [];
     const bucket: Record<string, ChatSession[]> = {};
     for (const item of sorted) {

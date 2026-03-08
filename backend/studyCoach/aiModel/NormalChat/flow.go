@@ -1,13 +1,12 @@
 package NormalChat
 
 import (
+	"backend/studyCoach/aiModel/eino_tools/skill"
 	"context"
 	"log"
 
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/flow/agent/react"
-
-	"backend/studyCoach/aiModel/skill"
 )
 
 // newLambda component initialization function of node 'NormalModel' in graph 'NormalChat'
@@ -25,6 +24,7 @@ func newLambda(ctx context.Context) (lba *compose.Lambda, err error) {
 		return nil, err
 	}
 	config.ToolCallingModel = chatModelIns11
+	// 系统时间已通过提示词注入 current_time，无需 get_system_time 工具
 	// 始终添加 Skill 工具（按需加载 SKILL.md）
 	if skillTool, err := skill.NewTool(ctx); err == nil {
 		config.ToolsConfig.Tools = append(config.ToolsConfig.Tools, skillTool)

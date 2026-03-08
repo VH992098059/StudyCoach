@@ -44,6 +44,8 @@ const useSSEChat = (params: UseSSEChatParams) => {
   const requestRef = useRef<any>(null);
   // 消息缓存
   const accumulatedMessageRef = useRef<string>('');
+  // 思考过程缓存（深度思考模式）
+  const accumulatedReasoningRef = useRef<string>('');
   // 用户是否手动停止
   const isUserStoppedRef = useRef<boolean>(false);
   // 重连定时器
@@ -54,6 +56,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [currentAiMessage, setCurrentAiMessage] = useState<string>('');
+  const [currentReasoningContent, setCurrentReasoningContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [documentsCount, setDocumentsCount] = useState(0);
 
@@ -90,7 +93,9 @@ const useSSEChat = (params: UseSSEChatParams) => {
     setConnectionError(null);
     if (attempt === 0) {
         setCurrentAiMessage('');
+        setCurrentReasoningContent('');
         accumulatedMessageRef.current = '';
+        accumulatedReasoningRef.current = '';
         setDocumentsCount(0);
     }
 
@@ -125,12 +130,14 @@ const useSSEChat = (params: UseSSEChatParams) => {
               console.error('SSE Error Event:', errorMsg);
               // 如果有累积的消息，先保存
               if (accumulatedMessageRef.current) {
+                  const finalReasoning = accumulatedReasoningRef.current.trim();
                   const aiMessage: Message = {
                     id: Date.now(),
                     msg_id: generateMsgId(),
                     content: accumulatedMessageRef.current,
                     isUser: false,
                     timestamp: new Date(),
+                    ...(finalReasoning ? { reasoningContent: finalReasoning } : {}),
                   };
                   setMessages((prev) => [...prev, aiMessage]);
               }
@@ -139,7 +146,9 @@ const useSSEChat = (params: UseSSEChatParams) => {
               setConnectionState(SSEConnectionState.ERROR);
               setLoading(false);
               setCurrentAiMessage('');
+              setCurrentReasoningContent('');
               accumulatedMessageRef.current = '';
+              accumulatedReasoningRef.current = '';
               return;
             }
             
@@ -173,6 +182,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
             if (payload === '[DONE]') {
               // 传输完成
               const finalMsg = accumulatedMessageRef.current.trim();
+              const finalReasoning = accumulatedReasoningRef.current.trim();
               if (finalMsg) {
                 const aiMessage: Message = {
                   id: Date.now(),
@@ -180,25 +190,32 @@ const useSSEChat = (params: UseSSEChatParams) => {
                   content: finalMsg,
                   isUser: false,
                   timestamp: new Date(),
+                  ...(finalReasoning ? { reasoningContent: finalReasoning } : {}),
                 };
                 setMessages((prev) => [...prev, aiMessage]);
               }
               
               setCurrentAiMessage('');
+              setCurrentReasoningContent('');
               accumulatedMessageRef.current = '';
+              accumulatedReasoningRef.current = '';
               setLoading(false);
               setConnectionState(SSEConnectionState.DISCONNECTED);
               return;
             }
 
-            // 解析内容
+            // 解析内容与思考过程
             let contentSegment = payload;
+            let reasoningSegment = '';
             try {
               const parsed = JSON.parse(payload);
               if (typeof parsed?.content === 'string') {
                 contentSegment = parsed.content;
               } else if (typeof parsed?.delta === 'string') {
                 contentSegment = parsed.delta;
+              }
+              if (typeof parsed?.reasoning_content === 'string') {
+                reasoningSegment = parsed.reasoning_content;
               }
             } catch {
               // 非 JSON，当做纯文本
@@ -213,6 +230,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
                 // 触发结束逻辑
                 const finalMsg = accumulatedMessageRef.current.trim();
+                const finalReasoning = accumulatedReasoningRef.current.trim();
                 if (finalMsg) {
                   const aiMessage: Message = {
                     id: Date.now(),
@@ -220,19 +238,26 @@ const useSSEChat = (params: UseSSEChatParams) => {
                     content: finalMsg,
                     isUser: false,
                     timestamp: new Date(),
+                    ...(finalReasoning ? { reasoningContent: finalReasoning } : {}),
                   };
                   setMessages((prev) => [...prev, aiMessage]);
                 }
                 
-                setCurrentAiMessage('');
-                accumulatedMessageRef.current = '';
-                setLoading(false);
-                setConnectionState(SSEConnectionState.DISCONNECTED);
-                return;
+              setCurrentAiMessage('');
+              setCurrentReasoningContent('');
+              accumulatedMessageRef.current = '';
+              accumulatedReasoningRef.current = '';
+              setLoading(false);
+              setConnectionState(SSEConnectionState.DISCONNECTED);
+              return;
             }
 
             accumulatedMessageRef.current += contentSegment;
             setCurrentAiMessage(accumulatedMessageRef.current);
+            if (reasoningSegment) {
+              accumulatedReasoningRef.current += reasoningSegment;
+              setCurrentReasoningContent(accumulatedReasoningRef.current);
+            }
           },
           onSuccess: () => {
              // 请求结束，确保状态正确
@@ -314,18 +339,22 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
     // 保存已生成的内容
     if (accumulatedMessageRef.current.trim()) {
+      const finalReasoning = accumulatedReasoningRef.current.trim();
       const aiMessage: Message = {
         id: Date.now(),
         msg_id: generateMsgId(),
         content: accumulatedMessageRef.current.trim(),
         isUser: false,
         timestamp: new Date(),
+        ...(finalReasoning ? { reasoningContent: finalReasoning } : {}),
       };
       setMessages((prev) => [...prev, aiMessage]);
     }
 
     // 重置状态
     setCurrentAiMessage('');
+    setCurrentReasoningContent('');
+    accumulatedReasoningRef.current = '';
     accumulatedMessageRef.current = '';
     setLoading(false);
     setConnectionState(SSEConnectionState.DISCONNECTED);
@@ -339,6 +368,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     connectionError,
     setConnectionError,
     currentAiMessage,
+    currentReasoningContent,
     loading,
     documentsCount,
     send,
