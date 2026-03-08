@@ -217,6 +217,10 @@ es:
 skills:
   baseDir: "skills"
 
+# PlanTask 任务存储目录（TaskCreate/TaskGet/TaskUpdate/TaskList 的 JSON 文件）
+plantask:
+  baseDir: "plantask_tasks"
+
 cron:
   apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"

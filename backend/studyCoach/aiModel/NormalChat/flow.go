@@ -6,6 +6,8 @@ import (
 
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/flow/agent/react"
+
+	"backend/studyCoach/aiModel/skill"
 )
 
 // newLambda component initialization function of node 'NormalModel' in graph 'NormalChat'
@@ -24,7 +26,7 @@ func newLambda(ctx context.Context) (lba *compose.Lambda, err error) {
 	}
 	config.ToolCallingModel = chatModelIns11
 	// 始终添加 Skill 工具（按需加载 SKILL.md）
-	if skillTool, err := newSkillTool(ctx); err == nil {
+	if skillTool, err := skill.NewTool(ctx); err == nil {
 		config.ToolsConfig.Tools = append(config.ToolsConfig.Tools, skillTool)
 		log.Printf("[ReActLambda] 已添加 Skill 工具")
 	} else {
