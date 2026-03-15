@@ -155,79 +155,65 @@ export const useFileUpload = (initialConfig?: Partial<FileUploadConfig>): UseFil
   }, []);
 
   /**
-   * 上传文件到服务器
+   * 上传文件到服务器，返回已上传的文件名列表（含之前已成功的）
    */
-  const uploadFiles = useCallback(async (): Promise<void> => {
+  const uploadFiles = useCallback(async (sessionId: string): Promise<string[]> => {
     const pendingFiles = uploadedFiles.filter(file => file.status === 'pending');
-    
+    const successFiles = uploadedFiles.filter(file => file.status === 'success' && file.serverName);
+    const existingNames = successFiles.map(f => f.serverName!);
+
     if (pendingFiles.length === 0) {
-      message.info('没有需要上传的文件');
-      return;
+      return existingNames;
+    }
+
+    const uploadFn = config.uploadFn;
+    if (!uploadFn) {
+      message.error('未配置上传接口');
+      return existingNames;
     }
 
     setIsUploading(true);
     setUploadProgress(0);
 
     try {
-      // 更新文件状态为上传中
-      setUploadedFiles(prev => 
-        prev.map(file => 
-          pendingFiles.some(pf => pf.id === file.id) 
+      setUploadedFiles(prev =>
+        prev.map(file =>
+          pendingFiles.some(pf => pf.id === file.id)
             ? { ...file, status: 'uploading' as const, progress: 0 }
             : file
         )
       );
 
-      // 模拟上传过程（实际项目中替换为真实的上传逻辑）
-      for (let i = 0; i < pendingFiles.length; i++) {
-        const file = pendingFiles[i];
-        
-        // 模拟上传进度
-        for (let progress = 0; progress <= 100; progress += 10) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-          // 更新单个文件进度
-          setUploadedFiles(prev => 
-            prev.map(f => 
-              f.id === file.id 
-                ? { ...f, progress }
-                : f
-            )
-          );
-          
-          // 更新总体进度
-          const totalProgress = ((i * 100 + progress) / (pendingFiles.length * 100)) * 100;
-          setUploadProgress(totalProgress);
-        }
+      const fileNames = await uploadFn(sessionId, pendingFiles.map(f => f.file));
 
-        // 标记文件上传成功
-        setUploadedFiles(prev => 
-          prev.map(f => 
-            f.id === file.id 
-              ? { ...f, status: 'success' as const, progress: 100 }
-              : f
-          )
-        );
-      }
+      setUploadedFiles(prev =>
+        prev.map(file => {
+          const idx = pendingFiles.findIndex(pf => pf.id === file.id);
+          if (idx >= 0 && fileNames[idx]) {
+            return { ...file, status: 'success' as const, progress: 100, serverName: fileNames[idx] };
+          }
+          return file;
+        })
+      );
 
+      setUploadProgress(100);
       message.success('所有文件上传成功');
+      return [...existingNames, ...fileNames];
     } catch (error) {
       console.error('文件上传失败:', error);
-      
-      // 标记文件上传失败
-      setUploadedFiles(prev => 
-        prev.map(file => 
+      setUploadedFiles(prev =>
+        prev.map(file =>
           pendingFiles.some(pf => pf.id === file.id)
             ? { ...file, status: 'error' as const, error: '上传失败' }
             : file
         )
       );
-      
       message.error('文件上传失败');
+      return existingNames;
     } finally {
       setIsUploading(false);
     }
-  }, [uploadedFiles]);
+  }, [uploadedFiles, config.uploadFn]);
 
   /**
    * 更新配置

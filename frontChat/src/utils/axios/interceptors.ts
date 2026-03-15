@@ -83,8 +83,15 @@ export const responseInterceptor = {
         details: (data as any)?.data,
       };
 
-      // 业务层返回 401 未授权时，优先使用后端返回的 message
-      if (bizCode === 401 || bizCode === 4010) {
+      // 业务层返回 401 未授权或 token 无效时，清除认证并退出登录
+      const msg = String((data as any)?.message || '').toLowerCase();
+      const isTokenInvalid =
+        bizCode === 401 ||
+        bizCode === 4010 ||
+        msg.includes('token is invalid') ||
+        msg.includes('token') && (msg.includes('invalid') || msg.includes('失效') || msg.includes('过期') || msg.includes('empty')) ||
+        msg.includes('验证') && (msg.includes('过期') || msg.includes('不存在') || msg.includes('非法'));
+      if (isTokenInvalid) {
         const isLoginRequest = String(config?.url || '').includes('/login') && (config?.method?.toLowerCase() === 'post');
         if (!isLoginRequest) {
           clearAuthStorage();

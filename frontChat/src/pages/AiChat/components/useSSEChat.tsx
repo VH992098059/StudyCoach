@@ -6,6 +6,7 @@ import { useRef, useState, useCallback } from 'react';
 import { SSEConnectionState } from '@/utils/sse/sse';
 import { XRequest } from '@ant-design/x-sdk';
 import { API_CONFIG } from '@/utils/axios/config';
+import { clearAuthStorage } from '@/utils/axios/interceptors';
 import type { Message } from '@/types/chat';
 import { useTranslation } from 'react-i18next';
 
@@ -33,6 +34,7 @@ interface ChatParams {
   is_network: boolean;
   is_study_mode: boolean;
   is_deep_thinking?: boolean;
+  uploaded_files?: string[];
 }
 
 const useSSEChat = (params: UseSSEChatParams) => {
@@ -57,6 +59,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [currentAiMessage, setCurrentAiMessage] = useState<string>('');
   const [currentReasoningContent, setCurrentReasoningContent] = useState<string>('');
+  const [currentToolStatus, setCurrentToolStatus] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [documentsCount, setDocumentsCount] = useState(0);
 
@@ -81,7 +84,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   }, []);
 
   // --- 建立连接 ---
-  const createConnection = useCallback(async (question: string, sessionId: string, attempt = 0) => {
+  const createConnection = useCallback(async (question: string, sessionId: string, uploadedFiles: string[] = [], attempt = 0) => {
     // 已停止则不发起请求
     if (isUserStoppedRef.current) return;
 
@@ -94,6 +97,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     if (attempt === 0) {
         setCurrentAiMessage('');
         setCurrentReasoningContent('');
+        setCurrentToolStatus('');
         accumulatedMessageRef.current = '';
         accumulatedReasoningRef.current = '';
         setDocumentsCount(0);
@@ -117,6 +121,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
           is_network: isNetworkEnabled,
           is_study_mode: isStudyMode,
           is_deep_thinking: isDeepThinking,
+          ...(uploadedFiles.length > 0 ? { uploaded_files: uploadedFiles } : {}),
         },
         // 处理 SSE 流
     
@@ -128,6 +133,12 @@ const useSSEChat = (params: UseSSEChatParams) => {
             if (chunk?.event === 'error') {
               const errorMsg = chunk?.data || t('chat.sse.unknownError');
               console.error('SSE Error Event:', errorMsg);
+              // token 无效时自动退出登录
+              const msgLower = String(errorMsg).toLowerCase();
+              if (msgLower.includes('token') && (msgLower.includes('invalid') || msgLower.includes('失效') || msgLower.includes('过期')) ||
+                  msgLower.includes('验证') && (msgLower.includes('过期') || msgLower.includes('不存在') || msgLower.includes('非法'))) {
+                clearAuthStorage();
+              }
               // 如果有累积的消息，先保存
               if (accumulatedMessageRef.current) {
                   const finalReasoning = accumulatedReasoningRef.current.trim();
@@ -158,6 +169,21 @@ const useSSEChat = (params: UseSSEChatParams) => {
                setReconnectAttempts(0);
                isFirstChunk = false;
             }
+
+            // 解析 tool_status 事件：工具执行中，展示「正在执行 XXX」避免用户以为卡住
+            if (chunk?.event === 'tool_status') {
+              try {
+                const data = typeof chunk?.data === 'string' ? JSON.parse(chunk.data) : chunk?.data;
+                const name = data?.name || data?.tool || '';
+                setCurrentToolStatus(name ? t('chat.thinkChain.executingTool', { name }) : t('chat.thinkChain.executingToolGeneric'));
+              } catch {
+                setCurrentToolStatus(t('chat.thinkChain.executingToolGeneric'));
+              }
+              return;
+            }
+
+            // 收到内容时清除工具状态
+            setCurrentToolStatus('');
 
             // 解析 documents 事件（SSE 格式为 documents: {...}，XStream 解析为 chunk.documents 字符串）
             const documentsStr = chunk?.documents;
@@ -197,12 +223,15 @@ const useSSEChat = (params: UseSSEChatParams) => {
               
               setCurrentAiMessage('');
               setCurrentReasoningContent('');
+              setCurrentToolStatus('');
               accumulatedMessageRef.current = '';
               accumulatedReasoningRef.current = '';
               setLoading(false);
               setConnectionState(SSEConnectionState.DISCONNECTED);
               return;
             }
+
+            setCurrentToolStatus('');
 
             // 解析内容与思考过程
             let contentSegment = payload;
@@ -245,6 +274,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
                 
               setCurrentAiMessage('');
               setCurrentReasoningContent('');
+              setCurrentToolStatus('');
               accumulatedMessageRef.current = '';
               accumulatedReasoningRef.current = '';
               setLoading(false);
@@ -261,6 +291,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
           },
           onSuccess: () => {
              // 请求结束，确保状态正确
+             setCurrentToolStatus('');
              setLoading(false);
              setConnectionState((prev) => {
                  // 如果当前是错误状态，保留错误状态
@@ -269,6 +300,11 @@ const useSSEChat = (params: UseSSEChatParams) => {
              });
           },
           onError: (error: Error) => {
+            // token 无效或 401 时自动退出登录
+            const errStr = String(error?.message || error || '').toLowerCase();
+            if (errStr.includes('401') || (errStr.includes('token') && (errStr.includes('invalid') || errStr.includes('失效') || errStr.includes('过期')))) {
+              clearAuthStorage();
+            }
             // 检查是否为中断错误
             const isAbort = error.name === 'AbortError';
             
@@ -296,7 +332,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
               // 延迟重连
               retryTimerRef.current = setTimeout(() => {
-                  createConnection(question, sessionId, nextAttempt);
+                  createConnection(question, sessionId, uploadedFiles, nextAttempt);
               }, 2000);
             } else {
               setConnectionError(t('chat.sse.connectionFailed'));
@@ -319,10 +355,10 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
   // --- 导出方法 ---
 
-  const send = useCallback((text: string, sessionId: string) => {
+  const send = useCallback((text: string, sessionId: string, uploadedFiles: string[] = []) => {
     cleanup();
     isUserStoppedRef.current = false;
-    createConnection(text, sessionId, 0);
+    createConnection(text, sessionId, uploadedFiles, 0);
   }, [createConnection, cleanup]);
 
   const stop = useCallback(() => {
@@ -354,6 +390,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     // 重置状态
     setCurrentAiMessage('');
     setCurrentReasoningContent('');
+    setCurrentToolStatus('');
     accumulatedReasoningRef.current = '';
     accumulatedMessageRef.current = '';
     setLoading(false);
@@ -369,6 +406,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     setConnectionError,
     currentAiMessage,
     currentReasoningContent,
+    currentToolStatus,
     loading,
     documentsCount,
     send,

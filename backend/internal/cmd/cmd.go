@@ -10,6 +10,7 @@ import (
 	"backend/internal/controller/login"
 	"backend/internal/controller/rag"
 	"backend/internal/controller/voice"
+	"backend/internal/controller/ws"
 	logicCron "backend/internal/logic/cron"
 	"backend/internal/logic/middleware"
 	createTable "backend/internal/model/gorm"
@@ -20,6 +21,9 @@ import (
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/os/gtime"
 )
+
+// WsHub 全局 WebSocket Hub，用于广播定时任务完成等通知
+var WsHub *ws.Hub
 
 var (
 	Main = gcmd.Command{
@@ -33,6 +37,11 @@ var (
 			}
 
 			s := g.Server()
+
+			// 初始化 WebSocket Hub 并启动
+			WsHub = ws.NewHub()
+			ws.DefaultHub = WsHub
+			go WsHub.Run()
 
 			// 初始化定时任务调度器
 			logicCron.InitScheduler(ctx)
@@ -67,6 +76,11 @@ var (
 				})
 			})
 
+			// WebSocket 路由（不经过 MiddlewareHandlerResponse）
+			s.Group("/gateway", func(wsGroup *ghttp.RouterGroup) {
+				wsGroup.GET("/ws", ws.HandleWebSocket(WsHub))
+			})
+
 			s.Group("/gateway", func(group *ghttp.RouterGroup) {
 				group.Middleware(ghttp.MiddlewareHandlerResponse)
 				// 无需 JWT 校验的路由
@@ -89,11 +103,6 @@ var (
 					)
 				})
 
-				// Add WebSocket endpoint
-				group.GET("/ws", func(r *ghttp.Request) {
-					// Placeholder for WebSocket upgrade - will reference ws.WsHandler
-					r.Response.Write("WebSocket endpoint")
-				})
 			})
 
 			s.Run()

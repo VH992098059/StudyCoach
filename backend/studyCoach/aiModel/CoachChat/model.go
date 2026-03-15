@@ -35,12 +35,15 @@ func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallin
 	if err != nil || baseURL.String() == "" {
 		return nil, fmt.Errorf("config missing: Analysis.baseURL")
 	}
-	config := &openai.ChatModelConfig{
+	config := &ark.ChatModelConfig{
 		Model:   modelName.String(),
 		APIKey:  apiKey.String(),
 		BaseURL: baseURL.String(),
+		Thinking: &ark.Thinking{
+			Type: "disabled",
+		},
 	}
-	cm, err = openai.NewChatModel(ctx, config)
+	cm, err = ark.NewChatModel(ctx, config)
 	log.Println("意图分析模型")
 	if err != nil {
 		return nil, err
@@ -102,7 +105,7 @@ func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 			Temperature:      ptr.Float32(0.8),
 			TopP:             ptr.Float32(0.8),
 			Thinking: &ark.Thinking{
-				Type: "disable",
+				Type: "disabled",
 			},
 		}
 		cm, err = ark.NewChatModel(ctx, config)
@@ -221,7 +224,7 @@ func BranchNewChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err
 		Temperature:      ptr.Float32(0.8),
 		TopP:             ptr.Float32(0.8),
 		Thinking: &ark.Thinking{
-			Type: "disable",
+			Type: "disabled",
 		},
 	}
 	cm, err = ark.NewChatModel(ctx, config)

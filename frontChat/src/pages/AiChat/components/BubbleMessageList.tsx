@@ -113,6 +113,8 @@ interface BubbleMessageListProps {
   documentsCount?: number;
   /** 是否选择了知识库（用于展示「检索知识库」步骤） */
   hasKnowledgeBase?: boolean;
+  /** 当前工具执行状态（如「正在执行 skill(high-eq-communication)」） */
+  currentToolStatus?: string;
 }
 
 const hideAvatar = { display: 'none' } as React.CSSProperties;
@@ -133,6 +135,7 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
   messagesEndRef,
   documentsCount = 0,
   hasKnowledgeBase = false,
+  currentToolStatus = '',
 }) => {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? enUS : zhCN;
@@ -159,14 +162,16 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
         blink: isConnected && documentsCount === 0,
       });
     }
-    // 分析问题：不显示转动，仅在有内容时标记完成
-    items.push({
-      key: 'analyzing',
-      title: t('chat.thinkChain.analyzing'),
-      status: hasContent ? 'success' : undefined,
-      blink: false,
-    });
-    // 正在生成回答：连接后且（等待首字或已有流式内容）时显示转动，让流程更自然
+    // 工具执行中：展示「正在执行 XXX」避免用户以为卡住
+    if (currentToolStatus) {
+      items.push({
+        key: 'tool',
+        title: currentToolStatus,
+        status: 'loading',
+        blink: true,
+      });
+    }
+    // 正在生成回答：连接后且（等待首字或已有流式内容）时显示转动
     const isGeneratingPhase = isConnected && (loading || hasContent);
     items.push({
       key: 'generating',
@@ -175,7 +180,7 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
       blink: isGeneratingPhase,
     });
     return items;
-  }, [isConnecting, isConnected, hasContent, documentsCount, hasKnowledgeBase, loading, t]);
+  }, [isConnecting, isConnected, hasContent, documentsCount, hasKnowledgeBase, currentToolStatus, loading, t]);
 
   return (
     <XProvider locale={locale}>
@@ -199,7 +204,28 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
                   ? <Avatar icon={<UserOutlined />} style={userAvatarStyle} />
                   : <Avatar icon={<RobotOutlined />} style={aiAvatarStyle} />,
                 content: m.isUser
-                  ? m.content
+                  ? (m.attachments?.length
+                      ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {m.attachments
+                              .filter((a) => a.type === 'image')
+                              .map((a, i) => (
+                                <img
+                                  key={i}
+                                  src={a.url}
+                                  alt=""
+                                  style={{
+                                    maxWidth: '100%',
+                                    maxHeight: 280,
+                                    borderRadius: 8,
+                                    objectFit: 'contain',
+                                  }}
+                                />
+                              ))}
+                            {m.content && renderMarkdown(m.content)}
+                          </div>
+                        )
+                      : m.content)
                   : m.reasoningContent
                     ? <AssistantMessageContent content={m.content} reasoningContent={m.reasoningContent} renderMarkdown={renderMarkdown} t={t} />
                     : m.content,
@@ -259,7 +285,11 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
                 : []),
             ]}
             role={{
-              user: { contentRender: renderMarkdown, styles: { content: { borderRadius: 17 } } },
+              user: {
+                contentRender: (c: React.ReactNode) =>
+                  React.isValidElement(c) ? c : renderMarkdown(c),
+                styles: { content: { borderRadius: 17 } },
+              },
               assistant: {
                 contentRender: (content: React.ReactNode) =>
                   typeof content === 'string' ? renderMarkdown(content) : content,

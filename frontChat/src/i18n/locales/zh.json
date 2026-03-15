@@ -561,7 +561,9 @@
       "select": "选择文件",
       "maxLimit": "最多只能选择 {{count}} 个文件",
       "btn": "上传文件",
-      "btnUploading": "上传中..."
+      "btnUploading": "上传中...",
+      "needSession": "请先创建或选择会话",
+      "preview": "点击放大"
     },
     "voice": {
       "played": "AI语音播放中",
@@ -589,6 +591,8 @@
       "retrieving": "检索知识库",
       "retrieved": "已检索到 {{count}} 条相关文档",
       "analyzing": "分析问题",
+      "executingTool": "正在执行 {{name}}",
+      "executingToolGeneric": "正在执行工具",
       "generating": "正在生成回答",
       "thinking": "思考中...",
       "complete": "回答完成",

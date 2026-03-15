@@ -1,6 +1,7 @@
 package NormalChat
 
 import (
+	"backend/studyCoach/aiModel/eino_tools/filesystem"
 	"backend/studyCoach/aiModel/eino_tools/skill"
 	"context"
 	"log"
@@ -18,19 +19,28 @@ func newLambda(ctx context.Context) (lba *compose.Lambda, err error) {
 		}
 	}
 	log.Printf("[ReActLambda] 配置工具 - 网络搜索(联网): %v", isNetwork)
-	config := &react.AgentConfig{}
+	config := &react.AgentConfig{
+		MaxStep: 100,
+	}
 	chatModelIns11, err := newChatModel(ctx)
 	if err != nil {
 		return nil, err
 	}
 	config.ToolCallingModel = chatModelIns11
 	// 系统时间已通过提示词注入 current_time，无需 get_system_time 工具
-	// 始终添加 Skill 工具（按需加载 SKILL.md）
-	if skillTool, err := skill.NewTool(ctx); err == nil {
+	// 始终添加 Skill 工具（按需加载 SKILL.md），NormalChat 排除 plantask-usage、studyplan-usage（任务/计划管理仅在教练模式）
+	if skillTool, err := skill.NewToolWithExclude(ctx, []string{"plantask-usage", "studyplan-usage"}); err == nil {
 		config.ToolsConfig.Tools = append(config.ToolsConfig.Tools, skillTool)
-		log.Printf("[ReActLambda] 已添加 Skill 工具")
+		log.Printf("[ReActLambda] 已添加 Skill 工具（已排除 plantask/studyplan）")
 	} else {
 		log.Printf("[ReActLambda] Skill 工具加载失败(跳过): %v", err)
+	}
+	// 文件系统：read_file、write_file、execute（配合 filesystem-usage Skill）
+	if fsTools, err := filesystem.NewTools(ctx); err == nil {
+		config.ToolsConfig.Tools = append(config.ToolsConfig.Tools, fsTools...)
+		log.Printf("[ReActLambda] 已添加 Filesystem 工具 (read_file/write_file/execute)")
+	} else {
+		log.Printf("[ReActLambda] Filesystem 工具加载失败(跳过): %v", err)
 	}
 	if isNetwork {
 		toolIns21, err := newTool(ctx)

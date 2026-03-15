@@ -145,12 +145,14 @@ voice:
 Branch:
   apiKey: "*"
   baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-1-5-pro-32k-character-250715"
+  model: "doubao-seed-2-0-lite-260215"
 
 Analysis:
   apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
   model: "Qwen/Qwen3-Next-80B-A3B-Instruct"
+  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
+  model: "doubao-seed-2-0-lite-260215"
 
 embedding:
   apiKey: "*"
@@ -170,7 +172,7 @@ rewrite:
 qa:
   apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
-  model: "moonshotai/Kimi-K2-Thinking"
+  model: "zai-org/GLM-4.6V"
 
 rerank:
   apiKey: "*"
@@ -180,12 +182,12 @@ rerank:
 ark:
   apiKey: "*"
   baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-seed-1-6-251015"
+  model: "doubao-seed-2-0-pro-260215"
 
 siliconflow:
   apiKey: "*"
   baseURL: "https://api.siliconflow.cn/v1"
-  model: "moonshotai/Kimi-K2-Thinking"
+  model: "deepseek-ai/DeepSeek-V3.2"
 
 seaweedfs:
   filer: "http://localhost:8888"

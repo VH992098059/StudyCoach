@@ -42,7 +42,23 @@ export interface DeleteSessionRes {
   id: string;
 }
 
+export interface UploadChatFileRes {
+  file_names: string[];
+}
+
 export const ChatHistoryService = {
+  /**
+   * 上传聊天附件到会话工作目录
+   */
+  uploadFiles: async (sessionId: string, files: File[]): Promise<UploadChatFileRes> => {
+    const formData = new FormData();
+    formData.append('id', sessionId);
+    files.forEach((f) => formData.append('files', f));
+    return ApiClient.post<UploadChatFileRes>(`${BASE_PATH}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
   /**
    * 保存/同步会话
    */

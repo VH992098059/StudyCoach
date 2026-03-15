@@ -3,8 +3,9 @@
  * @description 负责消息输入与发送、网络开关、上传文件、语音转写及高级检索参数设置。
  */
 import React from 'react';
+import type { RefObject } from 'react';
 import { Button, Switch, Tooltip, Flex, Divider, theme } from 'antd';
-import { GlobalOutlined, CheckOutlined } from '@ant-design/icons';
+import { GlobalOutlined, CheckOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { Sender } from '@ant-design/x';
 import MicRecorderButton from './MicRecorderButton';
 import FileUpload from './FileUpload';
@@ -13,6 +14,8 @@ import { useBreakpoints } from '@/hooks/useMediaQuery';
 import { useTranslation } from 'react-i18next';
 
 
+import type { FileUploadRef } from './FileUpload';
+
 interface InputAreaProps {
   inputValue: string;
   loading: boolean;
@@ -20,6 +23,9 @@ interface InputAreaProps {
   isStudyMode: boolean;
   isDeepThinking?: boolean;
   currentUploadedFiles: UploadedFile[];
+  maxFileCount?: number;
+  sessionId?: string;
+  fileUploadRef?: RefObject<FileUploadRef | null>;
   onVoiceTranscript?: (text: string) => void;
   /** 是否显示「确认保存计划」按钮（上一条 AI 消息为学习计划时） */
   showConfirmSavePlan?: boolean;
@@ -43,6 +49,9 @@ const InputArea: React.FC<InputAreaProps> = ({
   isStudyMode,
   isDeepThinking = false,
   currentUploadedFiles,
+  maxFileCount = 5,
+  sessionId,
+  fileUploadRef,
   onVoiceTranscript,
   showConfirmSavePlan = false,
   onConfirmSavePlan,
@@ -80,6 +89,18 @@ const InputArea: React.FC<InputAreaProps> = ({
         </div>
       )}
 
+      {/* 文件上传区域：放在输入框上方 */}
+      <div style={{ marginBottom: 8 }}>
+        <FileUpload
+          ref={fileUploadRef}
+          sessionId={sessionId}
+          onFilesChange={onFilesChange}
+          onUploadComplete={onUploadComplete}
+          disabled={loading}
+          autoUpload={true}
+        />
+      </div>
+
       {/* 输入区：使用 Ant Design X Sender */}
       <Sender
         value={inputValue}
@@ -101,14 +122,15 @@ const InputArea: React.FC<InputAreaProps> = ({
             return (
               <Flex justify="space-between" align="center" wrap="wrap" gap="small">
                 <Flex gap="small" align="center" style={{ flex: 1, overflow: 'hidden' }}>
-                  {/* 文件上传 / 附件 */}
-                  <FileUpload
-                    onFilesChange={onFilesChange}
-                    onUploadComplete={onUploadComplete}
-                    disabled={loading}
-                    style={{ marginBottom: 0 }} // Override default marginBottom
+                  {/* 回形针：添加附件，原位在 footer 最左侧 */}
+                  <Button
+                    type="text"
+                    icon={<PaperClipOutlined />}
+                    onClick={() => fileUploadRef?.current?.triggerFileSelect()}
+                    disabled={loading || currentUploadedFiles.length >= maxFileCount}
+                    style={{ border: 'none', boxShadow: 'none', color: token.colorTextSecondary, fontSize: 18 }}
+                    title={currentUploadedFiles.length >= maxFileCount ? undefined : t('chat.upload.select')}
                   />
-                  
                   <Divider orientation="vertical" style={{ margin: '0 4px' }} />
                   
                   {/* 学习模式 */}

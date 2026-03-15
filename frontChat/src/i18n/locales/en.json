@@ -256,7 +256,9 @@
       "select": "Select File",
       "maxLimit": "Max {{count}} files",
       "btn": "Upload",
-      "btnUploading": "Uploading..."
+      "btnUploading": "Uploading...",
+      "needSession": "Please create or select a session first",
+      "preview": "Click to enlarge"
     },
     "voice": {
       "played": "AI voice played",
@@ -284,6 +286,8 @@
       "retrieving": "Retrieving knowledge base",
       "retrieved": "Retrieved {{count}} relevant documents",
       "analyzing": "Analyzing question",
+      "executingTool": "Executing {{name}}",
+      "executingToolGeneric": "Executing tool",
       "generating": "Generating response",
       "thinking": "Thinking...",
       "complete": "Response complete",

@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance} from 'axios';
 import { API_CONFIG } from './config';
-import { requestInterceptor, responseInterceptor } from './interceptors';
+import { requestInterceptor, responseInterceptor, clearAuthStorage } from './interceptors';
 import type { RequestConfig } from './types';
 import i18n from '../../i18n';
 
@@ -102,6 +102,9 @@ export class ApiClient {
       console.log('Request completed (blob):', fullUrl);
     }
     if (!resp.ok) {
+      if (resp.status === 401) {
+        clearAuthStorage();
+      }
       const msg = i18n.t('api.requestFailedWithStatus', { status: resp.status });
       throw new Error(msg);
     }

@@ -4,7 +4,9 @@ package skill
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 
 	"github.com/cloudwego/eino-ext/adk/backend/local"
@@ -16,7 +18,8 @@ import (
 
 // Tool 实现 Skill 工具，按需加载 SKILL.md 内容
 type Tool struct {
-	backend skill.Backend
+	backend     skill.Backend
+	excludeList map[string]bool // 排除的技能名称，如 plantask-usage、studyplan-usage
 }
 
 // Info 返回工具信息
@@ -28,6 +31,9 @@ func (t *Tool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	desc := `按需加载预定义技能。当用户任务匹配某个技能的描述时，调用此工具加载该技能的完整指令。
 可用技能：`
 	for _, m := range matters {
+		if t.excludeList != nil && t.excludeList[m.Name] {
+			continue
+		}
 		desc += "\n- " + m.Name + ": " + m.Description
 	}
 	desc += `
@@ -56,6 +62,9 @@ func (t *Tool) InvokableRun(ctx context.Context, argumentsInJSON string, opts ..
 	if args.Skill == "" {
 		return "", nil
 	}
+	if t.excludeList != nil && t.excludeList[args.Skill] {
+		return "", fmt.Errorf("当前模式不支持该技能: %s", args.Skill)
+	}
 	s, err := t.backend.Get(ctx, args.Skill)
 	if err != nil {
 		log.Printf("[Skill] Get failed: %v", err)
@@ -76,6 +85,15 @@ func NewTool(ctx context.Context) (tool.InvokableTool, error) {
 	if err != nil {
 		absDir = baseDir
 	}
+	// 若配置的路径不存在（如从项目根启动时 "skills" 指向错误位置），尝试 backend/skills
+	if _, err := os.Stat(absDir); os.IsNotExist(err) {
+		if fallback, fErr := filepath.Abs("backend/skills"); fErr == nil {
+			if _, statErr := os.Stat(fallback); statErr == nil {
+				absDir = fallback
+				log.Printf("[Skill] baseDir 不存在，使用 fallback: %s", absDir)
+			}
+		}
+	}
 
 	fsBackend, err := local.NewBackend(ctx, &local.Config{})
 	if err != nil {
@@ -94,4 +112,19 @@ func NewTool(ctx context.Context) (tool.InvokableTool, error) {
 
 	log.Printf("[Skill] 已加载 Skill 工具, baseDir=%s", absDir)
 	return &Tool{backend: skillBackend}, nil
+}
+
+// NewToolWithExclude 创建 Skill 工具，并排除指定技能（如 NormalChat 中排除 plantask-usage、studyplan-usage）
+func NewToolWithExclude(ctx context.Context, excludeSkills []string) (tool.InvokableTool, error) {
+	base, err := NewTool(ctx)
+	if err != nil {
+		return nil, err
+	}
+	exclude := make(map[string]bool)
+	for _, s := range excludeSkills {
+		exclude[s] = true
+	}
+	t := base.(*Tool)
+	t.excludeList = exclude
+	return t, nil
 }

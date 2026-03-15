@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Row, Col, Empty, Drawer,theme } from 'antd';
+import React, { useState, useCallback } from 'react';
+import { Row, Col, Empty, Drawer, theme, message } from 'antd';
 import { useTranslation } from 'react-i18next';
 import './index.scss';
 import ConfigPanel from './components/ConfigPanel';
@@ -7,6 +7,7 @@ import StatusLogsCard from './components/StatusLogsCard';
 import ErrorDetailModal from './components/ErrorDetailModal';
 import TaskListCard from './components/TaskListCard';
 import { useBreakpoints } from '@/hooks/useMediaQuery';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { useCronState } from './hooks/useCronState';
 
 const CronPage: React.FC = () => {
@@ -14,7 +15,7 @@ const CronPage: React.FC = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const { token } = theme.useToken();
   const { t } = useTranslation();
-  
+
   const {
     form,
     tasks,
@@ -42,6 +43,24 @@ const CronPage: React.FC = () => {
     handleSelectTask,
     refreshTasks,
   } = useCronState();
+
+  const handleCronComplete = useCallback(
+    (payload: { cron_id: number; cron_name: string; success: boolean }) => {
+      refreshTasks();
+      if (payload.success) {
+        message.success(t('cron.messages.execSuccess') + `: ${payload.cron_name}`);
+      } else {
+        message.error(t('cron.messages.execFailed') + `: ${payload.cron_name}`);
+      }
+    },
+    [refreshTasks, t]
+  );
+
+  useWebSocket({
+    enabled: true,
+    onCronComplete: handleCronComplete,
+    maxReconnectAttempts: 5,
+  });
 
   // When a task is selected on mobile, show the drawer
   const onSelectTask = (id: string) => {

@@ -13,6 +13,8 @@ export interface Message {
   timestamp: Date;
   /** 思考过程（深度思考模式下的推理内容，可展开查看） */
   reasoningContent?: string;
+  /** 用户消息附带的图片预览（blob URL），用于在气泡中展示 */
+  attachments?: { type: 'image'; url: string }[];
 }
 
 /**
@@ -63,6 +65,8 @@ export interface UploadedFile {
   status: 'pending' | 'uploading' | 'success' | 'error';
   progress?: number;
   error?: string;
+  /** 上传成功后服务端返回的文件名（相对 workdir），用于 chat 请求 */
+  serverName?: string;
 }
 
 /**
@@ -73,6 +77,8 @@ export interface FileUploadConfig {
   maxFileCount: number; // 最大文件数量
   acceptedTypes: string[]; // 支持的文件类型
   allowMultiple: boolean; // 是否允许多选
+  /** 真实上传函数，传入会话 ID 和待上传文件，返回服务端文件名列表 */
+  uploadFn?: (sessionId: string, files: File[]) => Promise<string[]>;
 }
 
 /**
@@ -88,7 +94,8 @@ export interface UseFileUploadReturn {
   handleFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   removeFile: (fileId: string) => void;
   clearAllFiles: () => void;
-  uploadFiles: () => Promise<void>;
+  /** 上传待处理文件，需传入会话 ID，返回已上传的文件名列表（含之前已成功的） */
+  uploadFiles: (sessionId: string) => Promise<string[]>;
   
   // 配置
   config: FileUploadConfig;

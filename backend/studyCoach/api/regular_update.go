@@ -1,6 +1,7 @@
 package api
 
 import (
+	"backend/internal/controller/ws"
 	"backend/internal/dao"
 	"backend/internal/model/do"
 	"backend/internal/model/entity"
@@ -42,6 +43,7 @@ func ExecuteRegularUpdate(ctx context.Context, task *entity.KnowledgeBaseCronSch
 	msg, err := regularUpdateModel(ctx, task, rag)
 	if err != nil {
 		log.Printf("[Cron] 任务 %s AI生成失败: %v", task.CronName, err)
+		ws.BroadcastCronCompleteGlobal(task.Id, task.CronName, false)
 		return err
 	}
 
@@ -81,6 +83,7 @@ func ExecuteRegularUpdate(ctx context.Context, task *entity.KnowledgeBaseCronSch
 	_, err = rag.IndexAsync(ctx, req)
 	if err != nil {
 		log.Printf("[Cron] 写入知识库失败: %v", err)
+		ws.BroadcastCronCompleteGlobal(task.Id, task.CronName, false)
 		return err
 	}
 
@@ -95,6 +98,7 @@ func ExecuteRegularUpdate(ctx context.Context, task *entity.KnowledgeBaseCronSch
 	}
 
 	log.Printf("[Cron] 任务 %s 执行完成", task.CronName)
+	ws.BroadcastCronCompleteGlobal(task.Id, task.CronName, true)
 	return nil
 }
 

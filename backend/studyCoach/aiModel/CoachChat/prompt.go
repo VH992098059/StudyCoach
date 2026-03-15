@@ -5,10 +5,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
+	"github.com/gogf/gf/v2/frame/g"
 )
 
 type ChatTemplateImpl struct {
@@ -147,7 +151,7 @@ type ChatTemplate2Config struct {
 	Templates  []schema.MessagesTemplate
 }
 
-// newChatTemplate2 component initialization function of node 'ToStudyChatTemplate' in graph 'studyCoachFor'
+// newChatTemplate2 PlanModifyTemplate：修改、增加、删除现有计划
 func newChatTemplate2(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	config := &ChatTemplate2Config{
 		Role:       schema.User,
@@ -170,9 +174,9 @@ func (impl *ChatTemplate2Impl) Format(ctx context.Context, vs map[string]any, op
 		return nil, fmt.Errorf("提示工程构建失败: %w", err)
 	}
 	if len(format) == 0 {
-		return nil, fmt.Errorf("ToStudyChatTemplate消息格式化结果为空")
+		return nil, fmt.Errorf("PlanModifyTemplate消息格式化结果为空")
 	}
-	log.Println("ToStudyChatTemplate初始化模版输出")
+	log.Println("PlanModifyTemplate初始化模版输出")
 	return format, nil
 }
 
@@ -187,14 +191,38 @@ type ChatTemplate3Config struct {
 	Templates  []schema.MessagesTemplate
 }
 
+// loadEmotionCompanionSkill 加载 emotion-companion Skill，失败时回退到 EmotionAndCompanionShipTemplate
+func loadEmotionCompanionSkill(ctx context.Context) string {
+	baseDir := "skills"
+	if v, err := g.Cfg().Get(ctx, "skills.baseDir"); err == nil && v.String() != "" {
+		baseDir = v.String()
+	}
+	skillPath := filepath.Join(baseDir, "emotion-companion", "SKILL.md")
+	if abs, err := filepath.Abs(skillPath); err == nil {
+		skillPath = abs
+	}
+	data, err := os.ReadFile(skillPath)
+	if err != nil {
+		log.Printf("[EmotionAndCompanionShip] 未加载 emotion-companion Skill，使用内置模板: %v", err)
+		return common.EmotionAndCompanionShipTemplate
+	}
+	content := strings.TrimSpace(string(data))
+	if content == "" {
+		return common.EmotionAndCompanionShipTemplate
+	}
+	log.Printf("[EmotionAndCompanionShip] 已加载 emotion-companion Skill")
+	return content + "\n\n现在，请基于上述设定，以**温暖、包容且富有洞察力**的形象，回应用户的下一句话。"
+}
+
 // newChatTemplate3 component initialization function of node 'EmotionAndCompanionShipTemplate' in graph 'studyCoachFor'
 func newChatTemplate3(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+	systemContent := loadEmotionCompanionSkill(ctx)
 	config := &ChatTemplate3Config{
 		Role:       schema.User,
 		System:     schema.System,
 		FormatType: schema.FString,
 		Templates: []schema.MessagesTemplate{
-			schema.SystemMessage(common.EmotionAndCompanionShipTemplate),
+			schema.SystemMessage(systemContent),
 			schema.MessagesPlaceholder("chat_history", true),
 			schema.UserMessage(common.UserQuestion),
 		},

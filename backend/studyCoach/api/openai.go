@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cloudwego/eino/components/model"
@@ -33,6 +34,53 @@ var client *elasticsearch.Client
 var esConf *common.Config
 var eh *eino.History
 
+// coachGraph 按 isNetwork 缓存已编译的 CoachChat 图，避免每次请求都重建
+type coachGraphEntry struct {
+	graph compose.Runnable[map[string]any, *schema.Message]
+	conf  *common.Config // 记录创建时的 conf，用于检测配置变更
+}
+
+var (
+	coachGraphCache [2]*coachGraphEntry // [0]=no-network, [1]=network
+	coachGraphMu    sync.RWMutex
+)
+
+// getCoachGraph 返回缓存的 CoachChat 图；conf 变更时自动重建
+func getCoachGraph(ctx context.Context, conf *common.Config, isNetwork bool) (compose.Runnable[map[string]any, *schema.Message], error) {
+	idx := 0
+	if isNetwork {
+		idx = 1
+	}
+
+	coachGraphMu.RLock()
+	entry := coachGraphCache[idx]
+	coachGraphMu.RUnlock()
+
+	// 命中缓存且 conf 未变更（比较 APIKey+ChatModel 即可）
+	if entry != nil && entry.conf.APIKey == conf.APIKey && entry.conf.ChatModel == conf.ChatModel {
+		return entry.graph, nil
+	}
+
+	// 未命中或 conf 变更，重建
+	coachGraphMu.Lock()
+	defer coachGraphMu.Unlock()
+
+	// Double-check
+	entry = coachGraphCache[idx]
+	if entry != nil && entry.conf.APIKey == conf.APIKey && entry.conf.ChatModel == conf.ChatModel {
+		return entry.graph, nil
+	}
+
+	buildCtx := context.WithValue(context.Background(), "isNetwork", isNetwork)
+	graph, err := CoachChat.BuildstudyCoachFor(buildCtx, conf)
+	if err != nil {
+		return nil, err
+	}
+	coachGraphCache[idx] = &coachGraphEntry{graph: graph, conf: conf}
+	g.Log().Infof(ctx, "[getCoachGraph] CoachChat 图已重建 isNetwork=%v", isNetwork)
+	return graph, nil
+}
+
 type Rag struct {
 	idxer      compose.Runnable[any, []string]
 	idxerAsync compose.Runnable[[]*schema.Document, []string]
@@ -43,13 +91,13 @@ type Rag struct {
 	conf       *common.Config
 }
 type StreamType struct {
-	Conf      *common.Config
-	Question  string
-	Knowledge []*schema.Document
-	Id        string
-	Eh        *eino.History
-	//NetworkSearch []string
-	IsStudyMode bool
+	Conf          *common.Config
+	Question      string
+	Knowledge     []*schema.Document
+	Id            string
+	Eh            *eino.History
+	IsStudyMode   bool
+	UploadedFiles []string // 已上传到会话工作目录的文件名，供 prompt 注入
 }
 
 func init() {
@@ -107,12 +155,13 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 	ctxWithNetwork := context.WithValue(ctx, "isNetwork", req.IsNetwork)
 	ctxWithNetwork = context.WithValue(ctxWithNetwork, common.IsDeepThinking, "true")
 	streamType := StreamType{
-		Conf:        conf,
-		Question:    req.Question,
-		Knowledge:   documents,
-		Id:          req.ID,
-		Eh:          eh,
-		IsStudyMode: req.IsStudyMode,
+		Conf:          conf,
+		Question:      req.Question,
+		Knowledge:     documents,
+		Id:            req.ID,
+		Eh:            eh,
+		IsStudyMode:   req.IsStudyMode,
+		UploadedFiles: req.UploadedFiles,
 	}
 	// 将isNetwork参数添加到上下文中，传递给stream函数
 	ctxNew := context.WithValue(ctx, "isNetwork", req.IsNetwork)
@@ -154,11 +203,12 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 	}
 
 	streamType := StreamType{
-		Question:    req.Question,
-		Knowledge:   documents,
-		Id:          req.ID,
-		Eh:          eh,
-		IsStudyMode: req.IsStudyMode,
+		Question:      req.Question,
+		Knowledge:     documents,
+		Id:            req.ID,
+		Eh:            eh,
+		IsStudyMode:   req.IsStudyMode,
+		UploadedFiles: req.UploadedFiles,
 	}
 	// 将 isNetwork、isDeepThinking 添加到上下文中，传递给 stream 函数
 	ctxWithNetwork := context.WithValue(ctx, "isNetwork", req.IsNetwork)
@@ -186,6 +236,8 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 	var modelStream compose.Runnable[map[string]any, *schema.Message]
 	//判断是否开启联网
 	if streamType.IsStudyMode == false {
+		ctx = context.WithValue(ctx, "chat_history", history)
+		ctx = context.WithValue(ctx, studyplan.SessionIDContextKey{}, streamType.Id)
 		modelStream, err = NormalChat.BuildNormalChat(ctx)
 		if err != nil {
 			g.Log().Errorf(ctx, "构建模型失败: %v", err)
@@ -193,9 +245,12 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 		}
 	} else {
 		ctx = context.WithValue(ctx, "chat_history", history)
+		ctx = context.WithValue(ctx, "question", streamType.Question)
 		ctx = context.WithValue(ctx, "knowledge", streamType.Knowledge)
 		ctx = context.WithValue(ctx, studyplan.SessionIDContextKey{}, streamType.Id)
-		modelStream, err = CoachChat.BuildstudyCoachFor(ctx, streamType.Conf)
+		isNetwork := ctx.Value("isNetwork")
+		networkFlag, _ := isNetwork.(bool)
+		modelStream, err = getCoachGraph(ctx, streamType.Conf, networkFlag)
 		if err != nil {
 			g.Log().Errorf(ctx, "构建模型失败: %v", err)
 			return nil, fmt.Errorf("构建模型失败: %v", err)
@@ -207,6 +262,11 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 	output["chat_history"] = history
 	output["knowledge"] = streamType.Knowledge
 	output["current_time"] = common.GetCurrentTimeString() // 每次请求注入当前时间，供提示词使用
+	if len(streamType.UploadedFiles) > 0 {
+		output["uploaded_files"] = "已上传文件（工作目录内，可用 read_file 读取）：" + strings.Join(streamType.UploadedFiles, "、")
+	} else {
+		output["uploaded_files"] = ""
+	}
 	// 添加重试机制，最多重试3次，但只重试Stream调用
 	maxRetries := 3
 	for attempt := 0; attempt < maxRetries; attempt++ {

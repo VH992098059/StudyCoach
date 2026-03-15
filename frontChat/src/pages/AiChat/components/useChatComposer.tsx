@@ -16,8 +16,14 @@ interface UseChatComposerParams {
   fetchReferenceDocuments: (query: string) => Promise<ReferenceDocument[]>;
   setReferenceDocuments: (docs: ReferenceDocument[]) => void;
   setShowReferences: (show: boolean) => void;
-  send: (text: string, sessionId: string) => void;
+  send: (text: string, sessionId: string, uploadedFiles?: string[]) => void;
   streamingLoading: boolean;
+  /** 上传文件并返回服务端文件名列表，发送前若有附件则调用 */
+  uploadFilesIfNeeded?: (sessionId: string) => Promise<string[]>;
+  /** 当前已选文件（含 pending/success），用于发送前判断是否需要上传及生成图片预览 */
+  currentUploadedFiles?: { file: File; id: string }[];
+  /** 发送成功后清空附件列表 */
+  clearUploadedFiles?: () => void;
 }
 
 const useChatComposer = (params: UseChatComposerParams) => {
@@ -32,6 +38,9 @@ const useChatComposer = (params: UseChatComposerParams) => {
     setShowReferences,
     send,
     streamingLoading,
+    uploadFilesIfNeeded,
+    currentUploadedFiles = [],
+    clearUploadedFiles,
   } = params;
 
   const [inputValue, setInputValue] = useState('');
@@ -45,30 +54,44 @@ const useChatComposer = (params: UseChatComposerParams) => {
   }, []);
 
   const sendQuestionByText = useCallback(async (text: string) => {
-    if (!text.trim()) return;
+    const trimmed = text.trim();
+    if (!trimmed && currentUploadedFiles.length === 0) return;
+    const questionText = trimmed || '请查看我上传的文件';
+
+    // 为图片文件生成预览 URL，用于在消息气泡中展示
+    const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const attachments = currentUploadedFiles
+      .filter((f) => imageTypes.includes(f.file.type))
+      .map((f) => ({ type: 'image' as const, url: URL.createObjectURL(f.file) }));
 
     const userMessage: Message = {
       id: Date.now(),
       msg_id: generateMsgId(),
-      content: formatUserInput(text),
+      content: formatUserInput(questionText),
       isUser: true,
       timestamp: new Date(),
+      ...(attachments.length > 0 ? { attachments } : {}),
     };
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputValue('');
     
-    // 立即发送消息，不等待引用检索
-    send(text, currentSessionId);
+    // 若有附件，先上传再发送
+    let fileNames: string[] = [];
+    if (currentUploadedFiles.length > 0 && uploadFilesIfNeeded) {
+      fileNames = await uploadFilesIfNeeded(currentSessionId);
+    }
+    send(questionText, currentSessionId, fileNames);
+    clearUploadedFiles?.();
 
     // 异步获取引用文档
-    if (selectedKnowledge !== 'none') {
+    if (selectedKnowledge !== 'none' && questionText) {
       // 清空旧的引用
       setReferenceDocuments([]);
       setShowReferences(false);
       
-      fetchReferenceDocuments(text)
+      fetchReferenceDocuments(questionText)
         .then(references => {
           setReferenceDocuments(references);
           if (references.length > 0) setShowReferences(true);
@@ -80,12 +103,12 @@ const useChatComposer = (params: UseChatComposerParams) => {
       setReferenceDocuments([]);
       setShowReferences(false);
     }
-  }, [messages, selectedKnowledge, fetchReferenceDocuments, setReferenceDocuments, setShowReferences, generateMsgId, setMessages, formatUserInput, send, currentSessionId]);
+  }, [messages, selectedKnowledge, fetchReferenceDocuments, setReferenceDocuments, setShowReferences, generateMsgId, setMessages, formatUserInput, send, currentSessionId, currentUploadedFiles, uploadFilesIfNeeded, clearUploadedFiles]);
 
   const handleSend = useCallback(async () => {
-    if (!inputValue.trim() || streamingLoading) return;
-    await sendQuestionByText(inputValue);
-  }, [inputValue, streamingLoading, sendQuestionByText]);
+    if ((!inputValue.trim() && currentUploadedFiles.length === 0) || streamingLoading) return;
+    await sendQuestionByText(inputValue.trim() || '');
+  }, [inputValue, streamingLoading, sendQuestionByText, currentUploadedFiles.length]);
 
   return {
     inputValue,

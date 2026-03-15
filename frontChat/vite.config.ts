@@ -31,10 +31,11 @@ export default defineConfig({
         ws: true,
         rewrite: (path) => path.replace(/^\/*/, ''),
       },
-      // 开发环境代理后端HTTP接口组
+      // 开发环境代理后端HTTP接口组（含 WebSocket /gateway/ws）
       '/gateway': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        ws: true,
       },
       // 生产部署通常通过Nginx使用 /api 作为前缀进行SSE代理
       // 这里保留可选映射，便于本地模拟

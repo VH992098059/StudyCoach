@@ -9,18 +9,23 @@
  * 5. 响应式布局
  */
 
-import React, { useRef } from 'react';
-import { Button, Progress, Tooltip, Space } from 'antd';
-import { PaperClipOutlined, DeleteOutlined, FileOutlined, LoadingOutlined } from '@ant-design/icons';
+import React, { useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
+import { Button, Progress, Tooltip, theme, Image } from 'antd';
+import { DeleteOutlined, FileOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useBreakpoints } from '@/hooks/useMediaQuery';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { ChatHistoryService } from '@/services/chatHistory';
 import type { UploadedFile, FileUploadConfig } from '@/types/chat';
 
 /**
  * 文件上传组件属性接口
  */
 interface FileUploadProps {
+  /** 当前会话 ID，用于上传接口 */
+  sessionId?: string;
+  /** 选择文件后自动上传，无需点击上传按钮 */
+  autoUpload?: boolean;
   /** 自定义样式 */
   style?: React.CSSProperties;
   /** 自定义类名 */
@@ -33,6 +38,15 @@ interface FileUploadProps {
   onFilesChange?: (files: UploadedFile[]) => void;
   /** 上传完成回调 */
   onUploadComplete?: (files: UploadedFile[]) => void;
+}
+
+export interface FileUploadRef {
+  /** 上传待处理文件，返回已上传的文件名列表 */
+  uploadFiles: (sessionId: string) => Promise<string[]>;
+  /** 清空已选文件 */
+  clearAllFiles: () => void;
+  /** 触发文件选择（供外部回形针按钮调用） */
+  triggerFileSelect: () => void;
 }
 
 /**
@@ -67,18 +81,53 @@ const getFileStatusColor = (status: UploadedFile['status']): string => {
 /**
  * 文件上传组件
  */
-export const FileUpload: React.FC<FileUploadProps> = ({
+const uploadFn = async (sessionId: string, files: File[]): Promise<string[]> => {
+  const res = await ChatHistoryService.uploadFiles(sessionId, files);
+  return res.file_names || [];
+};
+
+const IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
+/** 图片缩略图，管理 blob URL 生命周期 */
+const ImageThumbnail: React.FC<{
+  file: File;
+  alt: string;
+  previewLabel: string;
+}> = ({ file, alt, previewLabel }) => {
+  const [url, setUrl] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const u = URL.createObjectURL(file);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [file]);
+  if (!url) return <FileOutlined style={{ fontSize: 24 }} />;
+  return (
+    <Image
+      src={url}
+      alt={alt}
+      width={48}
+      height={48}
+      style={{ objectFit: 'cover', borderRadius: 4, flexShrink: 0 }}
+      preview={{ mask: previewLabel }}
+    />
+  );
+};
+
+export const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(({
+  sessionId,
+  autoUpload = false,
   style,
   className,
   disabled = false,
   config,
   onFilesChange,
   onUploadComplete,
-}) => {
+}, ref) => {
   const { t } = useTranslation();
+  const { token } = theme.useToken();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isMobile } = useBreakpoints();
-  
+
   const {
     uploadedFiles,
     isUploading,
@@ -88,7 +137,18 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     clearAllFiles,
     uploadFiles,
     config: fileConfig,
-  } = useFileUpload(config);
+  } = useFileUpload({ ...config, uploadFn });
+
+  const triggerFileSelect = React.useCallback(() => {
+    if (disabled || isUploading) return;
+    fileInputRef.current?.click();
+  }, [disabled, isUploading]);
+
+  useImperativeHandle(ref, () => ({
+    uploadFiles: (sid: string) => uploadFiles(sid),
+    clearAllFiles,
+    triggerFileSelect,
+  }), [uploadFiles, clearAllFiles, triggerFileSelect]);
 
   const getFileStatusText = (status: UploadedFile['status']): string => {
     switch (status) {
@@ -118,13 +178,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     }
   }, [uploadedFiles, isUploading, onUploadComplete]);
 
-  /**
-   * 触发文件选择
-   */
-  const triggerFileSelect = () => {
-    if (disabled || isUploading) return;
-    fileInputRef.current?.click();
-  };
+  // 自动上传：选择文件后若有 sessionId 则自动上传
+  const pendingCount = uploadedFiles.filter(f => f.status === 'pending').length;
+  useEffect(() => {
+    if (!autoUpload || !sessionId || pendingCount === 0) return;
+    uploadFiles(sessionId);
+  }, [autoUpload, sessionId, pendingCount, uploadFiles]);
 
   /**
    * 生成accept属性值
@@ -151,7 +210,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         <div style={{ marginBottom: '8px' }}>
           <div style={{ 
             fontSize: '12px', 
-            color: '#666', 
+            color: token.colorTextSecondary, 
             marginBottom: '4px',
             display: 'flex',
             justifyContent: 'space-between',
@@ -177,25 +236,33 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             flexWrap: 'wrap', 
             gap: '4px' 
           }}>
-            {uploadedFiles.map((file) => (
+            <Image.PreviewGroup>
+            {uploadedFiles.map((file) => {
+              const isImage = IMAGE_TYPES.includes(file.file.type);
+              return (
               <div
                 key={file.id}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  backgroundColor: '#f5f5f5',
+                  backgroundColor: token.colorBgContainer,
+                  color: token.colorText,
                   padding: '4px 8px',
                   borderRadius: '4px',
                   fontSize: '12px',
-                  gap: '4px',
+                  gap: '8px',
                   border: `1px solid ${getFileStatusColor(file.status)}`,
                   minWidth: isMobile ? '100%' : 'auto',
-                  maxWidth: isMobile ? '100%' : '200px',
+                  maxWidth: isMobile ? '100%' : 200,
                   position: 'relative',
                   paddingRight: file.status !== 'uploading' ? '24px' : '8px'
                 }}
               >
-                <FileOutlined style={{ color: getFileStatusColor(file.status) }} />
+                {isImage ? (
+                  <ImageThumbnail file={file.file} alt={file.name} previewLabel={t('chat.upload.preview')} />
+                ) : (
+                  <FileOutlined style={{ color: getFileStatusColor(file.status), fontSize: 24 }} />
+                )}
                 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Tooltip title={`${file.name} (${formatFileSize(file.size)})`}>
@@ -210,7 +277,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   
                   <div style={{ 
                     fontSize: '10px', 
-                    color: '#999',
+                    color: token.colorTextTertiary,
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center'
@@ -221,7 +288,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                     </span>
                   </div>
                   
-                  {/* 上传进度条 */}
                   {file.status === 'uploading' && file.progress !== undefined && (
                     <Progress
                       percent={file.progress}
@@ -232,7 +298,6 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   )}
                 </div>
 
-                {/* 删除按钮 */}
                 {file.status !== 'uploading' && (
                   <Button
                     type="text"
@@ -255,12 +320,13 @@ export const FileUpload: React.FC<FileUploadProps> = ({
                   />
                 )}
                 
-                {/* 上传中图标 */}
                 {file.status === 'uploading' && (
                   <LoadingOutlined style={{ color: '#faad14', fontSize: '12px' }} />
                 )}
               </div>
-            ))}
+            );
+            })}
+            </Image.PreviewGroup>
           </div>
 
           {/* 总体上传进度 */}
@@ -277,44 +343,10 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         </div>
       )}
 
-      {/* 文件上传按钮 */}
-      <Space size="small">
-        <Button
-          type="text"
-          icon={<PaperClipOutlined />}
-          onClick={triggerFileSelect}
-          disabled={disabled || isUploading || uploadedFiles.length >= fileConfig.maxFileCount}
-          style={{
-            border: 'none',
-            boxShadow: 'none',
-            color: '#666',
-            fontSize: '16px'
-          }}
-          title={
-            uploadedFiles.length >= fileConfig.maxFileCount 
-              ? t('chat.upload.maxLimit', { count: fileConfig.maxFileCount })
-              : t('chat.upload.select')
-          }
-        />
-
-        {/* 上传按钮 */}
-        {uploadedFiles.some(file => file.status === 'pending') && (
-          <Button
-            type="primary"
-            size="small"
-            onClick={uploadFiles}
-            loading={isUploading}
-            disabled={disabled}
-            style={{ fontSize: '12px' }}
-          >
-            {isUploading ? t('chat.upload.btnUploading') : t('chat.upload.btn')}
-          </Button>
-        )}
-      </Space>
-
-      
+      {/* 回形针按钮已移至 InputArea footer 原位，此处仅渲染文件列表 */}
     </div>
   );
-};
+});
 
+FileUpload.displayName = 'FileUpload';
 export default FileUpload;

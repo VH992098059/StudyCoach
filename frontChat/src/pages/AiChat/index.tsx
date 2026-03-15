@@ -14,12 +14,14 @@ import { useChatSessions } from '@/hooks/useChatSessions';
 // import './scrollbar.scss';
 import { type KnowledgeSelectorRef } from '@/components/KnowledgeSelector';
 import type { UploadedFile } from '@/types/chat';
+import type { FileUploadRef } from './components/FileUpload';
 import { SessionInfoPanel, SessionInfoDrawer, ChatTopBar, BubbleMessageList, useReferences, useScrollHandlers, useChatComposer } from './components';
 import ChatSidebar from './components/pc/ChatSidebar';
 import SidebarDrawer from './components/mobile/SidebarDrawer';
 import useSSEChat from './components/useSSEChat.tsx';
 import useVoiceService from './components/useVoiceService.tsx';
 import InputArea from './components/InputArea';
+import { useChatSettings } from '@/hooks/useChatSettings';
 
 
 const AIChat: React.FC = () => {
@@ -59,11 +61,15 @@ const AIChat: React.FC = () => {
   } = useReferences();
   const knowledgeSelectorRef = useRef<KnowledgeSelectorRef>(null);
 
-  // 联网功能状态
-  const [isNetworkEnabled, setIsNetworkEnabled] = useState(false);
-  const [isStudyMode, setIsStudyMode] = useState(false);
-  // 深度思考（仅 NormalChat 生效）
-  const [isDeepThinking, setIsDeepThinking] = useState(false);
+  // 聊天设置（按用户 ID 持久化到 localStorage）
+  const {
+    isNetworkEnabled,
+    isStudyMode,
+    isDeepThinking,
+    toggleStudyMode,
+    toggleDeepThinking,
+    toggleNetwork,
+  } = useChatSettings();
   // SSE 连接相关状态
   const {
     connectionState,
@@ -72,6 +78,7 @@ const AIChat: React.FC = () => {
     setConnectionError,
     currentAiMessage,
     currentReasoningContent,
+    currentToolStatus,
     loading: streamingLoading,
     documentsCount,
     send,
@@ -88,6 +95,7 @@ const AIChat: React.FC = () => {
 
   // 文件上传相关状态
   const [currentUploadedFiles, setCurrentUploadedFiles] = useState<UploadedFile[]>([]);
+  const fileUploadRef = useRef<FileUploadRef | null>(null);
 
   // 朗读功能 - 初始化语音服务（供消息气泡内调用 voiceService 使用）
   useVoiceService();
@@ -126,6 +134,15 @@ const AIChat: React.FC = () => {
   // 发送消息
   const handleStop = () => { stop(); };
 
+  const uploadFilesIfNeeded = useCallback(async (sessionId: string) => {
+    return fileUploadRef.current?.uploadFiles(sessionId) ?? [];
+  }, []);
+
+  const clearUploadedFiles = useCallback(() => {
+    fileUploadRef.current?.clearAllFiles();
+    setCurrentUploadedFiles([]);
+  }, []);
+
   const {
     inputValue,
     setInputValue,
@@ -142,6 +159,9 @@ const AIChat: React.FC = () => {
     setShowReferences,
     send,
     streamingLoading,
+    uploadFilesIfNeeded,
+    currentUploadedFiles,
+    clearUploadedFiles,
   });
   // 处理文件上传变化
   const handleFilesChange = (files: UploadedFile[]) => {
@@ -153,33 +173,7 @@ const AIChat: React.FC = () => {
     setCurrentUploadedFiles(files);
   }, []);
 
-  /**
-   * 切换联网状态
-   * @description 切换联网搜索功能的开启/关闭
-   */
-  const handleToggleNetwork = () => {
-    setIsNetworkEnabled(prev => !prev);
-    // 移除 message 提示，避免与 UI 状态切换冲突或冗余
-    // message.success(isNetworkEnabled ? t('chat.networkDisabled') : t('chat.networkEnabled'));
-  };
-
-  /**
-   * 切换深度学习模式
-   * @description 切换深度学习模式的开启/关闭
-   */
-  const handleToggleStudyMode = () => {
-    setIsStudyMode(prev => !prev);
-    // 移除 message 提示
-    // message.success(isStudyMode ? t('chat.studyModeDisabled') : t('chat.studyModeEnabled'));
-  };
-
-  /**
-   * 切换深度思考
-   * @description 仅 NormalChat 模式下生效，启用 ark 模型的思考能力
-   */
-  const handleToggleDeepThinking = useCallback(() => {
-    setIsDeepThinking(prev => !prev);
-  }, []);
+  // 切换联网/学习模式/深度思考：由 useChatSettings 提供，已持久化到 localStorage
 
   const handleCloseDrawer = useCallback(() => setDrawerVisible(false), []);
   const handleOpenSidebar = useCallback(() => setDrawerVisible(true), []);
@@ -303,6 +297,7 @@ const AIChat: React.FC = () => {
                 currentReasoningContent={currentReasoningContent}
                 messagesEndRef={messagesEndRef}
                 documentsCount={documentsCount}
+                currentToolStatus={currentToolStatus}
                 hasKnowledgeBase={selectedKnowledge !== 'none' && !!selectedKnowledge}
               />
 
@@ -314,15 +309,17 @@ const AIChat: React.FC = () => {
                 isStudyMode={isStudyMode}
                 isDeepThinking={isDeepThinking}
                 currentUploadedFiles={currentUploadedFiles}
+                sessionId={currentSessionId}
+                fileUploadRef={fileUploadRef}
                 showConfirmSavePlan={showConfirmSavePlan}
                 onConfirmSavePlan={handleConfirmSavePlan}
                 onVoiceTranscript={(text) => sendQuestionByText(text)}
                 onInputChange={setInputValue}
                 onSend={handleSend}
                 onStop={handleStop}
-                onToggleNetwork={handleToggleNetwork}
-                onToggleStudyMode={handleToggleStudyMode}
-                onToggleDeepThinking={handleToggleDeepThinking}
+                onToggleNetwork={toggleNetwork}
+                onToggleStudyMode={toggleStudyMode}
+                onToggleDeepThinking={toggleDeepThinking}
                 onFilesChange={handleFilesChange}
                 onUploadComplete={handleUploadComplete}
               />

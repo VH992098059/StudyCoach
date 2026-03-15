@@ -12,6 +12,7 @@ import (
 
 type IAiChatV1 interface {
 	AiChat(ctx context.Context, req *v1.AiChatReq) (res *v1.AiChatRes, err error)
+	UploadChatFile(ctx context.Context, req *v1.UploadChatFileReq) (res *v1.UploadChatFileRes, err error)
 	SaveSession(ctx context.Context, req *v1.SaveSessionReq) (res *v1.SaveSessionRes, err error)
 	GetHistory(ctx context.Context, req *v1.GetHistoryReq) (res *v1.GetHistoryRes, err error)
 	GetSession(ctx context.Context, req *v1.GetSessionReq) (res *v1.GetSessionRes, err error)

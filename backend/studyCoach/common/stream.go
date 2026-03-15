@@ -13,6 +13,18 @@ import (
 	"github.com/google/uuid"
 )
 
+// toolDisplayName 从 ToolCall 生成前端展示名
+func toolDisplayName(tc schema.ToolCall) string {
+	name := tc.Function.Name
+	if name == "skill" && tc.Function.Arguments != "" {
+		var m map[string]string
+		if err := sonic.Unmarshal([]byte(tc.Function.Arguments), &m); err == nil && m["skill"] != "" {
+			return "skill(" + m["skill"] + ")"
+		}
+	}
+	return name
+}
+
 // reasoningChunkSize 思考内容模拟流式时每段最大字符数（按 rune 计，避免截断中文）
 const reasoningChunkSize = 4
 
@@ -31,6 +43,12 @@ type StreamData struct {
 	Content          string             `json:"content"`           // 消息具体内容
 	ReasoningContent string             `json:"reasoning_content"` // 思考过程（深度思考模式）
 	Document         []*schema.Document `json:"document"`
+}
+
+// ToolStatusData 工具执行状态，用于前端展示「正在执行 XXX」提示
+type ToolStatusData struct {
+	Tool string `json:"tool"` // 工具名，如 skill、web_search、read_file
+	Name string `json:"name"` // 具体操作，如 high-eq-communication、skill 的 skill 参数
 }
 
 func SteamResponse(ctx context.Context, streamReader *schema.StreamReader[*schema.Message], docs []*schema.Document) (err error) {
@@ -79,6 +97,20 @@ func SteamResponse(ctx context.Context, streamReader *schema.StreamReader[*schem
 
 		hasContent := len(chunk.Content) > 0
 		hasReasoning := len(chunk.ReasoningContent) > 0
+		hasToolCalls := len(chunk.ToolCalls) > 0
+
+		// 有 ToolCalls 时发送工具执行状态，让前端展示「正在执行 XXX」避免用户以为卡住
+		if hasToolCalls {
+			for _, tc := range chunk.ToolCalls {
+				displayName := toolDisplayName(tc)
+				ts := &ToolStatusData{Tool: tc.Function.Name, Name: displayName}
+				if b, _ := sonic.Marshal(ts); len(b) > 0 {
+					writeSSEToolStatus(httpResp, string(b))
+					httpResp.Flush()
+				}
+			}
+		}
+
 		if !hasContent && !hasReasoning {
 			continue
 		}
@@ -204,6 +236,18 @@ func writeSSEDone(resp *ghttp.Response) {
 
 func writeSSEDocuments(resp *ghttp.Response, data string) {
 	resp.Write([]byte("documents:"))
+	resp.Write([]byte(data))
+	resp.Write([]byte("\n\n"))
+	resp.Flush()
+}
+
+// writeSSEToolStatus 写入工具执行状态事件，前端可展示「正在执行 XXX」
+func writeSSEToolStatus(resp *ghttp.Response, data string) {
+	if len(data) == 0 {
+		return
+	}
+	resp.Write([]byte("event: tool_status\n"))
+	resp.Write([]byte("data:"))
 	resp.Write([]byte(data))
 	resp.Write([]byte("\n\n"))
 	resp.Flush()

@@ -41,17 +41,16 @@ func newLambda1(ctx context.Context, input *schema.Message) (output map[string]a
 	return output, nil
 }
 
-// newLambda2 component initialization function of node 'ToStudyLambda' in graph 'StudyCoachFor'
+// newLambda2 PlanModifyLambda：修改、增加、删除现有计划
 func newLambda2(ctx context.Context, input *schema.Message) (output map[string]any, err error) {
 	if input == nil {
-		return nil, fmt.Errorf("ToStudyLambda input message is nil")
+		return nil, fmt.Errorf("PlanModifyLambda input message is nil")
 	}
-	//获取内容
 	output = common.GetSafeTemplateParams()
 	output["question"] = input.Content
 	output["chat_history"] = ctx.Value("chat_history")
 	output["knowledge"] = ctx.Value("knowledge")
 	output["current_time"] = common.GetCurrentTimeString()
-	log.Println("ToStudyLambda不使用Es搜索引擎分支内容输出")
+	log.Println("PlanModifyLambda 已处理消息")
 	return output, nil
 }

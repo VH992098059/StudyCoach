@@ -124,26 +124,29 @@ func (s *planStorage) isSeaweedFSAvailable(ctx context.Context) bool {
 	return err == nil
 }
 
-// save 保存计划：优先 SeaweedFS，失败则本地 + 加入待同步
-func (s *planStorage) save(ctx context.Context, remotePath string, content []byte) error {
+// save 保存计划：优先 SeaweedFS，失败则本地 + 加入待同步。返回 ("seaweedfs"|"local", nil) 或 ("", err)
+func (s *planStorage) save(ctx context.Context, remotePath string, content []byte) (storageType string, err error) {
 	if s.client != nil {
 		reader := bytes.NewReader(content)
 		if err := s.client.SeaweedFSUpload(ctx, remotePath, reader); err != nil {
 			log.Printf("[save_plan] SeaweedFS 上传失败，回退本地: %v", err)
 		} else {
-			return nil
+			return "seaweedfs", nil
 		}
 	}
 
 	localPath := filepath.Join(s.localBaseDir, remotePath)
 	dir := filepath.Dir(localPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("创建本地目录失败: %v", err)
+		return "", fmt.Errorf("创建本地目录失败: %v", err)
 	}
 	if err := os.WriteFile(localPath, content, 0644); err != nil {
-		return fmt.Errorf("写入本地文件失败: %v", err)
+		return "", fmt.Errorf("写入本地文件失败: %v", err)
 	}
-	return s.addPending(remotePath, localPath)
+	if err := s.addPending(remotePath, localPath); err != nil {
+		return "", err
+	}
+	return "local", nil
 }
 
 // read 读取：优先 SeaweedFS，失败则本地
@@ -265,12 +268,18 @@ func (t *SavePlanTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	safeTitle := sanitizePath(args.PlanTitle)
 	remotePath := fmt.Sprintf("%s/%s/%s/%s/%s", basePath, sessionID, safeTitle, timestamp, planFileName)
 
-	if err := t.storage.save(ctx, remotePath, []byte(args.Content)); err != nil {
+	storageType, err := t.storage.save(ctx, remotePath, []byte(args.Content))
+	if err != nil {
+		log.Printf("[save_plan] 保存失败: plan_title=%s, err=%v", args.PlanTitle, err)
 		return "", fmt.Errorf("保存计划失败: %v", err)
 	}
 
-	log.Printf("[save_plan] 已保存: %s", remotePath)
-	return fmt.Sprintf("学习计划已保存成功。路径：%s，创建时间：%s", remotePath, timestamp), nil
+	if storageType == "seaweedfs" {
+		log.Printf("[save_plan] 保存成功(SeaweedFS): plan_title=%s, path=%s", args.PlanTitle, remotePath)
+		return fmt.Sprintf("学习计划已保存成功（已上传云端）。路径：%s，创建时间：%s", remotePath, timestamp), nil
+	}
+	log.Printf("[save_plan] 保存成功(本地回退): plan_title=%s, path=%s，待 SeaweedFS 启动后自动同步", args.PlanTitle, remotePath)
+	return fmt.Sprintf("学习计划已保存成功（暂存本地，待云端可用后自动同步）。路径：%s，创建时间：%s", remotePath, timestamp), nil
 }
 
 // ReadPlanTool 读取学习计划
@@ -282,9 +291,10 @@ type ReadPlanTool struct {
 func (t *ReadPlanTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 	return &schema.ToolInfo{
 		Name: "read_plan",
-		Desc: `当用户要求修改或更新已有学习计划时，先调用此工具读取现有计划内容。
-调用时机：用户说「修改计划」「更新计划」「在现有基础上延伸」等。
-参数：plan_title 为学习内容标题。若不传或传空，则列出当前会话下所有已保存的计划标题。`,
+		Desc: `查询和读取已保存的学习计划。有两种使用场景：
+1. 【创建计划前必须调用】：当用户要求制定/创建新计划时，必须先调用本工具（不传 plan_title）列出已有计划。不能先输出过渡文字再调用，必须静默直接调用后再一次性回复。
+2. 【修改/更新计划时调用】：当用户要求修改、更新、延伸已有计划时，传入 plan_title 读取具体计划内容。
+参数：plan_title 为学习内容标题（如「C++学习计划」）。不传或传空，则列出当前会话下所有已保存的计划标题。`,
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"plan_title": {
 				Type:     schema.String,
@@ -356,7 +366,63 @@ func sanitizePath(s string) string {
 	return s
 }
 
-// NewTools 创建 save_plan 和 read_plan 工具
+// DeletePlanTool 删除学习计划
+type DeletePlanTool struct {
+	storage *planStorage
+}
+
+func (t *DeletePlanTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
+	return &schema.ToolInfo{
+		Name: "delete_plan",
+		Desc: `当用户明确要求删除某个已保存的学习计划时调用。
+调用时机：用户说「删掉这个计划」「删除xxx计划」「不要这个计划了」等。
+参数：plan_title 为要删除的学习计划标题。`,
+		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
+			"plan_title": {
+				Type:     schema.String,
+				Desc:     "要删除的学习计划标题，如：Go语言学习计划",
+				Required: true,
+			},
+		}),
+	}, nil
+}
+
+func (t *DeletePlanTool) InvokableRun(ctx context.Context, argumentsInJSON string, opts ...tool.Option) (string, error) {
+	var args struct {
+		PlanTitle string `json:"plan_title"`
+	}
+	if err := json.Unmarshal([]byte(argumentsInJSON), &args); err != nil {
+		return "", fmt.Errorf("参数解析失败: %v", err)
+	}
+	if args.PlanTitle == "" {
+		return "", fmt.Errorf("plan_title 不能为空")
+	}
+
+	sessionID := getSessionID(ctx)
+	if sessionID == "" {
+		return "", fmt.Errorf("无法获取会话 ID")
+	}
+
+	safeTitle := sanitizePath(args.PlanTitle)
+	planPath := fmt.Sprintf("%s/%s/%s", basePath, sessionID, safeTitle)
+
+	// 本地删除
+	localPath := filepath.Join(t.storage.localBaseDir, planPath)
+	if err := os.RemoveAll(localPath); err != nil && !os.IsNotExist(err) {
+		return "", fmt.Errorf("删除本地计划失败: %v", err)
+	}
+
+	// SeaweedFS 删除（若存在）
+	if t.storage.client != nil {
+		remotePath := strings.ReplaceAll(planPath, "\\", "/")
+		_ = t.storage.client.SeaweedFSDelete(remotePath, true)
+	}
+
+	log.Printf("[delete_plan] 已删除计划: %s", args.PlanTitle)
+	return fmt.Sprintf("已删除学习计划「%s」。", args.PlanTitle), nil
+}
+
+// NewTools 创建 save_plan、read_plan、delete_plan 工具
 func NewTools(ctx context.Context) ([]tool.BaseTool, error) {
 	localDir := localBase
 	if v, err := g.Cfg().Get(ctx, "studyplan.localDir"); err == nil && v.String() != "" {
@@ -386,6 +452,7 @@ func NewTools(ctx context.Context) ([]tool.BaseTool, error) {
 
 	saveTool := &SavePlanTool{storage: storage}
 	readTool := &ReadPlanTool{storage: storage}
-	log.Printf("[studyplan] 已加载 save_plan/read_plan，本地回退目录: %s", absDir)
-	return []tool.BaseTool{saveTool, readTool}, nil
+	deleteTool := &DeletePlanTool{storage: storage}
+	log.Printf("[studyplan] 已加载 save_plan/read_plan/delete_plan，本地回退目录: %s", absDir)
+	return []tool.BaseTool{saveTool, readTool, deleteTool}, nil
 }
