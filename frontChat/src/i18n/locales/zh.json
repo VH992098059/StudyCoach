@@ -129,7 +129,7 @@
       "fetchFailed": "获取分块列表失败",
       "updateSuccess": "分块内容更新成功",
       "updateFailed": "更新分块内容失败",
-      "statusChanged": "分块 {{status}}",
+      "statusChanged": "分块 {{chunkId}} 已设为{{status}}",
       "statusChangeFailed": "更新分块状态失败",
       "deleteSuccess": "分块 \"{{id}}\" 删除成功",
       "deleteFailed": "删除分块失败",

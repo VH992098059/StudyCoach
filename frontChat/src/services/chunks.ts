@@ -1,9 +1,9 @@
 import { ApiClient } from '../utils/axios';
 
-// 知识块状态枚举
+// 知识块状态枚举（与后端 knowledge_chunks.status、DB default 一致：1=启用，0=禁用）
 export enum ChunkStatus {
-  ACTIVE = 0,    // 启用
-  DISABLED = 1   // 禁用
+  DISABLED = 0,
+  ACTIVE = 1,
 }
 
 // 知识块数据类型

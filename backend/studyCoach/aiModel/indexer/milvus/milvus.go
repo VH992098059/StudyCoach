@@ -1,6 +1,8 @@
-package indexer
+// Package milvus 提供基于 Milvus 的向量索引实现。
+package milvus
 
 import (
+	"backend/studyCoach/aiModel/indexer/docmeta"
 	"backend/studyCoach/common"
 	"context"
 	"fmt"
@@ -16,8 +18,8 @@ import (
 	"github.com/milvus-io/milvus/client/v2/milvusclient"
 )
 
-// MilvusIndexerConfig Milvus 索引配置
-type MilvusIndexerConfig struct {
+// Config Milvus 索引配置
+type Config struct {
 	Client       *milvusclient.Client
 	ClientConfig *milvusclient.ClientConfig
 	Collection   string
@@ -26,8 +28,8 @@ type MilvusIndexerConfig struct {
 	BatchSize    int
 }
 
-// NewMilvusIndexer 创建 Milvus 索引器，使用 eino-ext milvus2 组件。
-func NewMilvusIndexer(ctx context.Context, config *MilvusIndexerConfig) (indexer.Indexer, error) {
+// NewIndexer 创建 Milvus 索引器，使用 eino-ext milvus2 组件。
+func NewIndexer(ctx context.Context, config *Config) (indexer.Indexer, error) {
 	if config.Embedding == nil {
 		return nil, fmt.Errorf("embedding is required")
 	}
@@ -41,7 +43,6 @@ func NewMilvusIndexer(ctx context.Context, config *MilvusIndexerConfig) (indexer
 		config.BatchSize = 10
 	}
 
-	// eino-ext milvus2 需要 ClientConfig 或 Client
 	idxConfig := &milvus2.IndexerConfig{
 		Collection: config.Collection,
 		Vector: &milvus2.VectorConfig{
@@ -64,15 +65,15 @@ func NewMilvusIndexer(ctx context.Context, config *MilvusIndexerConfig) (indexer
 	if err != nil {
 		return nil, fmt.Errorf("failed to create milvus indexer: %w", err)
 	}
-	return &milvusIndexerWrapper{inner: inner}, nil
+	return &indexerWrapper{inner: inner}, nil
 }
 
-// milvusIndexerWrapper 包装 eino-ext Milvus indexer，在 Store 时注入 knowledge_name
-type milvusIndexerWrapper struct {
+// indexerWrapper 包装 eino-ext Milvus indexer，在 Store 时注入 knowledge_name
+type indexerWrapper struct {
 	inner indexer.Indexer
 }
 
-func (w *milvusIndexerWrapper) Store(ctx context.Context, docs []*schema.Document, opts ...indexer.Option) ([]string, error) {
+func (w *indexerWrapper) Store(ctx context.Context, docs []*schema.Document, opts ...indexer.Option) ([]string, error) {
 	knowledgeName, _ := ctx.Value(common.KnowledgeName).(string)
 	if knowledgeName == "" {
 		return nil, fmt.Errorf("必须提供知识库名称")
@@ -87,7 +88,7 @@ func (w *milvusIndexerWrapper) Store(ctx context.Context, docs []*schema.Documen
 			doc.MetaData = make(map[string]any)
 		}
 		doc.MetaData[common.KnowledgeName] = knowledgeName
-		if ext := getExtData(doc); len(ext) > 0 {
+		if ext := docmeta.GetExtData(doc); len(ext) > 0 {
 			marshal, _ := sonic.Marshal(ext)
 			doc.MetaData[common.FieldExtra] = string(marshal)
 		}
@@ -95,6 +96,6 @@ func (w *milvusIndexerWrapper) Store(ctx context.Context, docs []*schema.Documen
 	return w.inner.Store(ctx, docs, opts...)
 }
 
-func (w *milvusIndexerWrapper) GetType() string {
+func (w *indexerWrapper) GetType() string {
 	return "milvus_indexer"
 }

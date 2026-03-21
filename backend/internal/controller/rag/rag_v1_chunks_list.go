@@ -19,7 +19,7 @@ func (c *ControllerV1) ChunksList(ctx context.Context, req *v1.ChunksListReq) (r
 	}
 	chunks, total, err := knowledge.GetChunksList(ctx, entity.KnowledgeChunks{
 		KnowledgeDocId: req.KnowledgeDocId,
-	}, req.Size, req.Page)
+	}, req.Page, req.Size)
 	if err != nil {
 		return
 	}

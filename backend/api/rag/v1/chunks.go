@@ -33,7 +33,7 @@ type ChunkDeleteRes struct {
 type UpdateChunkReq struct {
 	g.Meta `path:"/v1/chunksPut" method:"put" tags:"rag"`
 	Ids    []int64 `p:"ids" dc:"ids" v:"required"`
-	Status int     `p:"status" dc:"status" v:"required|in:0,1"`
+	Status int     `p:"status" dc:"状态：0=禁用 1=启用（与 knowledge_chunks.status 一致）" v:"required|in:0,1"`
 }
 
 type UpdateChunkRes struct {

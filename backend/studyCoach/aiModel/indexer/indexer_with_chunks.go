@@ -3,6 +3,7 @@ package indexer
 import (
 	"backend/internal/logic/knowledge"
 	"backend/internal/model/entity"
+	"backend/studyCoach/aiModel/indexer/docmeta"
 	"backend/studyCoach/common"
 	"context"
 
@@ -33,7 +34,7 @@ func (w *indexerWithChunks) Store(ctx context.Context, docs []*schema.Document, 
 	if documentsId > 0 && len(docs) > 0 {
 		chunks := make([]entity.KnowledgeChunks, 0, len(docs))
 		for _, doc := range docs {
-			ext, err := sonic.Marshal(getExtData(doc))
+			ext, err := sonic.Marshal(docmeta.GetExtData(doc))
 			if err != nil {
 				g.Log().Errorf(ctx, "wrapIndexerWithChunks marshal ext failed, err=%v", err)
 				continue
@@ -44,6 +45,7 @@ func (w *indexerWithChunks) Store(ctx context.Context, docs []*schema.Document, 
 				ChunkId:        doc.ID,
 				Content:        doc.Content,
 				Ext:            string(ext),
+				Status:         knowledge.ChunkStatusActive, // 与 DB default:1 及前端「启用」一致
 			})
 		}
 		if len(chunks) > 0 {

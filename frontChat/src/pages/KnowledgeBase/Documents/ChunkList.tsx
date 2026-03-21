@@ -99,7 +99,9 @@ const ChunkList: React.FC<ChunkListProps> = ({ documentId }) => {
         status: newStatus,
       });
       const statusText = newStatus === ChunkStatus.ACTIVE ? t('kb.enabled') : t('kb.disabled');
-      message.success(t('kb.chunks.statusChanged', { status: statusText }));
+      message.success(
+        t('kb.chunks.statusChanged', { chunkId: chunk.chunkId, status: statusText }),
+      );
       await fetchChunksList();
     } catch (error) {
       message.error(t('kb.chunks.statusChangeFailed'));

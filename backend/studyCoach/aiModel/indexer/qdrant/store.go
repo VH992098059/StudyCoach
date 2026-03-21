@@ -1,6 +1,7 @@
-package indexer
+package qdrant
 
 import (
+	"backend/studyCoach/aiModel/indexer/docmeta"
 	"backend/studyCoach/common"
 	"context"
 	"fmt"
@@ -10,13 +11,13 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/google/uuid"
-	"github.com/qdrant/go-client/qdrant"
+	qdrantclient "github.com/qdrant/go-client/qdrant"
 )
 
 // StoreWithNamedVectors 使用命名向量将文档写入 Qdrant。
 // 支持 content_vector（qa_content_vector 由异步任务补充），payload 含 content、_knowledge_name、ext。
 // 知识库名称从 context 的 common.KnowledgeName 获取。
-func (idx *QdrantIndexer) StoreWithNamedVectors(ctx context.Context, docs []*schema.Document, opts ...indexer.Option) ([]string, error) {
+func (idx *Indexer) StoreWithNamedVectors(ctx context.Context, docs []*schema.Document, opts ...indexer.Option) ([]string, error) {
 	if len(docs) == 0 {
 		return nil, nil
 	}
@@ -30,18 +31,15 @@ func (idx *QdrantIndexer) StoreWithNamedVectors(ctx context.Context, docs []*sch
 
 	g.Log().Infof(ctx, "QdrantIndexer.StoreWithNamedVectors: storing %d documents to collection %s, knowledge_name=%s", len(docs), idx.config.Collection, knowledgeName)
 
-	// 准备 points
-	points := make([]*qdrant.PointStruct, 0, len(docs))
+	points := make([]*qdrantclient.PointStruct, 0, len(docs))
 	ids := make([]string, 0, len(docs))
 
 	for _, doc := range docs {
-		// 生成 ID
 		if len(doc.ID) == 0 {
 			doc.ID = uuid.New().String()
 		}
 		ids = append(ids, doc.ID)
 
-		// 生成 embedding
 		embeddings, err := idx.config.Embedding.EmbedStrings(ctx, []string{doc.Content})
 		if err != nil {
 			g.Log().Errorf(ctx, "Failed to embed document %s: %v", doc.ID, err)
@@ -51,37 +49,33 @@ func (idx *QdrantIndexer) StoreWithNamedVectors(ctx context.Context, docs []*sch
 			return nil, fmt.Errorf("embedding returned empty result")
 		}
 
-		// 转换为 float32
 		vec32 := make([]float32, len(embeddings[0]))
 		for i, v := range embeddings[0] {
 			vec32[i] = float32(v)
 		}
 
-		// 准备 payload
-		payload := make(map[string]*qdrant.Value)
-		payload[common.FieldContent] = &qdrant.Value{
-			Kind: &qdrant.Value_StringValue{StringValue: doc.Content},
+		payload := make(map[string]*qdrantclient.Value)
+		payload[common.FieldContent] = &qdrantclient.Value{
+			Kind: &qdrantclient.Value_StringValue{StringValue: doc.Content},
 		}
-		payload[common.KnowledgeName] = &qdrant.Value{
-			Kind: &qdrant.Value_StringValue{StringValue: knowledgeName},
+		payload[common.KnowledgeName] = &qdrantclient.Value{
+			Kind: &qdrantclient.Value_StringValue{StringValue: knowledgeName},
 		}
 
-		// 添加额外的 metadata
 		if doc.MetaData != nil {
-			extData := getExtData(doc)
+			extData := docmeta.GetExtData(doc)
 			if len(extData) > 0 {
 				marshal, _ := sonic.Marshal(extData)
-				payload[common.FieldExtra] = &qdrant.Value{
-					Kind: &qdrant.Value_StringValue{StringValue: string(marshal)},
+				payload[common.FieldExtra] = &qdrantclient.Value{
+					Kind: &qdrantclient.Value_StringValue{StringValue: string(marshal)},
 				}
 			}
 		}
 
-		// 创建命名向量（只存储 content_vector，qa_content_vector 由异步任务处理）
-		vectors := &qdrant.Vectors{
-			VectorsOptions: &qdrant.Vectors_Vectors{
-				Vectors: &qdrant.NamedVectors{
-					Vectors: map[string]*qdrant.Vector{
+		vectors := &qdrantclient.Vectors{
+			VectorsOptions: &qdrantclient.Vectors_Vectors{
+				Vectors: &qdrantclient.NamedVectors{
+					Vectors: map[string]*qdrantclient.Vector{
 						common.FieldContentVector: {
 							Data: vec32,
 						},
@@ -90,10 +84,9 @@ func (idx *QdrantIndexer) StoreWithNamedVectors(ctx context.Context, docs []*sch
 			},
 		}
 
-		// 创建 point
-		point := &qdrant.PointStruct{
-			Id: &qdrant.PointId{
-				PointIdOptions: &qdrant.PointId_Uuid{Uuid: doc.ID},
+		point := &qdrantclient.PointStruct{
+			Id: &qdrantclient.PointId{
+				PointIdOptions: &qdrantclient.PointId_Uuid{Uuid: doc.ID},
 			},
 			Vectors: vectors,
 			Payload: payload,
@@ -102,8 +95,7 @@ func (idx *QdrantIndexer) StoreWithNamedVectors(ctx context.Context, docs []*sch
 		points = append(points, point)
 	}
 
-	// 批量存储到 Qdrant
-	_, err := idx.config.Client.Upsert(ctx, &qdrant.UpsertPoints{
+	_, err := idx.config.Client.Upsert(ctx, &qdrantclient.UpsertPoints{
 		CollectionName: idx.config.Collection,
 		Points:         points,
 	})

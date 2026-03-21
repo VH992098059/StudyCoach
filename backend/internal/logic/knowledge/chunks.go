@@ -10,6 +10,10 @@ import (
 	"github.com/google/uuid"
 )
 
+// ChunkStatusActive 与表 knowledge_chunks.status、前端 ChunkStatus 一致：1=启用，0=禁用。
+const ChunkStatusActive = 1
+const ChunkStatusDisabled = 0
+
 // SaveChunksData 批量保存知识块数据。
 // 仅当所有 chunk 均保存失败时才标记文档为 Failed；若有任一成功，保持 Indexing，由后续 QA 回调更新为 Active。
 func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.KnowledgeChunks) error {
@@ -23,6 +27,9 @@ func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.Know
 		}
 		if chunk.ChunkId == "" {
 			chunk.ChunkId = uuid.NewString()
+		}
+		if chunk.Status == 0 {
+			chunk.Status = ChunkStatusActive
 		}
 		// 先尝试查询是否存在
 		var existing entity.KnowledgeChunks
@@ -93,7 +100,7 @@ func GetChunksList(ctx context.Context, where entity.KnowledgeChunks, page, size
 		return nil, 0, nil
 	}
 
-	err = model.Page(size, page).Order("created_at desc").Scan(&list)
+	err = model.Page(page, size).Order("created_at desc").Scan(&list)
 	return
 }
 
@@ -109,16 +116,35 @@ func DeleteChunkById(ctx context.Context, id int64) error {
 	return err
 }
 
-// UpdateChunkByIds 根据ID更新知识块
+// UpdateChunkByIds 根据ID更新知识块（内容或状态；status 可为 0 表示禁用）
 func UpdateChunkByIds(ctx context.Context, ids []int64, data entity.KnowledgeChunks) error {
-	model := dao.KnowledgeChunks.Ctx(ctx).WhereIn("id", ids)
+	if len(ids) == 0 {
+		return nil
+	}
+	m := g.Map{}
 	if data.Content != "" {
-		model = model.Data("content", data.Content)
+		m["content"] = data.Content
 	}
-	if data.Status != 0 {
-		model = model.Data("status", data.Status)
+	// Status 用指针语义时更稳妥；此处用单独接口 UpdateChunksStatus 更新状态
+	if len(m) == 0 {
+		return nil
 	}
-	_, err := model.Update()
+	_, err := dao.KnowledgeChunks.Ctx(ctx).WhereIn("id", ids).Data(m).Update()
+	return err
+}
+
+// UpdateChunksStatus 批量更新切片启用/禁用状态（0=禁用，1=启用，与 DB default 一致）
+func UpdateChunksStatus(ctx context.Context, ids []int64, status int) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := dao.KnowledgeChunks.Ctx(ctx).WhereIn("id", ids).Data(g.Map{"status": status}).Update()
+	return err
+}
+
+// UpdateChunkContentById 按主键更新切片正文
+func UpdateChunkContentById(ctx context.Context, id int64, content string) error {
+	_, err := dao.KnowledgeChunks.Ctx(ctx).Where("id", id).Data(g.Map{"content": content}).Update()
 	return err
 }
 

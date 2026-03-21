@@ -385,7 +385,7 @@
       "fetchFailed": "Failed to fetch chunk list",
       "updateSuccess": "Chunk content updated successfully",
       "updateFailed": "Failed to update chunk content",
-      "statusChanged": "Chunk {{status}}",
+      "statusChanged": "Chunk {{chunkId}} is now {{status}}",
       "statusChangeFailed": "Failed to update chunk status",
       "deleteSuccess": "Chunk \"{{id}}\" deleted successfully",
       "deleteFailed": "Failed to delete chunk",
