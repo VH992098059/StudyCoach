@@ -1,0 +1,133 @@
+groups:
+  - name: studycoach-service
+    rules:
+      - alert: BackendDown
+        expr: up{job="studycoach-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "StudyCoach 后端服务宕机"
+          description: "后端服务 {{ $labels.instance }} 已离线超过 1 分钟"
+
+      - alert: HighHTTPLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="studycoach-backend"}[5m])) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 请求延迟过高"
+          description: "P95 延迟超过 3 秒，当前值: {{ $value }}s"
+
+      - alert: HighHTTPErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 5xx 错误率过高"
+          description: "5xx 错误率超过 5%，当前值: {{ $value | humanizePercentage }}"
+
+      - alert: HighGoroutineCount
+        expr: go_goroutines{job="studycoach-backend"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Goroutine 数量过高"
+          description: "当前 goroutine 数: {{ $value }}，可能存在泄漏"
+
+  - name: mysql
+    rules:
+      - alert: MySQLDown
+        expr: up{job="mysql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL 服务宕机"
+
+      - alert: MySQLSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL 慢查询增加"
+          description: "慢查询速率: {{ $value }}/s"
+
+      - alert: MySQLConnectionsHigh
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "MySQL 连接数使用率过高"
+          description: "连接使用率: {{ $value | humanizePercentage }}"
+
+  - name: redis
+    rules:
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis 服务宕机"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 内存使用率过高"
+          description: "内存使用率: {{ $value | humanizePercentage }}"
+
+  - name: elasticsearch
+    rules:
+      - alert: ElasticsearchDown
+        expr: up{job="elasticsearch"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Elasticsearch 服务宕机"
+
+      - alert: ElasticsearchDiskHigh
+        expr: elasticsearch_filesystem_data_available_bytes / elasticsearch_filesystem_data_size_bytes < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elasticsearch 磁盘空间不足"
+          description: "可用空间低于 15%"
+
+  - name: node
+    rules:
+      - alert: HostHighCPU
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "主机 CPU 使用率过高"
+          description: "CPU 使用率: {{ $value }}%"
+
+      - alert: HostHighMemory
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "主机内存使用率过高"
+          description: "内存使用率: {{ $value | humanizePercentage }}"
+
+      - alert: HostDiskSpaceLow
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘空间不足"
+          description: "磁盘 {{ $labels.mountpoint }} 使用率: {{ $value | humanizePercentage }}"

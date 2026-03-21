@@ -24,7 +24,7 @@ type ChatMessage struct {
 
 type LoginReq struct {
 	g.Meta            `path:"users/login" method:"post" sm:"登录"`
-	Username          string                    `json:"username" v:"required|length:6,30"`
+	Username          string                    `json:"username" v:"required|length:4,30"`
 	Password          string                    `json:"password" v:"required|length:6,20"`
 	AnonymousSessions []AnonymousSessionPayload `json:"anonymousSessions" description:"未登录时的会话，登录后合并到用户历史"`
 }
@@ -36,7 +36,7 @@ type LoginRes struct {
 }
 type RegisterReq struct {
 	g.Meta   `path:"users/register" method:"post" sm:"注册"`
-	Username string `json:"username" v:"required|length:6,30"`
+	Username string `json:"username" v:"required|length:4,30"`
 	Password string `json:"password" v:"required|length:6,20"`
 	Email    string `json:"email" v:"required|length:6,30"`
 }

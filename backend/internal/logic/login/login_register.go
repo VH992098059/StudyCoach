@@ -55,6 +55,7 @@ func Login(ctx context.Context, username, password string) (id uint64, uuid, tok
 	/*JWT生成*/
 	us := &utility.JwtClaims{
 		Id:       uint64(user.Id),
+		Uuid:     user.Uuid,
 		Username: user.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),

@@ -2,10 +2,38 @@ package asr
 
 import (
 	"context"
+	"sync"
 
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 )
+
+var (
+	asrModelMu   sync.RWMutex
+	asrModelInst compose.Runnable[map[string]any, *schema.Message]
+)
+
+// GetOrBuildASRModel 返回全局单例 ASR Runnable，首次调用时编译图，后续复用缓存。
+func GetOrBuildASRModel(ctx context.Context) (compose.Runnable[map[string]any, *schema.Message], error) {
+	asrModelMu.RLock()
+	inst := asrModelInst
+	asrModelMu.RUnlock()
+	if inst != nil {
+		return inst, nil
+	}
+
+	asrModelMu.Lock()
+	defer asrModelMu.Unlock()
+	if asrModelInst != nil {
+		return asrModelInst, nil
+	}
+	newInst, err := BuildaiModelASR(ctx)
+	if err != nil {
+		return nil, err
+	}
+	asrModelInst = newInst
+	return asrModelInst, nil
+}
 
 func BuildaiModelASR(ctx context.Context) (r compose.Runnable[map[string]any, *schema.Message], err error) {
 	const (

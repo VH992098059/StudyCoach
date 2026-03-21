@@ -10,7 +10,7 @@ import (
 )
 
 func (c *ControllerV1) Asr(ctx context.Context, req *v1.AsrReq) (res *v1.AsrRes, err error) {
-	phone, err := api.AsrPhone(ctx, req.AudioBase64)
+	phone, err := api.AsrPhone(ctx, req.AudioBase64, req.Language)
 	if err != nil {
 		return nil, err
 	}

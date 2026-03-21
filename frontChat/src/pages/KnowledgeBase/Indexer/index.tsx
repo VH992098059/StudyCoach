@@ -40,6 +40,9 @@ const { Dragger } = Upload;
 const { Option } = Select;
 const { TabPane } = Tabs;
 
+/** /gateway/v1/indexer 为同步长任务（解析、切分、Embedding 等），需长于全局 axios 默认超时 */
+const INDEXER_REQUEST_TIMEOUT_MS = 15 * 60 * 1000;
+
 /**
  * 处理信息接口
  */
@@ -105,20 +108,28 @@ const Indexer: React.FC = () => {
    * 文件上传前的检查
    */
   const beforeUpload = (file: File): boolean => {
-    // 检查文件类型
+    // 检查文件类型（Windows/部分浏览器下 PDF/Office 可能为 application/octet-stream 或空 MIME，必须按后缀兜底）
     const allowedTypes = [
       'text/markdown',
-      'text/html', 
+      'text/html',
       'text/plain',
       'application/pdf',
       'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ];
-    
-    const isAllowed = allowedTypes.includes(file.type) || 
-                     file.name.endsWith('.md') || 
-                     file.name.endsWith('.txt') ||
-                     file.name.endsWith('.html');
+    const lower = file.name.toLowerCase();
+    const allowedByExt =
+      lower.endsWith('.md') ||
+      lower.endsWith('.txt') ||
+      lower.endsWith('.html') ||
+      lower.endsWith('.pdf') ||
+      lower.endsWith('.doc') ||
+      lower.endsWith('.docx') ||
+      lower.endsWith('.xlsx');
+
+    const isAllowed = allowedTypes.includes(file.type) || allowedByExt;
 
     if (!isAllowed) {
       message.error(t('indexer.validation.fileType'));
@@ -132,13 +143,7 @@ const Indexer: React.FC = () => {
       return false;
     }
 
-    // 显示处理中信息
-    setProcessingInfo({
-      title: t('indexer.processInfo.processing'),
-      type: 'info',
-      description: t('indexer.processInfo.processingDesc', { fileName: file.name }),
-    });
-
+    // 仅校验，不触发「处理中」提示；真正索引在用户点击「开始索引」后 handleUpload 里展示
     return false; // 阻止自动上传，手动控制
   };
 
@@ -147,6 +152,11 @@ const Indexer: React.FC = () => {
    */
   const handleChange: UploadProps['onChange'] = (info) => {
     setFileList(info.fileList);
+    // 清空文件时一并清掉提示与结果，避免残留「处理中」文案
+    if (info.fileList.length === 0) {
+      setProcessingInfo(null);
+      setIndexResult(null);
+    }
   };
 
   /**
@@ -169,13 +179,20 @@ const Indexer: React.FC = () => {
     }
 
     setUploading(true);
-    
+    setProcessingInfo({
+      title: t('indexer.processInfo.processing'),
+      type: 'info',
+      description: t('indexer.processInfo.processingDesc', { fileName: fileList[0].name }),
+    });
+
     try {
       const formData = new FormData();
       formData.append('file', fileList[0].originFileObj as File);
       formData.append('knowledge_name', selectedKnowledge);
 
-      const result = await ApiClient.post('/gateway/v1/indexer', formData);
+      const result = await ApiClient.post('/gateway/v1/indexer', formData, {
+        timeout: INDEXER_REQUEST_TIMEOUT_MS,
+      });
 
       setProcessingInfo({
         title: t('indexer.processInfo.success'),
@@ -254,7 +271,9 @@ const Indexer: React.FC = () => {
       formData.append('url', urlValue);
       formData.append('knowledge_name', selectedKnowledge);
 
-      const result = await ApiClient.post('/gateway/v1/indexer', formData);
+      const result = await ApiClient.post('/gateway/v1/indexer', formData, {
+        timeout: INDEXER_REQUEST_TIMEOUT_MS,
+      });
       setProcessingInfo({
         title: t('indexer.processInfo.urlProcessing'),
         type: 'success',

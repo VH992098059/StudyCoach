@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
 )
@@ -26,12 +27,30 @@ func TextToSpeech(ctx context.Context, input string) ([]byte, error) {
 		return nil, fmt.Errorf("base URL not found in configuration")
 	}
 	apiUrl := baseURL + "/audio/speech"
+
+	model := g.Cfg().MustGet(ctx, "voice.model").String()
+	if model == "" {
+		model = "FunAudioLLM/CosyVoice2-0.5B"
+	}
+	voiceName := g.Cfg().MustGet(ctx, "voice.voiceName").String()
+	if voiceName == "" {
+		voiceName = model + ":alex"
+	}
+	speed := g.Cfg().MustGet(ctx, "voice.speed").Float64()
+	if speed <= 0 {
+		speed = 1.0
+	}
+	format := g.Cfg().MustGet(ctx, "voice.format").String()
+	if format == "" {
+		format = "mp3"
+	}
+
 	payload := RequestPayload{
-		Model:  "FunAudioLLM/CosyVoice2-0.5B",
+		Model:  model,
 		Input:  input,
-		Voice:  "FunAudioLLM/CosyVoice2-0.5B:alex",
-		Speed:  1.0,
-		Format: "mp3",
+		Voice:  voiceName,
+		Speed:  speed,
+		Format: format,
 	}
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
@@ -53,11 +72,11 @@ func TextToSpeech(ctx context.Context, input string) ([]byte, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "audio/mpeg")
 
-	//请求处理
-	audioData, err := utility.AsrTTSHttp(req)
+	// 请求处理（远程 TTS 服务，60s 超时）
+	audioData, err := utility.AsrTTSHttp(req, 60*time.Second)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("语音合成成功")
+	g.Log().Infof(ctx, "[TTS] 合成成功，长度=%d bytes", len(audioData))
 	return audioData, nil
 }

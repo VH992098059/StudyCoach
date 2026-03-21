@@ -15,11 +15,15 @@ import (
 	"sync"
 
 	"github.com/cloudwego/eino/adk"
+	einoFilesystem "github.com/cloudwego/eino/adk/filesystem"
 	einoPlantask "github.com/cloudwego/eino/adk/middlewares/plantask"
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/gogf/gf/v2/frame/g"
+
+	"backend/utility"
 )
 
+// plantaskRemoteBase SeaweedFS 上的逻辑路径前缀（与本地目录名 plantask 可不同）
 const plantaskRemoteBase = "plantask_tasks"
 const pendingFileName = "_pending_upload.json"
 
@@ -180,7 +184,7 @@ func (b *hybridBackend) LsInfo(ctx context.Context, req *einoPlantask.LsInfoRequ
 	return result, nil
 }
 
-func (b *hybridBackend) Read(ctx context.Context, req *einoPlantask.ReadRequest) (string, error) {
+func (b *hybridBackend) Read(ctx context.Context, req *einoPlantask.ReadRequest) (*einoFilesystem.FileContent, error) {
 	b.syncPendingToSeaweedFS(ctx)
 
 	// 优先 SeaweedFS
@@ -191,7 +195,7 @@ func (b *hybridBackend) Read(ctx context.Context, req *einoPlantask.ReadRequest)
 			defer rc.Close()
 			data, err := io.ReadAll(rc)
 			if err == nil {
-				return string(data), nil
+				return &einoFilesystem.FileContent{Content: string(data)}, nil
 			}
 		}
 	}
@@ -199,9 +203,9 @@ func (b *hybridBackend) Read(ctx context.Context, req *einoPlantask.ReadRequest)
 	// 回退本地
 	data, err := os.ReadFile(req.FilePath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(data), nil
+	return &einoFilesystem.FileContent{Content: string(data)}, nil
 }
 
 func (b *hybridBackend) Write(ctx context.Context, req *einoPlantask.WriteRequest) error {
@@ -239,10 +243,7 @@ func (b *hybridBackend) Delete(ctx context.Context, req *einoPlantask.DeleteRequ
 
 // NewTools 创建 PlanTask 四个工具（TaskCreate/TaskGet/TaskUpdate/TaskList），供 ReAct Agent 使用
 func NewTools(ctx context.Context) ([]tool.BaseTool, error) {
-	baseDir := "plantask_tasks"
-	if v, err := g.Cfg().Get(ctx, "plantask.baseDir"); err == nil && v.String() != "" {
-		baseDir = v.String()
-	}
+	baseDir := utility.FilesPlantaskLocalDir(ctx)
 	absDir, err := filepath.Abs(baseDir)
 	if err != nil {
 		absDir = baseDir

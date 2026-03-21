@@ -189,12 +189,12 @@ func QaModel(ctx context.Context) (cm model.ToolCallingChatModel, err error) {
 	if err != nil || modelName.String() == "" {
 		return nil, fmt.Errorf("config missing: qa.model")
 	}
-	config := &openai.ChatModelConfig{
+	config := &ark.ChatModelConfig{
 		APIKey:  apiKey.String(),
 		BaseURL: baseURL.String(),
 		Model:   modelName.String(),
 	}
-	cm, err = openai.NewChatModel(ctx, config)
+	cm, err = ark.NewChatModel(ctx, config)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ package studyplan
 
 import (
 	"backend/studyCoach/seaweedFS/FilerMode"
+	"backend/utility"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -25,7 +26,6 @@ import (
 const (
 	basePath     = "study_plans"
 	planFileName = "Study_Plan.md"
-	localBase    = "study_plans_local"
 	pendingFile  = "_pending.json"
 )
 
@@ -424,10 +424,7 @@ func (t *DeletePlanTool) InvokableRun(ctx context.Context, argumentsInJSON strin
 
 // NewTools 创建 save_plan、read_plan、delete_plan 工具
 func NewTools(ctx context.Context) ([]tool.BaseTool, error) {
-	localDir := localBase
-	if v, err := g.Cfg().Get(ctx, "studyplan.localDir"); err == nil && v.String() != "" {
-		localDir = v.String()
-	}
+	localDir := utility.FilesStudyPlansLocalDir(ctx)
 	absDir, err := filepath.Abs(localDir)
 	if err != nil {
 		absDir = localDir

@@ -34,7 +34,7 @@ func _init() error {
 	cfg = &common.Config{
 		Client:    client,
 		IndexName: "study",
-		APIKey:    "sk-*",
+		APIKey:    "sk-ejjvzdhadihlscxiiypoepwllzbktvknnrlmcbngfgwxwlxz",
 		BaseURL:   "https://api.siliconflow.cn/v1",
 		ChatModel: "Qwen/Qwen3-Embedding-8B",
 	}

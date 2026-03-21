@@ -3,6 +3,7 @@ package api
 import (
 	"backend/studyCoach/common"
 	"context"
+	"time"
 
 	"github.com/cloudwego/eino/components/document"
 	"github.com/cloudwego/eino/schema"
@@ -30,12 +31,18 @@ func (x *Rag) Index(ctx context.Context, req *IndexReq) (ids []string, err error
 	}
 	ctx = context.WithValue(ctx, common.KnowledgeName, req.KnowledgeName)
 	ctx = context.WithValue(ctx, common.DocumentsIdKey, req.DocumentsId)
+	start := time.Now()
+	g.Log().Infof(ctx, "Index start: uri=%s knowledge=%s documentsId=%d (含 PDF 解析、切分、Embedding 批量写入，大文件或 chunk 多时会较慢)", req.URI, req.KnowledgeName, req.DocumentsId)
 	ids, err = x.idxer.Invoke(ctx, s)
 	if err != nil {
-		g.Log().Errorf(ctx, "Index idxer.Invoke failed, err:\n%v", err)
+		g.Log().Errorf(ctx, "Index idxer.Invoke failed after %v, err:\n%v", time.Since(start), err)
 		return
 	}
-	g.Log().Infof(ctx, "Index success, generated %d chunks with IDs: %v", len(ids), ids)
+	sample := ids
+	if len(sample) > 5 {
+		sample = sample[:5]
+	}
+	g.Log().Infof(ctx, "Index success in %v, chunk count=%d, ids (前至多5个): %v", time.Since(start), len(ids), sample)
 	return
 }
 

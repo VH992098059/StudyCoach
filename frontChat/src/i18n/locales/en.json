@@ -274,7 +274,8 @@
       "startBtn": "Start Call",
       "endBtn": "End Call",
       "restartBtn": "Restart",
-      "closeBtn": "Close"
+      "closeBtn": "Close",
+      "maxDuration": "Recording reached the 60s limit; call ended automatically"
     },
     "sse": {
        "unknownError": "Unknown error",

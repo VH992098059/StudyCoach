@@ -4,6 +4,7 @@ package filesystem
 
 import (
 	"backend/studyCoach/aiModel/eino_tools/studyplan"
+	"backend/utility"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -18,13 +19,8 @@ import (
 
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/schema"
-	"github.com/gogf/gf/v2/frame/g"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
-)
-
-const (
-	workDirBase = "study_plans_local"
 )
 
 // GetWorkDirForSession 根据 sessionID 返回会话工作目录，供上传等场景使用
@@ -32,12 +28,7 @@ func GetWorkDirForSession(ctx context.Context, sessionID string) (string, error)
 	if sessionID == "" {
 		return "", fmt.Errorf("无法获取会话 ID")
 	}
-	var base string
-	if v, err := g.Cfg().Get(ctx, "studyplan.localDir"); err == nil && v.String() != "" {
-		base = filepath.Join(v.String(), "workdir")
-	} else {
-		base = filepath.Join(workDirBase, "workdir")
-	}
+	base := filepath.Join(utility.FilesStudyPlansLocalDir(ctx), "workdir")
 	workDir := filepath.Join(base, sessionID)
 	if err := os.MkdirAll(workDir, 0755); err != nil {
 		return "", fmt.Errorf("创建工作目录失败: %v", err)

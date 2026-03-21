@@ -7,21 +7,17 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
+	"time"
 
-	// 新增：兼容上游 FastAPI 文件上传格式
+	// 兼容上游 FastAPI 文件上传格式
 	"encoding/base64"
 	"mime/multipart"
 	"strings"
 
 	"github.com/goccy/go-json"
+	"github.com/gogf/gf/v2/frame/g"
 )
-
-type AsrRequest struct {
-	AudioBase64 string `json:"audio_Base64"`
-	Language    string `json:"language"`
-}
 
 // 兼容多种返回结构：result 可能是对象或数组，同时部分实现会把 text 字段置于顶层
 type AsrResultItem struct {
@@ -38,8 +34,15 @@ type AsrResponseEnvelope struct {
 	Text      string          `json:"text"`
 }
 
-func AsrPhone(ctx context.Context, audioBase64 string) (audio []byte, err error) {
-	apiURL := "http://localhost:50000" + "/api/v1/asr"
+func AsrPhone(ctx context.Context, audioBase64 string, language string) (audio []byte, err error) {
+	asrURL := g.Cfg().MustGet(ctx, "asr.url").String()
+	if asrURL == "" {
+		asrURL = "http://localhost:50000"
+	}
+	apiURL := asrURL + "/api/v1/asr"
+	if language == "" {
+		language = "auto"
+	}
 
 	// 解析 dataURI / 纯Base64
 	var mimeType string = "application/octet-stream"
@@ -96,8 +99,8 @@ func AsrPhone(ctx context.Context, audioBase64 string) (audio []byte, err error)
 	if _, err = filePart.Write(decoded); err != nil {
 		return nil, fmt.Errorf("write form file error: %v", err)
 	}
-	// 语言字段
-	if err = mw.WriteField("language", "auto"); err != nil {
+	// 语言字段（透传前端选择的语言）
+	if err = mw.WriteField("language", language); err != nil {
 		return nil, fmt.Errorf("write field error: %v", err)
 	}
 	if err = mw.Close(); err != nil {
@@ -112,8 +115,8 @@ func AsrPhone(ctx context.Context, audioBase64 string) (audio []byte, err error)
 	req.Header.Set("Content-Type", mw.FormDataContentType())
 	req.Header.Set("Accept", "application/json")
 
-	//请求处理
-	bodyBytes, err := utility.AsrTTSHttp(req)
+	// 请求处理（本地 ASR 服务，30s 超时）
+	bodyBytes, err := utility.AsrTTSHttp(req, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -169,10 +172,10 @@ func AsrPhone(ctx context.Context, audioBase64 string) (audio []byte, err error)
 	if strings.TrimSpace(recognized) == "" {
 		return nil, fmt.Errorf("ASR 返回空文本")
 	}
-	log.Printf("ASR识别结果: %s", recognized)
+	g.Log().Infof(ctx, "[ASR] 识别结果: %s", recognized)
 
-	// 调用对话模型并进行 TTS
-	modelASR, err := asr.BuildaiModelASR(ctx)
+	// 调用对话模型并进行 TTS（使用缓存的编译图，避免每次重新 Compile）
+	modelASR, err := asr.GetOrBuildASRModel(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -13,6 +13,7 @@ import (
 type KnowledgeBase struct {
 	g.Meta      `orm:"table:knowledge_base, do:true"`
 	Id          any         //
+	UserUuid    any         //
 	Name        any         //
 	Description any         //
 	Category    any         //

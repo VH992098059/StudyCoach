@@ -205,6 +205,19 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
             const payload = typeof data === 'string' ? data.trim() : '';
 
+            // 兜底：部分 SSE 解析器不传 event，tool_status 的 data 会作为普通 data 到达
+            // 若 payload 形如 {"tool":"skill","name":"skill(xxx)"} 且无 content/reasoning_content，按 tool_status 处理
+            try {
+              const parsed = JSON.parse(payload);
+              if (parsed && (parsed.tool != null || parsed.name != null) && parsed.content == null && parsed.reasoning_content == null && parsed.delta == null) {
+                const name = parsed.name || parsed.tool || '';
+                setCurrentToolStatus(name ? t('chat.thinkChain.executingTool', { name }) : t('chat.thinkChain.executingToolGeneric'));
+                return;
+              }
+            } catch {
+              /* 非 JSON，继续按 content 处理 */
+            }
+
             if (payload === '[DONE]') {
               // 传输完成
               const finalMsg = accumulatedMessageRef.current.trim();

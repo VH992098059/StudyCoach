@@ -5,8 +5,12 @@ import (
 	"backend/internal/logic/rag"
 	"backend/internal/model/entity"
 	"backend/studyCoach/api"
+	"backend/studyCoach/mineruworker"
+	"backend/utility"
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/gogf/gf/v2/frame/g"
 
@@ -14,22 +18,30 @@ import (
 )
 
 func (c *ControllerV1) Indexer(ctx context.Context, req *v1.IndexerReq) (res *v1.IndexerRes, err error) {
+	userUUID, err := utility.CurrentUserUUID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = knowledge.EnsureKnowledgeBaseBelongsToUser(ctx, userUUID, req.KnowledgeName); err != nil {
+		return nil, err
+	}
 	svr := rag.GetRagSvr()
 	if svr == nil {
 		return nil, fmt.Errorf("RAG服务未初始化，请检查Elasticsearch和embedding配置")
 	}
-	url := req.URL
+	url := strings.TrimSpace(req.URL)
 	var fileName string
 	if req.File != nil {
-		filename, err := req.File.Save("./uploads/")
+		uploadDir := utility.FilesUploadsDir(ctx)
+		filename, err := req.File.Save(uploadDir)
 		if err != nil {
 			return nil, fmt.Errorf("indexer出错：%w", err)
 		}
-		url = "./uploads/" + filename
+		url = filepath.Join(uploadDir, filename)
 		fileName = req.File.Filename
 	} else {
-		// 如果是URL索引，使用URL作为文件名
-		fileName = req.URL
+		// URL 索引：fileName 用于展示与 PDF 判断
+		fileName = url
 	}
 	documents := entity.KnowledgeDocuments{
 		KnowledgeBaseName: req.KnowledgeName,
@@ -46,6 +58,16 @@ func (c *ControllerV1) Indexer(ctx context.Context, req *v1.IndexerReq) (res *v1
 	if err != nil {
 		g.Log().Errorf(ctx, "UpdateDocumentsStatus to indexing failed, err=%v", err)
 	}
+
+	// PDF：MinerU 精准解析为 Markdown 写入 files.root/mineru，再以 .md 走索引流水线（本地 PDF 与 PDF URL 均支持）
+	if mineruworker.IsPDFPath(fileName) {
+		mdPath, errMu := mineruworker.ExtractPDFToMarkdownFile(ctx, url, documentsId)
+		if errMu != nil {
+			return nil, errMu
+		}
+		url = mdPath
+	}
+
 	indexReq := &api.IndexReq{
 		URI:           url,
 		KnowledgeName: req.KnowledgeName,

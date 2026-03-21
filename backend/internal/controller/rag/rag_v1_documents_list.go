@@ -3,12 +3,20 @@ package rag
 import (
 	"backend/internal/logic/knowledge"
 	"backend/internal/model/entity"
+	"backend/utility"
 	"context"
 
 	"backend/api/rag/v1"
 )
 
 func (c *ControllerV1) DocumentsList(ctx context.Context, req *v1.DocumentsListReq) (res *v1.DocumentsListRes, err error) {
+	userUUID, err := utility.CurrentUserUUID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = knowledge.EnsureKnowledgeBaseBelongsToUser(ctx, userUUID, req.KnowledgeName); err != nil {
+		return nil, err
+	}
 	documents, total, err := knowledge.GetDocumentsList(ctx, entity.KnowledgeDocuments{
 		KnowledgeBaseName: req.KnowledgeName,
 	}, req.Page, req.Size)

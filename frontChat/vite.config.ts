@@ -1,10 +1,49 @@
-import { defineConfig } from 'vite'
+import { defineConfig, Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import fs from 'fs'
+
+/**
+ * 将 @ricky0123/vad-web 和 onnxruntime-web 的 WASM/模型文件复制到 public/vad/，
+ * 使开发和生产环境都能通过固定路径 /vad/ 访问，避免 node_modules 路径硬编码。
+ */
+function copyVadAssetsPlugin(): Plugin {
+  const doCopy = () => {
+    const destDir = path.resolve(__dirname, 'public/vad')
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true })
+
+    const vadDist = path.resolve(__dirname, 'node_modules/@ricky0123/vad-web/dist')
+    const onnxDist = path.resolve(__dirname, 'node_modules/onnxruntime-web/dist')
+
+    // VAD worklet bundle + ONNX silero 模型
+    if (fs.existsSync(vadDist)) {
+      for (const f of fs.readdirSync(vadDist)) {
+        if (f.endsWith('.onnx') || f.endsWith('.js')) {
+          fs.copyFileSync(path.join(vadDist, f), path.join(destDir, f))
+        }
+      }
+    }
+
+    // ONNX Runtime WASM 二进制
+    if (fs.existsSync(onnxDist)) {
+      for (const f of fs.readdirSync(onnxDist)) {
+        if (f.endsWith('.wasm')) {
+          fs.copyFileSync(path.join(onnxDist, f), path.join(destDir, f))
+        }
+      }
+    }
+  }
+
+  return {
+    name: 'copy-vad-assets',
+    buildStart: doCopy,
+    configureServer() { doCopy() },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), copyVadAssetsPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

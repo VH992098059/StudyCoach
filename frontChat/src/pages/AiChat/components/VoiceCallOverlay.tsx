@@ -64,8 +64,17 @@ const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
       onCancel={onCancel}
       centered
     >
+      {isRecording && (
+        <style>{`
+          @keyframes vadRecordingPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.35); transform: scale(1); }
+            50% { box-shadow: 0 0 0 10px rgba(255, 77, 79, 0); transform: scale(1.02); }
+          }
+        `}</style>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        <div style={{
+        <div
+          style={{
           width: 64,
           height: 64,
           borderRadius: 16,
@@ -73,8 +82,12 @@ const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)'
-        }}>
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
+          ...(isRecording
+            ? { animation: 'vadRecordingPulse 1.4s ease-in-out infinite' }
+            : {}),
+        }}
+        >
           {icon}
         </div>
         {isRecording && (

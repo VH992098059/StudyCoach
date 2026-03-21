@@ -58,6 +58,10 @@ func RunMigrateOnStartup(ctx context.Context) error {
 		return err
 	}
 
+	if err := seedTestUserIfAbsent(ctx, db); err != nil {
+		g.Log().Warningf(ctx, "插入默认 test 用户失败（可忽略或检查 users 表）: %v", err)
+	}
+
 	if len(tablesToCreate) > 0 {
 		g.Log().Infof(ctx, "已创建表: %s，database migrate completed", strings.Join(tablesToCreate, ", "))
 	} else {

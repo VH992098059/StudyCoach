@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/bytedance/sonic v1.15.0
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cloudwego/eino v0.8.0-beta.1
+	github.com/cloudwego/eino v0.8.4
 	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20250822083409-f8d432eea60f
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/recursive v0.0.0-20250822083409-f8d432eea60f
@@ -26,12 +26,15 @@ require (
 
 require (
 	github.com/aws/smithy-go v1.24.1
+	github.com/cloudwego/eino-ext/adk/backend/local v0.2.3
 	github.com/cloudwego/eino-ext/components/document/parser/xlsx v0.0.0-20251121095553-9c4349cc3e46
+	github.com/cloudwego/eino-ext/components/embedding/ark v0.1.1
 	github.com/cloudwego/eino-ext/components/indexer/qdrant v0.0.0-20251121095553-9c4349cc3e46
 	github.com/cloudwego/eino-ext/components/tool/mcp v0.0.8
 	github.com/goccy/go-json v0.10.5
 	github.com/mark3labs/mcp-go v0.43.2
 	github.com/milvus-io/milvus/client/v2 v2.6.1
+	github.com/opendatalab/MinerU-Ecosystem/sdk/go v0.0.0-20260321022158-f2fc8dfee8c0
 	github.com/qdrant/go-client v1.15.2
 	github.com/robfig/cron/v3 v3.0.1
 )
@@ -44,7 +47,6 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/cilium/ebpf v0.11.0 // indirect
-	github.com/cloudwego/eino-ext/adk/backend/local v0.2.0-alpha.1 // indirect
 	github.com/cockroachdb/errors v1.9.1 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20211118104740-dabe8e521a4f // indirect
 	github.com/cockroachdb/redact v1.1.3 // indirect
@@ -163,7 +165,6 @@ require (
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cloudwego/eino-ext/components/document/loader/url v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/document/parser/html v0.0.0-20250710065240-482d48888f25
-	github.com/cloudwego/eino-ext/components/document/parser/pdf v0.0.0-20250710065240-482d48888f25
 	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20250801075622-6721dae36fe9
 	github.com/cloudwego/eino-ext/components/indexer/es8 v0.0.0-20250818090953-a59b1be0df04
 	github.com/cloudwego/eino-ext/components/model/ark v0.1.64
@@ -173,7 +174,6 @@ require (
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.2 // indirect
 	github.com/dgraph-io/ristretto v0.2.0
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/dslipak/pdf v0.0.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elastic/elastic-transport-go/v8 v8.7.0 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
@@ -224,7 +224,7 @@ require (
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.16.0
 	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/text v0.28.0
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/driver/mysql v1.5.7

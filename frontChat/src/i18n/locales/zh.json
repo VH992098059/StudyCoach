@@ -66,6 +66,7 @@
     "disabled": "禁用",
     "id": "ID",
     "noCategory": "无分类",
+    "noKbDescription": "不使用知识库检索",
     "confirmDelete": "确定要删除这个知识库吗？",
     "deleteDesc": "此操作不可恢复。",
     "success": {
@@ -579,7 +580,8 @@
       "startBtn": "发起通话",
       "endBtn": "结束通话",
       "restartBtn": "重新发起",
-      "closeBtn": "关闭窗口"
+      "closeBtn": "关闭窗口",
+      "maxDuration": "单次连续录音已达 60 秒上限，已自动结束通话"
     },
     "sse": {
       "unknownError": "未知错误",

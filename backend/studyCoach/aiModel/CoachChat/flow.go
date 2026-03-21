@@ -26,13 +26,20 @@ func newLambda3(ctx context.Context, conf *common.Config) (lba *compose.Lambda, 
 	log.Printf("[ReActLambda] 配置工具 - 网络搜索: %v", isNetwork)
 
 	config := &react.AgentConfig{
-		MaxStep: 100,
+		MaxStep:               100,
+		StreamToolCallChecker: common.DrainStreamChecker,
 	}
 	chatModelIns11, err := newChatModel2(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
 	config.ToolCallingModel = chatModelIns11
+
+	// 注入工具调用通知中间件，实现 Generate 模式下的实时 tool_status 推送
+	config.ToolsConfig.ToolCallMiddlewares = append(
+		config.ToolsConfig.ToolCallMiddlewares,
+		common.BuildNotifyMiddleware(),
+	)
 
 	// 系统时间已通过提示词注入 current_time，无需 get_system_time 工具
 	// Skill 工具：按需加载 SKILL.md
@@ -79,7 +86,7 @@ func newLambda3(ctx context.Context, conf *common.Config) (lba *compose.Lambda, 
 	if err != nil {
 		return nil, err
 	}
-	lba, err = compose.AnyLambda(ins.Generate, ins.Stream, nil, nil)
+	lba, err = compose.AnyLambda(ins.Generate, common.BuildGenToStream(ins), nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -89,13 +96,20 @@ func newLambda3(ctx context.Context, conf *common.Config) (lba *compose.Lambda, 
 // newLambda4 PlanModifyModel：修改、增加、删除现有计划，含 filesystem 支持
 func newLambda4(ctx context.Context, conf *common.Config) (lba *compose.Lambda, err error) {
 	config := &react.AgentConfig{
-		MaxStep: 100,
+		MaxStep:               100,
+		StreamToolCallChecker: common.DrainStreamChecker,
 	}
 	chatModelIns11, err := newChatModel3(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
 	config.ToolCallingModel = chatModelIns11
+
+	// 注入工具调用通知中间件
+	config.ToolsConfig.ToolCallMiddlewares = append(
+		config.ToolsConfig.ToolCallMiddlewares,
+		common.BuildNotifyMiddleware(),
+	)
 
 	// web_search 工具
 	toolIns21, err := newTool1(ctx)
@@ -137,7 +151,7 @@ func newLambda4(ctx context.Context, conf *common.Config) (lba *compose.Lambda, 
 	if err != nil {
 		return nil, err
 	}
-	lba, err = compose.AnyLambda(ins.Generate, ins.Stream, nil, nil)
+	lba, err = compose.AnyLambda(ins.Generate, common.BuildGenToStream(ins), nil, nil)
 	if err != nil {
 		return nil, err
 	}

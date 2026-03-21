@@ -18,7 +18,7 @@ description: 指导何时及如何调用 task_create、task_get、task_update、
 
 1. **静默直接调用**：需要调用时，先调用工具，收到结果后再一次性输出完整回复。禁止先输出「正在检查」「我先看看」等过渡句。
 2. **任务 vs 计划**：plantask 管**任务粒度**（番茄钟、待办项）；整份学习计划用 save_plan/read_plan。
-3. **数据形态**：任务为结构化 JSON，存于 `plantask_tasks/`。
+3. **数据形态**：任务为结构化 JSON，本地默认存于 `Files/plantask/`（见配置 `plantask.baseDir`）。
 
 ## 常见流程
 

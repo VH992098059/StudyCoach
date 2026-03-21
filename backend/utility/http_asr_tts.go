@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
-func AsrTTSHttp(req *http.Request) (audio []byte, err error) {
-	client := &http.Client{}
+func AsrTTSHttp(req *http.Request, timeout time.Duration) (audio []byte, err error) {
+	client := &http.Client{Timeout: timeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error sending request: %v", err)

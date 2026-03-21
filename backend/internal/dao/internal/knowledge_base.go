@@ -22,6 +22,7 @@ type KnowledgeBaseDao struct {
 // KnowledgeBaseColumns defines and stores column names for the table knowledge_base.
 type KnowledgeBaseColumns struct {
 	Id          string //
+	UserUuid    string //
 	Name        string //
 	Description string //
 	Category    string //
@@ -33,6 +34,7 @@ type KnowledgeBaseColumns struct {
 // knowledgeBaseColumns holds the columns for the table knowledge_base.
 var knowledgeBaseColumns = KnowledgeBaseColumns{
 	Id:          "id",
+	UserUuid:    "user_uuid",
 	Name:        "name",
 	Description: "description",
 	Category:    "category",

@@ -25,6 +25,20 @@ export interface VoiceCallbacks {
 
 // Module-level state variables (singleton pattern via module scope)
 const audioCache: Map<string, string> = new Map();
+const AUDIO_CACHE_MAX = 10;
+
+// 将 key 写入缓存，超出上限时淘汰最早插入的条目并释放其 Blob URL
+const audioCacheSet = (key: string, url: string) => {
+  if (audioCache.size >= AUDIO_CACHE_MAX) {
+    const oldest = audioCache.keys().next().value;
+    if (oldest !== undefined) {
+      const oldUrl = audioCache.get(oldest);
+      if (oldUrl) URL.revokeObjectURL(oldUrl);
+      audioCache.delete(oldest);
+    }
+  }
+  audioCache.set(key, url);
+};
 let currentAudio: HTMLAudioElement | null = null;
 let isReading: boolean = false;
 let currentReadingMsgId: string | null = null;
@@ -65,10 +79,14 @@ const processTextForReading = (content: string): string => {
     .replace(/`([^`]+)`/g, '$1') // 移除行内代码标记
     .replace(/\*\*([^*]+)\*\*/g, '$1') // 移除粗体标记
     .replace(/\*([^*]+)\*/g, '$1') // 移除斜体标记
+    .replace(/~~([^~]+)~~/g, '$1') // 删除线
     .replace(/#{1,6}\s+/g, '') // 移除标题标记
+    .replace(/^\s*>\s?/gm, '') // 引用块前缀
     .replace(/^\s*[-*+]\s+/gm, '• ') // 替换列表标记为点号
     .replace(/^\s*\d+\.\s+/gm, '') // 移除有序列表标记
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 移除链接，保留文本
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1') // 图片 alt 文本
+    .replace(/<[^>]+>/g, '') // 简单 HTML 标签
     .replace(/\n{2,}/g, '。 ') // 将换行替换为句号和空格
     .replace(/\s+/g, ' ') // 合并多余空格
     .trim();
@@ -123,7 +141,7 @@ const playAudio = (audioUrl: string, msgId: string): Promise<void> => {
       if (callbacks) {
         callbacks.onCanPlay();
       }
-      message.success('开始朗读');
+      // 不弹 Toast：状态已通过回调与 UI 展示，避免打断阅读
     };
 
     audio.onended = () => {
@@ -132,7 +150,6 @@ const playAudio = (audioUrl: string, msgId: string): Promise<void> => {
       if (callbacks) {
         callbacks.onEnded();
       }
-      message.info('朗读完成');
       resolve();
     };
 
@@ -237,8 +254,8 @@ export const voiceService = {
           console.log('调用API获取音频');
           audioUrl = await callTextToSpeechAPI(textToRead);
           
-          // 存储到缓存
-          audioCache.set(textToRead, audioUrl);
+          // 存储到缓存（LRU 淘汰超出上限的旧条目）
+          audioCacheSet(textToRead, audioUrl);
           
           // 清除加载状态，开始播放
           updateState(false, null, false, null);
@@ -274,7 +291,6 @@ export const voiceService = {
    * 停止朗读
    */
   stopReading: (): void => {
-    const wasReading = isReading || !!currentAudio || ('speechSynthesis' in window && (window as any).speechSynthesis?.speaking);
     if (currentAudio) {
       currentAudio.pause();
       currentAudio.currentTime = 0;
@@ -288,9 +304,7 @@ export const voiceService = {
 
     // 清除所有状态
     updateState(false, null, false, null);
-    if (wasReading) {
-      message.info('已停止朗读');
-    }
+    // 不弹「已停止」提示，由界面状态反馈即可
   },
 
   /**

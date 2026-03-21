@@ -1,8 +1,10 @@
 package rag
 
 import (
+	"backend/internal/logic/knowledge"
 	"backend/internal/logic/rag"
 	"backend/studyCoach/api"
+	"backend/utility"
 	"context"
 	"fmt"
 	"sort"
@@ -15,6 +17,13 @@ import (
 )
 
 func (c *ControllerV1) Retriever(ctx context.Context, req *v1.RetrieverReq) (res *v1.RetrieverRes, err error) {
+	userUUID, err := utility.CurrentUserUUID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = knowledge.EnsureKnowledgeBaseBelongsToUser(ctx, userUUID, req.KnowledgeName); err != nil {
+		return nil, err
+	}
 	ragSvr := rag.GetRagSvr()
 	if ragSvr == nil {
 		return nil, fmt.Errorf("RAG服务未初始化")

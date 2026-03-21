@@ -23,9 +23,9 @@ func BuildVectorConfig(ctx context.Context) (*Config, error) {
 	}
 
 	// 获取 embedding 配置（通用）
-	apiKey, _ := cfg.Get(ctx, "embedding.apiKey")
-	baseURL, _ := cfg.Get(ctx, "embedding.baseURL")
-	chatModel, _ := cfg.Get(ctx, "embedding.model")
+	apiKey, _ := cfg.Get(ctx, "embeddingArk.apiKey")
+	baseURL, _ := cfg.Get(ctx, "embeddingArk.baseURL")
+	chatModel, _ := cfg.Get(ctx, "embeddingArk.model")
 
 	conf := &Config{
 		VectorEngine:   engineStr,

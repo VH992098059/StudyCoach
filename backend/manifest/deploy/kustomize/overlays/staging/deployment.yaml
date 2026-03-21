@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: template-single
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: main
+          image: studycoach-backend:staging
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          env:
+            - name: GF_GCFG_FILE
+              value: "/app/manifest/config/config.yaml"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: studycoach-secrets
+                  key: db-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: studycoach-secrets
+                  key: redis-password
+          livenessProbe:
+            httpGet:
+              path: /gateway/healthz
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /gateway/readyz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3

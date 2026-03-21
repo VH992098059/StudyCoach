@@ -162,7 +162,7 @@ embedding:
 embeddingArk:
   apiKey: "*"
   baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-embedding-vision-250615"
+  model: "doubao-embedding-vision-251215"
 
 rewrite:
   apiKey: "*"
@@ -219,13 +219,26 @@ es:
 skills:
   baseDir: "skills"
 
+# 本地运行时数据根目录（相对进程工作目录，一般为 backend/）。未单独配置时 plantask/studyplan/uploads 默认落在其下。
+files:
+  root: "files"
+  # 可选：覆盖知识库索引上传目录；默认 <files.root>/uploads
+  # uploadsDir: "files/uploads"
+
+# MinerU：PDF 索引前转为 Markdown（精准解析，默认开 OCR），结果写入 <files.root>/mineru/doc_{id}/extracted.md
+# 文档：https://github.com/opendatalab/MinerU-Ecosystem/blob/main/sdk/go/README.zh-CN.md
+mineru:
+  enabled: true
+  pollTimeout: "15m" # Extract 轮询总超时
+  # cacheDir: "files/mineru" # 可选；默认 <files.root>/mineru
+
 # PlanTask 任务存储目录（TaskCreate/TaskGet/TaskUpdate/TaskList 的 JSON 文件）
 plantask:
-  baseDir: "plantask_tasks"
+  baseDir: "files/plantask"
 
-# 学习计划（save_plan/read_plan）本地回退目录，SeaweedFS 不可用时使用
+# 学习计划（save_plan/read_plan）与 filesystem workdir 的根目录，SeaweedFS 不可用时使用
 studyplan:
-  localDir: "study_plans_local"
+  localDir: "files/study_plans"
 
 cron:
   apiKey: "*"

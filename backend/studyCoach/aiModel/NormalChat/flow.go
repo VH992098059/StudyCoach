@@ -3,6 +3,7 @@ package NormalChat
 import (
 	"backend/studyCoach/aiModel/eino_tools/filesystem"
 	"backend/studyCoach/aiModel/eino_tools/skill"
+	"backend/studyCoach/common"
 	"context"
 	"log"
 
@@ -20,16 +21,23 @@ func newLambda(ctx context.Context) (lba *compose.Lambda, err error) {
 	}
 	log.Printf("[ReActLambda] 配置工具 - 网络搜索(联网): %v", isNetwork)
 	config := &react.AgentConfig{
-		MaxStep: 100,
+		MaxStep:               100,
+		StreamToolCallChecker: common.DrainStreamChecker,
 	}
 	chatModelIns11, err := newChatModel(ctx)
 	if err != nil {
 		return nil, err
 	}
 	config.ToolCallingModel = chatModelIns11
+
+	// 注入工具调用通知中间件，实现 Generate 模式下的实时 tool_status 推送
+	config.ToolsConfig.ToolCallMiddlewares = append(
+		config.ToolsConfig.ToolCallMiddlewares,
+		common.BuildNotifyMiddleware(),
+	)
 	// 系统时间已通过提示词注入 current_time，无需 get_system_time 工具
 	// 始终添加 Skill 工具（按需加载 SKILL.md），NormalChat 排除 plantask-usage、studyplan-usage（任务/计划管理仅在教练模式）
-	if skillTool, err := skill.NewToolWithExclude(ctx, []string{"plantask-usage", "studyplan-usage"}); err == nil {
+	if skillTool, err := skill.NewToolWithExclude(ctx, []string{"plantask-usage", "studyplan-usage", "de-ai-style"}); err == nil {
 		config.ToolsConfig.Tools = append(config.ToolsConfig.Tools, skillTool)
 		log.Printf("[ReActLambda] 已添加 Skill 工具（已排除 plantask/studyplan）")
 	} else {
@@ -57,7 +65,7 @@ func newLambda(ctx context.Context) (lba *compose.Lambda, err error) {
 	if err != nil {
 		return nil, err
 	}
-	lba, err = compose.AnyLambda(ins.Generate, ins.Stream, nil, nil)
+	lba, err = compose.AnyLambda(ins.Generate, common.BuildGenToStream(ins), nil, nil)
 	if err != nil {
 		return nil, err
 	}
