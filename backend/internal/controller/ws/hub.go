@@ -3,16 +3,31 @@ package ws
 import (
 	"encoding/json"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
+func truncateForLog(s string, max int) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "(empty)"
+	}
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return string(r[:max]) + "…"
+}
+
 // Client 表示一个 WebSocket 连接
 type Client struct {
-	Hub  *Hub
-	Conn *websocket.Conn
-	Send chan []byte
+	Hub       *Hub
+	Conn      *websocket.Conn
+	Send      chan []byte
+	Remote    string // 客户端地址（TCP 层）
+	UserAgent string // 请求头 User-Agent（截断记入日志）
 }
 
 // Hub 管理所有 WebSocket 连接，支持广播
@@ -41,8 +56,9 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			h.mu.Lock()
 			h.clients[client] = true
+			n := len(h.clients)
 			h.mu.Unlock()
-			log.Printf("[WS] Client connected, total: %d", len(h.clients))
+			log.Printf("[WS] Client connected remote=%s ua=%s total=%d", client.Remote, truncateForLog(client.UserAgent, 120), n)
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -50,7 +66,9 @@ func (h *Hub) Run() {
 				delete(h.clients, client)
 				close(client.Send)
 			}
+			n := len(h.clients)
 			h.mu.Unlock()
+			log.Printf("[WS] Client disconnected remote=%s ua=%s total=%d", client.Remote, truncateForLog(client.UserAgent, 120), n)
 
 		case message := <-h.broadcast:
 			h.mu.RLock()

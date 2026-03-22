@@ -5,12 +5,25 @@ import (
 	"backend/studyCoach/common"
 	"context"
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/cloudwego/eino/schema"
 	"github.com/gogf/gf/v2/frame/g"
 )
+
+// qaGenerateTimeout LLM 生成 QA 的单片超时；可通过环境变量 QA_GENERATE_TIMEOUT_SEC 覆盖（秒）。
+func qaGenerateTimeout() time.Duration {
+	const defaultSec = 90
+	if s := os.Getenv("QA_GENERATE_TIMEOUT_SEC"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 && n <= 600 {
+			return time.Duration(n) * time.Second
+		}
+	}
+	return defaultSec * time.Second
+}
 
 func qa(ctx context.Context, docs []*schema.Document) (output []*schema.Document, err error) {
 	var knowledgeName string
@@ -22,17 +35,21 @@ func qa(ctx context.Context, docs []*schema.Document) (output []*schema.Document
 	sem := make(chan struct{}, 6)
 	var wg sync.WaitGroup
 	for _, doc := range docs {
+		if doc.MetaData == nil {
+			doc.MetaData = map[string]any{}
+		}
 		wg.Add(1)
 		sem <- struct{}{}
 		go func(doc *schema.Document) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			qaContent, e := getQAContentWithTime(ctx, doc, knowledgeName, 30*time.Second)
+			qaContent, e := getQAContentWithTime(ctx, doc, knowledgeName, qaGenerateTimeout())
 			if e != nil {
-				g.Log().Errorf(ctx, "getQAContent failed, err=%v", e)
+				g.Log().Errorf(ctx, "getQAContent failed, err=%v（已用正文摘要降级写入 qa_content，避免索引断言失败）", e)
+				// 异步索引 ES 要求 qa_content 为 string；失败时不能留 nil，否则 bulkAdd 报 assert value as string failed
+				doc.MetaData[common.FieldQAContent] = qaFallbackContent(doc)
 				return
 			}
-			// 生成QA和内容放在一个chunk的不同字段
 			doc.MetaData[common.FieldQAContent] = qaContent
 		}(doc)
 	}
@@ -119,4 +136,13 @@ func clipContent(s string, max int) string {
 		return s
 	}
 	return string(r[:max])
+}
+
+// qaFallbackContent LLM 失败时写入 qa_content 的降级文本（非空 string，供 Embedding 与 ES 字段断言）
+func qaFallbackContent(doc *schema.Document) string {
+	s := clipContent(doc.Content, 512)
+	if s == "" {
+		return " "
+	}
+	return s
 }

@@ -45,6 +45,7 @@ const StatusLogsCard: React.FC<StatusLogsCardProps> = ({ status, enabled, paused
                 <Button type="link" onClick={() => onShowDetail(item.detail)}>{t('cron.logs.details')}</Button>
               ) : null,
             ]}
+
           >
             <List.Item.Meta
               title={
@@ -55,6 +56,7 @@ const StatusLogsCard: React.FC<StatusLogsCardProps> = ({ status, enabled, paused
                   {item.status === 'failed' && <Badge status="error" text={t('cron.status.failed')} />}
                 </Space>
               }
+              style={{ padding: '0px 10px' }}
               description={item.detail || '—'}
             />
             {item.durationMs ? <Tag color="blue">{t('cron.logs.duration')} {Math.round(item.durationMs)} ms</Tag> : null}

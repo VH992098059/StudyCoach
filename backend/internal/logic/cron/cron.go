@@ -49,10 +49,10 @@ func RuCronDelete(ctx context.Context, id int64) (isOk string, err error) {
 	return "success", err
 }
 
-func RuCronList(ctx context.Context, page, pageSize int) (list []entity.KnowledgeBaseCronSchedule, err error) {
-	// 参数验证和默认值设置
+// RuCronList 仅返回当前用户名下知识库所绑定的定时任务（通过 knowledge_base.user_uuid 与 knowledge_base_name 关联）。
+func RuCronList(ctx context.Context, userUUID string, page, pageSize int) (list []entity.KnowledgeBaseCronSchedule, err error) {
 	if page < 1 {
-		page = 1 // 修正为1，通常分页从1开始
+		page = 1
 	}
 	if pageSize < 1 {
 		pageSize = defaultPageSize
@@ -60,9 +60,26 @@ func RuCronList(ctx context.Context, page, pageSize int) (list []entity.Knowledg
 	if pageSize > maxPageSize {
 		pageSize = maxPageSize
 	}
-	// 计算Offset
-	// gf orm Page 方法通常接受 page, size
-	err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Page(page, pageSize).Scan(&list)
+	var kbs []entity.KnowledgeBase
+	err = dao.KnowledgeBase.Ctx(ctx).
+		Where(dao.KnowledgeBase.Columns().UserUuid, userUUID).
+		Fields(dao.KnowledgeBase.Columns().Name).
+		Scan(&kbs)
+	if err != nil {
+		return nil, err
+	}
+	if len(kbs) == 0 {
+		return []entity.KnowledgeBaseCronSchedule{}, nil
+	}
+	names := make([]interface{}, len(kbs))
+	for i := range kbs {
+		names[i] = kbs[i].Name
+	}
+	err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).
+		WhereIn(dao.KnowledgeBaseCronSchedule.Columns().KnowledgeBaseName, names).
+		OrderDesc(dao.KnowledgeBaseCronSchedule.Columns().Id).
+		Page(page, pageSize).
+		Scan(&list)
 	if err != nil {
 		return nil, err
 	}

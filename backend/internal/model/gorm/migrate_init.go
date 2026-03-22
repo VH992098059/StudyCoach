@@ -23,7 +23,7 @@ func RunMigrateOnStartup(ctx context.Context) error {
 	if connStr == dsn.String() {
 		connStr = dsn.String()
 	}
-	// 确保连接和表字段使用 utf8mb4 + utf8mb4_unicode_ci（表级 collation 在 migrate.go 的 table_options 中）
+	// 确保连接和表字段使用 utf8mb4 + utf8mb4_unicode_ci
 	if strings.Contains(connStr, "?") {
 		connStr += "&charset=utf8mb4"
 	} else {

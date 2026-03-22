@@ -2,6 +2,7 @@ package knowledge
 
 import (
 	"backend/internal/dao"
+	"backend/internal/model/entity"
 	"context"
 
 	"github.com/gogf/gf/v2/errors/gcode"
@@ -33,4 +34,17 @@ func EnsureDocumentBelongsToUser(ctx context.Context, userUUID string, documentI
 		return err
 	}
 	return EnsureKnowledgeBaseBelongsToUser(ctx, userUUID, doc.KnowledgeBaseName)
+}
+
+// EnsureCronScheduleBelongsToUser 根据定时任务 ID 校验其关联知识库是否属于当前用户。
+func EnsureCronScheduleBelongsToUser(ctx context.Context, userUUID string, cronID int64) error {
+	var s entity.KnowledgeBaseCronSchedule
+	err := dao.KnowledgeBaseCronSchedule.Ctx(ctx).Where("id", cronID).Scan(&s)
+	if err != nil {
+		return err
+	}
+	if s.Id == 0 {
+		return gerror.NewCode(gcode.CodeNotFound, "定时任务不存在")
+	}
+	return EnsureKnowledgeBaseBelongsToUser(ctx, userUUID, s.KnowledgeBaseName)
 }

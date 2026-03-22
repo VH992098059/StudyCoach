@@ -50,11 +50,14 @@ func (x *Rag) Index(ctx context.Context, req *IndexReq) (ids []string, err error
 // 通过 schema.Document 异步 生成QA&embedding
 func (x *Rag) IndexAsync(ctx context.Context, req *IndexAsyncReq) (ids []string, err error) {
 	ctx = context.WithValue(ctx, common.KnowledgeName, req.KnowledgeName)
+	start := time.Now()
+	g.Log().Infof(ctx, "IndexAsync start: knowledge=%s documentsId=%d docs=%d", req.KnowledgeName, req.DocumentsId, len(req.Docs))
 	ids, err = x.idxerAsync.Invoke(ctx, req.Docs)
 	if err != nil {
+		g.Log().Errorf(ctx, "IndexAsync idxerAsync.Invoke failed after %v, err=%v", time.Since(start), err)
 		return
 	}
-
+	g.Log().Infof(ctx, "IndexAsync success in %v, chunk count=%d", time.Since(start), len(ids))
 	return
 }
 

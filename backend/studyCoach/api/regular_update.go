@@ -16,7 +16,21 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
+	robfigcron "github.com/robfig/cron/v3"
 )
+
+// insertCronTaskLog 写入 cron_log（与 cron_execute 互补；失败仅打日志不影响主流程）
+func insertCronTaskLog(ctx context.Context, task *entity.KnowledgeBaseCronSchedule, level, content string) {
+	row := g.Map{
+		"cron_id":     task.Id,
+		"content":     content,
+		"level":       level,
+		"create_time": gtime.Now(),
+	}
+	if _, err := dao.CronLog.Ctx(ctx).Data(row).Insert(); err != nil {
+		log.Printf("[Cron] 写入 cron_log 失败: %v", err)
+	}
+}
 
 // RunRegularUpdateTask 初始化 RAG 并执行定时任务
 func RunRegularUpdateTask(ctx context.Context, task *entity.KnowledgeBaseCronSchedule) error {
@@ -38,11 +52,13 @@ func RunRegularUpdateTask(ctx context.Context, task *entity.KnowledgeBaseCronSch
 // ExecuteRegularUpdate 执行定时更新任务
 func ExecuteRegularUpdate(ctx context.Context, task *entity.KnowledgeBaseCronSchedule, rag *Rag) error {
 	log.Printf("[Cron] 开始执行任务: %s (ID: %d)", task.CronName, task.Id)
+	insertCronTaskLog(ctx, task, "INFO", fmt.Sprintf("开始执行 id=%d name=%s kb=%s", task.Id, task.CronName, task.KnowledgeBaseName))
 
 	// 调用 AI 模型获取更新内容（传入完整 task 和 rag，支持知识库预检索）
 	msg, err := regularUpdateModel(ctx, task, rag)
 	if err != nil {
 		log.Printf("[Cron] 任务 %s AI生成失败: %v", task.CronName, err)
+		insertCronTaskLog(ctx, task, "ERROR", fmt.Sprintf("AI 生成失败: %v", err))
 		ws.BroadcastCronCompleteGlobal(task.Id, task.CronName, false)
 		return err
 	}
@@ -83,20 +99,38 @@ func ExecuteRegularUpdate(ctx context.Context, task *entity.KnowledgeBaseCronSch
 	_, err = rag.IndexAsync(ctx, req)
 	if err != nil {
 		log.Printf("[Cron] 写入知识库失败: %v", err)
+		insertCronTaskLog(ctx, task, "ERROR", fmt.Sprintf("写入知识库/索引失败: %v", err))
 		ws.BroadcastCronCompleteGlobal(task.Id, task.CronName, false)
 		return err
 	}
 
-	// 记录执行历史
-	_, err = dao.CronExecute.Ctx(ctx).Data(do.CronExecute{
-		CronNameFk:  task.CronName,
-		ExecuteTime: gtime.Now(),
-	}).Insert()
-	if err != nil {
-		log.Printf("[Cron] 记录执行日志失败: %v", err)
-		// 日志记录失败不视为任务失败
+	// 记录最近执行：cron_name_fk 上有唯一索引 idx_cron_name_execute，同一任务多次执行只能 UPDATE，不能重复 INSERT
+	now := time.Now()
+	nextRun := nextScheduledRunTime(task.CronExpression, now)
+	cronExecCols := dao.CronExecute.Columns()
+	res, upErr := dao.CronExecute.Ctx(ctx).
+		Where(cronExecCols.CronNameFk, task.CronName).
+		Data(do.CronExecute{
+			ExecuteTime: gtime.NewFromTime(now),
+			NextTime:    gtime.NewFromTime(nextRun),
+		}).Update()
+	if upErr != nil {
+		log.Printf("[Cron] 更新执行记录失败: %v", upErr)
+	} else {
+		n, _ := res.RowsAffected()
+		if n == 0 {
+			_, insErr := dao.CronExecute.Ctx(ctx).Data(do.CronExecute{
+				CronNameFk:  task.CronName,
+				ExecuteTime: gtime.NewFromTime(now),
+				NextTime:    gtime.NewFromTime(nextRun),
+			}).Insert()
+			if insErr != nil {
+				log.Printf("[Cron] 记录执行日志失败: %v", insErr)
+			}
+		}
 	}
 
+	insertCronTaskLog(ctx, task, "INFO", fmt.Sprintf("执行完成，已提交索引，知识库=%s，下次计划=%s", task.KnowledgeBaseName, nextRun.Format(time.RFC3339)))
 	log.Printf("[Cron] 任务 %s 执行完成", task.CronName)
 	ws.BroadcastCronCompleteGlobal(task.Id, task.CronName, true)
 	return nil
@@ -193,4 +227,22 @@ func regularUpdateModel(ctx context.Context, task *entity.KnowledgeBaseCronSched
 		return invoke, nil
 	}
 	return nil, fmt.Errorf("生成失败，已重试%d次", maxRetries)
+}
+
+// nextScheduledRunTime 按与调度器一致的 6 域表达式（秒 分 时 日 月 周）计算下一次触发时间；解析失败时退回 now+24h，避免 INSERT 缺少 next_time。
+func nextScheduledRunTime(cronExpr string, from time.Time) time.Time {
+	expr := strings.TrimSpace(cronExpr)
+	if expr == "" {
+		return from.Add(24 * time.Hour)
+	}
+	parser := robfigcron.NewParser(
+		robfigcron.Second | robfigcron.Minute | robfigcron.Hour |
+			robfigcron.Dom | robfigcron.Month | robfigcron.Dow,
+	)
+	sched, err := parser.Parse(expr)
+	if err != nil {
+		log.Printf("[Cron] Cron 表达式解析失败，next_time 使用 +24h: expr=%q err=%v", cronExpr, err)
+		return from.Add(24 * time.Hour)
+	}
+	return sched.Next(from)
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Form, message } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
@@ -109,6 +109,14 @@ export const useCronState = () => {
   const [detail, setDetail] = useState<{ open: boolean; content?: string }>({ open: false });
   
   const knowledgeSelectorRef = useRef<KnowledgeSelectorRef>(null);
+  const runPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearRunPoll = () => {
+    if (runPollRef.current) {
+      clearInterval(runPollRef.current);
+      runPollRef.current = null;
+    }
+  };
 
   // Form Watchers
   const mode = Form.useWatch('mode', form);
@@ -128,7 +136,7 @@ export const useCronState = () => {
   const [isCreating, setIsCreating] = useState(false);
 
   // Initialize tasks from API
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       const res = await CronService.list({ page: 1, size: 100 });
       if (res && res.list) {
@@ -153,41 +161,58 @@ export const useCronState = () => {
       console.error('Failed to fetch cron tasks:', error);
       message.error(t('cron.messages.fetchFailed'));
     }
-  };
+  }, [t]);
 
-  // Fetch execution logs
-  const fetchLogs = useMemo(() => async (taskId: string, cronName: string) => {
-    try {
-      const res = await CronService.listLogs({ cron_name_fk: cronName, page: 1, size: 20 });
-      if (res && res.list) {
-          const apiLogs: LogEntry[] = res.list.map(item => ({
+  // Fetch execution日志（数据来自 cron_execute 列表 API）；syncExec 为 false 时只更新列表，不根据空列表把状态打成 idle（用于轮询进行中）
+  const fetchLogs = useMemo(
+    () =>
+      async (taskId: string, cronName: string, options?: { syncExec?: boolean }): Promise<number> => {
+        const syncExec = options?.syncExec !== false;
+        try {
+          const res = await CronService.listLogs({ cron_name_fk: cronName, page: 1, size: 20 });
+          if (res && res.list) {
+            const apiLogs: LogEntry[] = res.list.map(item => ({
               id: item.id,
               time: dayjs(item.executeTime || item.execute_time).valueOf(),
-              status: 'success', 
+              status: 'success',
               detail: t('cron.messages.execSuccessDetail'),
-              durationMs: 0
-          }));
-          setLogs(apiLogs);
-          
-          if (apiLogs.length > 0) {
-              setLastRun(apiLogs[0].time);
-              setExecStatus('success');
-          } else {
-              setLastRun(null);
-              setExecStatus('idle');
+              durationMs: 0,
+            }));
+            setLogs(apiLogs);
+            if (syncExec) {
+              if (apiLogs.length > 0) {
+                setLastRun(apiLogs[0].time);
+                setExecStatus('success');
+              } else {
+                setLastRun(null);
+                setExecStatus('idle');
+              }
+            }
+            return apiLogs.length;
           }
-      } else {
+          if (syncExec) {
+            setLogs([]);
+            setLastRun(null);
+            setExecStatus('idle');
+          }
+          return 0;
+        } catch (error) {
+          console.error('Failed to fetch logs:', error);
           setLogs([]);
-      }
-    } catch (error) {
-      console.error('Failed to fetch logs:', error);
-      setLogs([]);
-    }
-  }, [t]);
+          if (syncExec) {
+            setExecStatus('idle');
+          }
+          return -1;
+        }
+      },
+    [t]
+  );
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [fetchTasks]);
+
+  useEffect(() => () => clearRunPoll(), []);
 
   // Load selected task data into form
   useEffect(() => {
@@ -253,12 +278,9 @@ export const useCronState = () => {
             kbId: task.config?.kbId || task.knowledgeBasename,
             ...task.config
         });
-        
-        setExecStatus(task.execStatus || 'idle');
-        setLastRun(task.lastRunTime || null);
       }
     }
-  }, [selectedTaskId, form, tasks, isCreating]);
+  }, [selectedTaskId, form, tasks, isCreating, fetchLogs]);
 
   const handleStartCreate = () => {
     setIsCreating(true);
@@ -347,27 +369,61 @@ export const useCronState = () => {
     }
   };
 
+  const applyCronRunFinished = useCallback(
+    (cronId: number, success: boolean) => {
+      const idStr = String(cronId);
+      if (idStr !== selectedTaskId) return;
+      clearRunPoll();
+      setExecStatus(success ? 'success' : 'failed');
+      const task = tasks.find(t => t.id === idStr);
+      if (task) {
+        void fetchLogs(idStr, task.cronName, { syncExec: true });
+      }
+    },
+    [selectedTaskId, tasks, fetchLogs]
+  );
+
   const handleRunNow = async () => {
     if (!selectedTaskId) return;
-    
+
     const task = tasks.find(t => t.id === selectedTaskId);
     if (!task) return;
 
+    const taskId = selectedTaskId;
+    const cronName = task.cronName;
+
+    clearRunPoll();
     setExecStatus('running');
     message.loading({ content: t('cron.messages.startExec'), key: 'runNow' });
-    
+
     try {
-        await CronService.run({ id: parseInt(selectedTaskId) });
-        message.success({ content: t('cron.messages.execSuccess'), key: 'runNow' });
-        
-        // Refresh logs after a short delay to allow async execution to start/finish
-        setTimeout(() => {
-            fetchLogs(selectedTaskId, task.cronName);
-        }, 2000);
+      await CronService.run({ id: parseInt(taskId, 10) });
+      message.success({ content: t('cron.messages.runTriggered'), key: 'runNow' });
+
+      let n = 0;
+      runPollRef.current = setInterval(async () => {
+        n += 1;
+        const cnt = await fetchLogs(taskId, cronName, { syncExec: false });
+        if (cnt > 0) {
+          clearRunPoll();
+          await fetchLogs(taskId, cronName, { syncExec: true });
+          return;
+        }
+        if (cnt < 0 || n >= 60) {
+          clearRunPoll();
+          setExecStatus('idle');
+          if (cnt < 0) {
+            message.error(t('cron.messages.logFetchFailed'));
+          } else {
+            message.warning(t('cron.messages.execStillRunningHint'));
+          }
+        }
+      }, 3000);
     } catch (error) {
-        console.error('Run failed:', error);
-        setExecStatus('failed');
-        message.error({ content: t('cron.messages.execFailed'), key: 'runNow' });
+      console.error('Run failed:', error);
+      clearRunPoll();
+      setExecStatus('failed');
+      message.error({ content: t('cron.messages.execFailed'), key: 'runNow' });
     }
   };
 
@@ -461,5 +517,6 @@ export const useCronState = () => {
     setSelectedTaskId,
     handleSelectTask,
     refreshTasks: fetchTasks,
+    applyCronRunFinished,
   };
 };

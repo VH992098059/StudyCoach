@@ -42,18 +42,20 @@ const CronPage: React.FC = () => {
     setSelectedTaskId,
     handleSelectTask,
     refreshTasks,
+    applyCronRunFinished,
   } = useCronState();
 
   const handleCronComplete = useCallback(
     (payload: { cron_id: number; cron_name: string; success: boolean }) => {
-      refreshTasks();
+      applyCronRunFinished(payload.cron_id, payload.success);
+      void refreshTasks();
       if (payload.success) {
-        message.success(t('cron.messages.execSuccess') + `: ${payload.cron_name}`);
+        message.success(`${t('cron.messages.execSuccess')}: ${payload.cron_name}`);
       } else {
-        message.error(t('cron.messages.execFailed') + `: ${payload.cron_name}`);
+        message.error(`${t('cron.messages.execFailed')}: ${payload.cron_name}`);
       }
     },
-    [refreshTasks, t]
+    [applyCronRunFinished, refreshTasks, t]
   );
 
   useWebSocket({

@@ -34,9 +34,11 @@ func HandleWebSocket(hub *Hub) func(r *ghttp.Request) {
 			return
 		}
 		client := &Client{
-			Hub:  hub,
-			Conn: conn,
-			Send: make(chan []byte, 256),
+			Hub:       hub,
+			Conn:      conn,
+			Send:      make(chan []byte, 256),
+			Remote:    r.RemoteAddr,
+			UserAgent: r.Header.Get("User-Agent"),
 		}
 		client.Hub.register <- client
 

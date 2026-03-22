@@ -38,6 +38,15 @@ func (x *RetrieveReq) copy() *RetrieveReq {
 
 // Retriever 检索
 func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Document, err error) {
+	start := time.Now()
+	defer func() {
+		elapsed := time.Since(start)
+		if err != nil {
+			g.Log().Errorf(ctx, "Retriever failed after %v, knowledge=%s, query=%q, err=%v", elapsed, req.KnowledgeName, req.Query, err)
+		} else {
+			g.Log().Infof(ctx, "Retriever success in %v, knowledge=%s, results=%d, topK=%d", elapsed, req.KnowledgeName, len(msg), req.TopK)
+		}
+	}()
 	var (
 		used        = ""          // 记录已经使用过的关键词
 		relatedDocs = &sync.Map{} // 记录相关docs
@@ -115,6 +124,14 @@ func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Do
 }
 
 func (x *Rag) retrieveDoOnce(ctx context.Context, req *RetrieveReq) (relatedDocs []*schema.Document, err error) {
+	t0 := time.Now()
+	defer func() {
+		if err != nil {
+			g.Log().Errorf(ctx, "retrieveDoOnce failed after %v, optQuery=%q, err=%v", time.Since(t0), req.optQuery, err)
+		} else {
+			g.Log().Debugf(ctx, "retrieveDoOnce done in %v, optQuery=%q, hits=%d", time.Since(t0), req.optQuery, len(relatedDocs))
+		}
+	}()
 	var (
 		docs   []*schema.Document
 		qaDocs []*schema.Document

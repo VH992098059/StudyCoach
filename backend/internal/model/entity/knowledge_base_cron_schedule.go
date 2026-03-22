@@ -14,7 +14,7 @@ type KnowledgeBaseCronSchedule struct {
 	CronName          string      `json:"cronName"          orm:"cron_name"           description:""` //
 	KnowledgeBaseName string      `json:"knowledgeBaseName" orm:"knowledge_base_name" description:""` //
 	CronExpression    string      `json:"cronExpression"    orm:"cron_expression"     description:""` //
-	SchedulingMethod  string      `json:"schedulingMethod" orm:"scheduling_method"   description:""`  //
+	SchedulingMethod  string      `json:"schedulingMethod"  orm:"scheduling_method"   description:""` //
 	Status            int         `json:"status"            orm:"status"              description:""` //
 	ContentType       int         `json:"contentType"       orm:"content_type"        description:""` //
 	CreatedAt         *gtime.Time `json:"createdAt"         orm:"created_at"          description:""` //

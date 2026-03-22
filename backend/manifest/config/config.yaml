@@ -140,7 +140,14 @@ db:
 #  history: "host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 
 voice:
-  apiKey: "*"
+  apiKey: ""
+  model: "FunAudioLLM/CosyVoice2-0.5B"
+  voiceName: "FunAudioLLM/CosyVoice2-0.5B:alex"
+  speed: 1.0
+  format: "mp3"
+
+asr:
+  url: "http://localhost:50000"
 
 Branch:
   apiKey: "*"
@@ -192,7 +199,6 @@ siliconflow:
 seaweedfs:
   filer: "http://localhost:8888"
 
-
 # 向量引擎: es(默认) | qdrant | milvus
 vectorEngine: "es"
 
@@ -229,6 +235,7 @@ files:
 # 文档：https://github.com/opendatalab/MinerU-Ecosystem/blob/main/sdk/go/README.zh-CN.md
 mineru:
   enabled: true
+  token: "" # 精准解析必填；也可设置环境变量 MINERU_TOKEN
   pollTimeout: "15m" # Extract 轮询总超时
   # cacheDir: "files/mineru" # 可选；默认 <files.root>/mineru
 

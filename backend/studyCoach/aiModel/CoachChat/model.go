@@ -163,12 +163,12 @@ func RewriteModel(ctx context.Context) (cm model.ToolCallingChatModel, err error
 	if err != nil || modelName.String() == "" {
 		return nil, fmt.Errorf("config missing: rewrite.model")
 	}
-	config := &ark.ChatModelConfig{
+	config := &openai.ChatModelConfig{
 		APIKey:  apiKey.String(),
 		BaseURL: baseURL.String(),
 		Model:   modelName.String(),
 	}
-	cm, err = ark.NewChatModel(ctx, config)
+	cm, err = openai.NewChatModel(ctx, config)
 	if err != nil {
 		return nil, err
 	}

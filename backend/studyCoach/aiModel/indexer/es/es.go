@@ -76,8 +76,22 @@ func NewIndexer(ctx context.Context, config *Config) (indexer.Indexer, error) {
 				},
 			}
 			if config.IncludeQAVector {
+				qaText, _ := doc.MetaData[common.FieldQAContent].(string)
+				if qaText == "" {
+					// 与 qa.go 降级策略一致，避免 nil / 非 string 触发 es8 bulkAdd 断言失败
+					if doc.Content != "" {
+						r := []rune(doc.Content)
+						if len(r) > 512 {
+							qaText = string(r[:512])
+						} else {
+							qaText = doc.Content
+						}
+					} else {
+						qaText = " "
+					}
+				}
 				fields[common.FieldQAContent] = es8.FieldValue{
-					Value:    doc.MetaData[common.FieldQAContent],
+					Value:    qaText,
 					EmbedKey: common.FieldQAContentVector,
 				}
 			}

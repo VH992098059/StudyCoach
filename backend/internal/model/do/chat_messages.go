@@ -11,11 +11,12 @@ import (
 
 // ChatMessages is the golang structure of table chat_messages for DAO operations like Where/Data.
 type ChatMessages struct {
-	g.Meta      `orm:"table:chat_messages, do:true"`
-	Id          any         //
-	SessionUuid any         //
-	MsgId       any         //
-	Content     any         //
-	IsUser      any         //
-	Timestamp   *gtime.Time //
+	g.Meta           `orm:"table:chat_messages, do:true"`
+	Id               any         //
+	SessionUuid      any         //
+	MsgId            any         //
+	Content          any         //
+	IsUser           any         //
+	Timestamp        *gtime.Time //
+	ReasoningContent any         //
 }

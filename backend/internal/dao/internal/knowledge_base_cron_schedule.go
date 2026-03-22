@@ -25,6 +25,7 @@ type KnowledgeBaseCronScheduleColumns struct {
 	CronName          string //
 	KnowledgeBaseName string //
 	CronExpression    string //
+	SchedulingMethod  string //
 	Status            string //
 	ContentType       string //
 	CreatedAt         string //
@@ -38,6 +39,7 @@ var knowledgeBaseCronScheduleColumns = KnowledgeBaseCronScheduleColumns{
 	CronName:          "cron_name",
 	KnowledgeBaseName: "knowledge_base_name",
 	CronExpression:    "cron_expression",
+	SchedulingMethod:  "scheduling_method",
 	Status:            "status",
 	ContentType:       "content_type",
 	CreatedAt:         "created_at",
