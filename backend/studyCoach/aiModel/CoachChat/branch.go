@@ -9,8 +9,7 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// newBranch branch initialization method of node 'AnalysisChatModel' in graph 'studyCoachFor'
-// 使用原始用户问题做路由，而非意图分析的 TOON 输出，确保 Branch 能正确识别「修改计划」「加番茄钟」等语义
+// newBranch 路由分支：使用原始问题而非意图分析结果，确保识别「修改计划」等语义
 func newBranch(ctx context.Context, input *schema.Message) (endNode string, err error) {
 	content := ""
 	if q := ctx.Value("question"); q != nil {

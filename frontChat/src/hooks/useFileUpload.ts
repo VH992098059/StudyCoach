@@ -1,21 +1,12 @@
 /**
- * 文件上传管理Hook
- * 
- * 功能：
- * 1. 文件选择和管理
- * 2. 文件上传状态跟踪
- * 3. 文件类型和大小验证
- * 4. 上传进度管理
- * 5. 错误处理
+ * 文件上传管理：选择、验证、上传、进度跟踪、错误处理
  */
 
 import { useState, useCallback } from 'react';
 import { message } from 'antd';
 import type { UploadedFile, FileUploadConfig, UseFileUploadReturn } from '../types/chat';
+import { formatFileSize, validateFileType, validateFileSize } from '@/utils/file';
 
-/**
- * 默认文件上传配置
- */
 const DEFAULT_CONFIG: FileUploadConfig = {
   maxFileSize: 10 * 1024 * 1024, // 10MB
   maxFileCount: 5,
@@ -23,37 +14,9 @@ const DEFAULT_CONFIG: FileUploadConfig = {
   allowMultiple: true,
 };
 
-/**
- * 生成唯一文件ID
- */
+// 生成唯一文件ID
 const generateFileId = (): string => {
-  return `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
-
-/**
- * 格式化文件大小
- */
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-/**
- * 验证文件类型
- */
-const validateFileType = (file: File, acceptedTypes: string[]): boolean => {
-  const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-  return acceptedTypes.includes(fileExtension);
-};
-
-/**
- * 验证文件大小
- */
-const validateFileSize = (file: File, maxSize: number): boolean => {
-  return file.size <= maxSize;
+  return `file_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 };
 
 /**

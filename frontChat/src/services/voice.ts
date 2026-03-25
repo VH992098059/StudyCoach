@@ -71,24 +71,24 @@ const updateState = (newIsReading: boolean, newCurrentReadingMsgId: string | nul
 };
 
 /**
- * 处理文本内容，移除Markdown语法
+ * 处理文本内容：移除 Markdown 语法并格式化
  */
 const processTextForReading = (content: string): string => {
   return content
-    .replace(/```[\s\S]*?```/g, '[代码块]') // 替换代码块
-    .replace(/`([^`]+)`/g, '$1') // 移除行内代码标记
-    .replace(/\*\*([^*]+)\*\*/g, '$1') // 移除粗体标记
-    .replace(/\*([^*]+)\*/g, '$1') // 移除斜体标记
-    .replace(/~~([^~]+)~~/g, '$1') // 删除线
-    .replace(/#{1,6}\s+/g, '') // 移除标题标记
-    .replace(/^\s*>\s?/gm, '') // 引用块前缀
-    .replace(/^\s*[-*+]\s+/gm, '• ') // 替换列表标记为点号
-    .replace(/^\s*\d+\.\s+/gm, '') // 移除有序列表标记
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 移除链接，保留文本
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1') // 图片 alt 文本
-    .replace(/<[^>]+>/g, '') // 简单 HTML 标签
-    .replace(/\n{2,}/g, '。 ') // 将换行替换为句号和空格
-    .replace(/\s+/g, ' ') // 合并多余空格
+    .replace(/```[\s\S]*?```/g, '[代码块]')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/#{1,6}\s+/g, '')
+    .replace(/^\s*>\s?/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '• ')
+    .replace(/^\s*\d+\.\s+/gm, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\n{2,}/g, '。 ')
+    .replace(/\s+/g, ' ')
     .trim();
 };
 
@@ -118,18 +118,27 @@ const callTextToSpeechAPI = async (text: string): Promise<string> => {
   }
 };
 
+// 清理 Audio 元素：移除所有事件监听器并释放媒体资源，防止内存泄漏
+const disposeAudio = (audio: HTMLAudioElement) => {
+  audio.onloadstart = null;
+  audio.oncanplay = null;
+  audio.onended = null;
+  audio.onerror = null;
+  audio.onabort = null;
+  audio.pause();
+  audio.src = '';   // 释放底层媒体资源
+  audio.load();     // 触发浏览器实际释放
+};
+
 /**
  * 播放音频
  */
 const playAudio = (audioUrl: string, msgId: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const audio = new Audio(audioUrl);
-    
-    // 设置音频属性
     audio.preload = 'auto';
     audio.volume = 1.0;
-    
-    // 设置事件监听器
+
     audio.onloadstart = () => {
       updateState(true, msgId);
       if (callbacks) {
@@ -141,35 +150,31 @@ const playAudio = (audioUrl: string, msgId: string): Promise<void> => {
       if (callbacks) {
         callbacks.onCanPlay();
       }
-      // 不弹 Toast：状态已通过回调与 UI 展示，避免打断阅读
     };
 
     audio.onended = () => {
       updateState(false, null);
+      disposeAudio(audio);
       currentAudio = null;
-      if (callbacks) {
-        callbacks.onEnded();
-      }
+      if (callbacks) callbacks.onEnded();
       resolve();
     };
 
     audio.onerror = (event) => {
       console.error('音频播放出错:', event);
       updateState(false, null);
+      disposeAudio(audio);
       currentAudio = null;
-      if (callbacks) {
-        callbacks.onError(event);
-      }
+      if (callbacks) callbacks.onError(event);
       message.error('音频播放失败');
       reject(new Error('音频播放失败'));
     };
 
     audio.onabort = () => {
       updateState(false, null);
+      disposeAudio(audio);
       currentAudio = null;
-      if (callbacks) {
-        callbacks.onAbort();
-      }
+      if (callbacks) callbacks.onAbort();
       resolve();
     };
 
@@ -179,10 +184,9 @@ const playAudio = (audioUrl: string, msgId: string): Promise<void> => {
     audio.play().catch(playError => {
       console.error('音频播放失败:', playError);
       updateState(false, null);
+      disposeAudio(audio);
       currentAudio = null;
-      if (callbacks) {
-        callbacks.onError(playError);
-      }
+      if (callbacks) callbacks.onError(playError);
       message.error('音频播放失败，可能需要用户交互后才能播放');
       reject(playError);
     });
@@ -292,19 +296,13 @@ export const voiceService = {
    */
   stopReading: (): void => {
     if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
+      disposeAudio(currentAudio);
       currentAudio = null;
     }
-
-    // 停止浏览器语音合成（如果有的话）
     if ('speechSynthesis' in window && (window as any).speechSynthesis?.speaking) {
       (window as any).speechSynthesis.cancel();
     }
-
-    // 清除所有状态
     updateState(false, null, false, null);
-    // 不弹「已停止」提示，由界面状态反馈即可
   },
 
   /**

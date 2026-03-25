@@ -7,8 +7,7 @@ import (
 	"github.com/cloudwego/eino/compose"
 )
 
-// BuildIndexer 构建索引图。onIndexed 在向量库写入完成后异步执行（QA 生成 + 状态更新）。
-// 若 onIndexed 非空，将包装 indexer 实现：先落库 MySQL chunks，再写向量库，最后触发 onIndexed。
+// BuildIndexer 构建索引管线。onIndexed 非空时在向量库写入后执行（QA 生成 + 状态更新）。
 func BuildIndexer(ctx context.Context, conf *common.Config, onIndexed OnIndexedCallback) (r compose.Runnable[any, []string], err error) {
 	const (
 		Loader1              = "Loader"

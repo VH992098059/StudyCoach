@@ -19,7 +19,7 @@ import (
 	robfigcron "github.com/robfig/cron/v3"
 )
 
-// insertCronTaskLog 写入 cron_log（与 cron_execute 互补；失败仅打日志不影响主流程）
+// insertCronTaskLog 写入 cron_log（失败不影响主流程）
 func insertCronTaskLog(ctx context.Context, task *entity.KnowledgeBaseCronSchedule, level, content string) {
 	row := g.Map{
 		"cron_id":     task.Id,
@@ -34,8 +34,6 @@ func insertCronTaskLog(ctx context.Context, task *entity.KnowledgeBaseCronSchedu
 
 // RunRegularUpdateTask 初始化 RAG 并执行定时任务
 func RunRegularUpdateTask(ctx context.Context, task *entity.KnowledgeBaseCronSchedule) error {
-	// 使用全局 esConf 初始化 Rag
-	// esConf 在 openai.go 中定义并初始化
 	if esConf == nil {
 		return fmt.Errorf("esConf not initialized")
 	}
@@ -63,11 +61,9 @@ func ExecuteRegularUpdate(ctx context.Context, task *entity.KnowledgeBaseCronSch
 		return err
 	}
 
-	// 处理全量/增量逻辑
-	// ContentType: 1=Full, 2=Incremental
+	// ContentType: 1=全量更新，2=增量
 	if task.ContentType == 1 {
-		// 全量更新：尝试清除旧数据
-		// 使用 cron_id 删除该任务产生的所有文档
+		// 全量更新：清除旧数据
 		cronID := fmt.Sprintf("%d", task.Id)
 		log.Printf("[Cron] 全量更新，正在清理旧数据: CronID=%s", cronID)
 		if err := rag.conf.DeleteDocumentsByCronID(ctx, cronID); err != nil {

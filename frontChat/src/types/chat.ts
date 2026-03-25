@@ -13,8 +13,8 @@ export interface Message {
   timestamp: Date;
   /** 思考过程（深度思考模式下的推理内容，可展开查看） */
   reasoningContent?: string;
-  /** 用户消息附带的图片预览（blob URL），用于在气泡中展示 */
-  attachments?: { type: 'image'; url: string }[];
+  /** 用户消息附带的附件（图片预览或文件），用于在气泡中展示 */
+  attachments?: { type: 'image' | 'file'; url: string; name?: string }[];
 }
 
 /**

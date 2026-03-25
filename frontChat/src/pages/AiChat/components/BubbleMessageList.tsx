@@ -103,17 +103,11 @@ interface BubbleMessageListProps {
   onScroll: () => void;
   loading: boolean;
   connectionState: SSEConnectionState;
-  reconnectAttempts: number;
-  maxReconnectAttempts: number;
   currentAiMessage: string;
-  /** 思考过程（深度思考模式下的推理内容） */
   currentReasoningContent?: string;
-  messagesEndRef: React.RefObject<HTMLDivElement | null> | React.MutableRefObject<HTMLDivElement | null>;
-  /** 思维链：检索到的文档数量（用于展示「已检索到 N 条文档」） */
+  messagesEndRef: React.RefObject<HTMLDivElement | null>;
   documentsCount?: number;
-  /** 是否选择了知识库（用于展示「检索知识库」步骤） */
   hasKnowledgeBase?: boolean;
-  /** 当前工具执行状态（如「正在执行 skill(high-eq-communication)」） */
   currentToolStatus?: string;
 }
 
@@ -128,8 +122,6 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
   onScroll,
   loading,
   connectionState,
-  reconnectAttempts,
-  maxReconnectAttempts,
   currentAiMessage,
   currentReasoningContent = '',
   messagesEndRef,
@@ -140,17 +132,17 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? enUS : zhCN;
 
-  const isConnecting = connectionState === 'connecting' || connectionState === 'reconnecting';
-  const isConnected = connectionState === 'connected';
-  const hasContent = currentAiMessage.length > 0;
-
   const thoughtChainItems = useMemo<ThoughtChainItemType[]>(() => {
+    const connecting = connectionState === SSEConnectionState.CONNECTING || connectionState === SSEConnectionState.RECONNECTING;
+    const connected  = connectionState === SSEConnectionState.CONNECTED;
+    const hasContent = currentAiMessage.length > 0;
+
     const items: ThoughtChainItemType[] = [];
     items.push({
       key: 'connecting',
       title: t('chat.thinkChain.connecting'),
-      status: isConnecting ? 'loading' : 'success',
-      blink: isConnecting,
+      status: connecting ? 'loading' : 'success',
+      blink: connecting,
     });
     if (hasKnowledgeBase) {
       items.push({
@@ -158,11 +150,10 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
         title: documentsCount > 0
           ? t('chat.thinkChain.retrieved', { count: documentsCount })
           : t('chat.thinkChain.retrieving'),
-        status: documentsCount > 0 ? 'success' : (isConnected ? 'loading' : undefined),
-        blink: isConnected && documentsCount === 0,
+        status: documentsCount > 0 ? 'success' : (connected ? 'loading' : undefined),
+        blink: connected && documentsCount === 0,
       });
     }
-    // 工具执行中：展示「正在执行 XXX」避免用户以为卡住
     if (currentToolStatus) {
       items.push({
         key: 'tool',
@@ -171,8 +162,7 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
         blink: true,
       });
     }
-    // 正在生成回答：连接后且（等待首字或已有流式内容）时显示转动
-    const isGeneratingPhase = isConnected && (loading || hasContent);
+    const isGeneratingPhase = connected && (loading || hasContent);
     items.push({
       key: 'generating',
       title: t('chat.thinkChain.generating'),
@@ -180,7 +170,7 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
       blink: isGeneratingPhase,
     });
     return items;
-  }, [isConnecting, isConnected, hasContent, documentsCount, hasKnowledgeBase, currentToolStatus, loading, t]);
+  }, [connectionState, currentAiMessage, documentsCount, hasKnowledgeBase, currentToolStatus, loading, t]);
 
   return (
     <XProvider locale={locale}>
@@ -221,6 +211,26 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
                                     objectFit: 'contain',
                                   }}
                                 />
+                              ))}
+                            {m.attachments
+                              .filter((a) => a.type !== 'image')
+                              .map((a, i) => (
+                                <div
+                                  key={`file-${i}`}
+                                  style={{
+                                    padding: '8px 12px',
+                                    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+                                    borderRadius: 6,
+                                    fontSize: 12,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                                  }}
+                                >
+                                  <span>📎</span>
+                                  <span style={{ color: 'inherit' }}>{a.name || 'File'}</span>
+                                </div>
                               ))}
                             {m.content && renderMarkdown(m.content)}
                           </div>

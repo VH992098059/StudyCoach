@@ -1,8 +1,5 @@
 /**
- * 聊天会话管理Hook
- * 负责管理聊天会话的创建、删除、切换、保存等功能
- * - 已登录：聊天记录保存到数据库
- * - 未登录：聊天记录保存到本地存储
+ * 聊天会话管理：创建、删除、切换、保存会话（已登录→数据库，未登录→本地存储）
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -14,17 +11,15 @@ import ChatHistoryService from '@/services/chatHistory';
 const STORAGE_KEY_LOCAL = 'ai_chat_sessions_local';
 
 export const useChatSessions = (): UseChatSessionsReturn => {
-  // 状态管理
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
 
-  // 生成唯一的消息ID
   const generateMsgId = useCallback((): string => {
     return `${Date.now()}`;
   }, []);
 
-  // 保存聊天记录：已登录→数据库，未登录→本地存储
+  // 已登录保存到数据库，未登录保存到本地存储
   const saveChatSessions = useCallback(async (sessions: ChatSession[]) => {
     try {
       const token = localStorage.getItem('access_token');

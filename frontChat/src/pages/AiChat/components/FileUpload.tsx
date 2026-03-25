@@ -1,12 +1,5 @@
 /**
- * 文件上传组件
- * 
- * 功能：
- * 1. 文件选择按钮
- * 2. 已选择文件列表显示
- * 3. 文件删除功能
- * 4. 上传进度显示
- * 5. 响应式布局
+ * 文件上传组件：选择文件、列表展示、删除、上传进度、响应式布局
  */
 
 import React, { useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
@@ -16,67 +9,25 @@ import { useTranslation } from 'react-i18next';
 import { useBreakpoints } from '@/hooks/useMediaQuery';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { ChatHistoryService } from '@/services/chatHistory';
+import { formatFileSize, getFileStatusColor } from '@/utils/file';
 import type { UploadedFile, FileUploadConfig } from '@/types/chat';
 
-/**
- * 文件上传组件属性接口
- */
 interface FileUploadProps {
-  /** 当前会话 ID，用于上传接口 */
   sessionId?: string;
-  /** 选择文件后自动上传，无需点击上传按钮 */
   autoUpload?: boolean;
-  /** 自定义样式 */
   style?: React.CSSProperties;
-  /** 自定义类名 */
   className?: string;
-  /** 是否禁用 */
   disabled?: boolean;
-  /** 文件上传配置 */
   config?: Partial<FileUploadConfig>;
-  /** 文件变化回调 */
   onFilesChange?: (files: UploadedFile[]) => void;
-  /** 上传完成回调 */
   onUploadComplete?: (files: UploadedFile[]) => void;
 }
 
 export interface FileUploadRef {
-  /** 上传待处理文件，返回已上传的文件名列表 */
   uploadFiles: (sessionId: string) => Promise<string[]>;
-  /** 清空已选文件 */
   clearAllFiles: () => void;
-  /** 触发文件选择（供外部回形针按钮调用） */
   triggerFileSelect: () => void;
 }
-
-/**
- * 格式化文件大小
- */
-const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-/**
- * 获取文件状态颜色
- */
-const getFileStatusColor = (status: UploadedFile['status']): string => {
-  switch (status) {
-    case 'pending':
-      return '#1890ff';
-    case 'uploading':
-      return '#faad14';
-    case 'success':
-      return '#52c41a';
-    case 'error':
-      return '#ff4d4f';
-    default:
-      return '#d9d9d9';
-  }
-};
 
 /**
  * 文件上传组件
@@ -165,18 +116,24 @@ export const FileUpload = forwardRef<FileUploadRef, FileUploadProps>(({
     }
   };
 
+  // 用 ref 保存最新回调，避免将回调函数放入 useEffect 依赖数组导致无限触发
+  const onFilesChangeRef = React.useRef(onFilesChange);
+  const onUploadCompleteRef = React.useRef(onUploadComplete);
+  React.useEffect(() => { onFilesChangeRef.current = onFilesChange; });
+  React.useEffect(() => { onUploadCompleteRef.current = onUploadComplete; });
+
   // 监听文件变化
   React.useEffect(() => {
-    onFilesChange?.(uploadedFiles);
-  }, [uploadedFiles, onFilesChange]);
+    onFilesChangeRef.current?.(uploadedFiles);
+  }, [uploadedFiles]);
 
   // 监听上传完成
   React.useEffect(() => {
     const successFiles = uploadedFiles.filter(file => file.status === 'success');
     if (successFiles.length > 0 && !isUploading) {
-      onUploadComplete?.(successFiles);
+      onUploadCompleteRef.current?.(successFiles);
     }
-  }, [uploadedFiles, isUploading, onUploadComplete]);
+  }, [uploadedFiles, isUploading]);
 
   // 自动上传：选择文件后若有 sessionId 则自动上传
   const pendingCount = uploadedFiles.filter(f => f.status === 'pending').length;

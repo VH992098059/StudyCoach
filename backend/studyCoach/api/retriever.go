@@ -17,11 +17,11 @@ import (
 type RetrieveReq struct {
 	Query         string   // 检索关键词
 	TopK          int      // 检索结果数量
-	Score         float64  //  分数阀值(0-2, 0 完全相反，1 毫不相干，2 完全相同,一般需要传入一个大于1的数字，如1.5)
+	Score         float64  // 分数阈值：范围 0-2，通常取 1.5+（1=不相关，2=完全相同）
 	KnowledgeName string   // 知识库名字
 	optQuery      string   // 优化后的检索关键词
 	excludeIDs    []string // 要排除的 _id 列表
-	rankScore     float64  // 排名分数，原本的score是0-2（实际是1-2），需要在这里改成0-1
+	rankScore     float64  // 重排分数：score 转换至 0-1 范围
 }
 
 func (x *RetrieveReq) copy() *RetrieveReq {
@@ -52,7 +52,7 @@ func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Do
 		relatedDocs = &sync.Map{} // 记录相关docs
 	)
 	req.rankScore = req.Score
-	// 大于1的需要-1
+	// score >= 1 时转换至 0-1 范围
 	if req.rankScore >= 1 {
 		req.rankScore -= 1
 	}
@@ -62,7 +62,7 @@ func (x *Rag) Retriever(ctx context.Context, req *RetrieveReq) (msg []*schema.Do
 	}
 	wg := &sync.WaitGroup{}
 	var loopErr error
-	// 尝试N次重写关键词进行搜索,后续可以考虑做成配置
+	// 3 轮 Query 重写与检索（TODO: 改为配置项）
 	for i := 0; i < 3; i++ {
 		question := req.Query
 		var (

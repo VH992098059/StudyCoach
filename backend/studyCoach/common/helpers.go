@@ -24,8 +24,7 @@ func (c *Config) RefreshIndex(ctx context.Context) error {
 	return err
 }
 
-// IndexExists 检查索引/集合是否存在。
-// ES: 检查 index 是否存在；Qdrant: 检查 collection 是否存在；Milvus: 检查 collection 是否存在。
+// IndexExists 检查索引/集合是否存在（支持 ES、Qdrant、Milvus）。
 func (c *Config) IndexExists(ctx context.Context) (bool, error) {
 	if c.UseES() {
 		return exists.NewExistsFunc(c.Client)(c.IndexName).Do(ctx)
@@ -39,8 +38,7 @@ func (c *Config) IndexExists(ctx context.Context) (bool, error) {
 	return false, fmt.Errorf("no valid client configuration")
 }
 
-// CreateIndex 创建索引/集合。
-// ES: 创建 index；Qdrant: 创建 collection；Milvus: 由 indexer.Store 首次写入时自动创建。
+// CreateIndex 创建索引/集合（Milvus 由首次写入自动创建）。
 func (c *Config) CreateIndex(ctx context.Context) error {
 	if c.UseES() {
 		// ES
@@ -104,8 +102,7 @@ func (c *Config) CreateIndex(ctx context.Context) error {
 	return fmt.Errorf("no valid client configuration")
 }
 
-// DeleteDocument 按文档 ID 删除单条文档。
-// ES: 按 _id 删除；Qdrant: 按 PointId (UUID) 删除；Milvus: 待实现。
+// DeleteDocument 按文档 ID 删除单条文档（Milvus 待实现）。
 func (c *Config) DeleteDocument(ctx context.Context, documentID string) error {
 	if c.UseES() {
 		// ES
@@ -144,8 +141,7 @@ func (c *Config) DeleteDocument(ctx context.Context, documentID string) error {
 	return fmt.Errorf("no valid client configuration")
 }
 
-// GetKnowledgeBaseList 获取所有知识库名称列表（去重）。
-// ES: 暂未实现，返回错误；Qdrant: 通过 Scroll 滚动所有点，从 payload 的 _knowledge_name 去重得到列表。
+// GetKnowledgeBaseList 获取所有知识库名称列表（ES 未实现；Qdrant 支持）。
 func (c *Config) GetKnowledgeBaseList(ctx context.Context) ([]string, error) {
 	if c.UseES() {
 		// ES - 可通过 terms 聚合 _knowledge_name 实现，待补充
@@ -202,8 +198,7 @@ func (c *Config) GetKnowledgeBaseList(ctx context.Context) ([]string, error) {
 	return nil, fmt.Errorf("no valid client configuration")
 }
 
-// SearchDocumentsByIDs 按知识库名称与文档 ID 列表精确拉取文档。
-// 用于异步索引时根据 docIDs 回查完整文档（含向量）。ES: bool must match + terms _id；Qdrant: Filter(Field+HasId)。
+// SearchDocumentsByIDs 按知识库名称和 ID 列表精确拉取文档（用于异步索引回查）。
 func (c *Config) SearchDocumentsByIDs(ctx context.Context, knowledgeName string, docIDs []string, size int) ([]*schema.Document, error) {
 	if c.UseES() {
 		// ES

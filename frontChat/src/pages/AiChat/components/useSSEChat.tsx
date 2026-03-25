@@ -2,7 +2,7 @@
  * SSE 聊天 Hook
  * 基于 @ant-design/x-sdk 实现流式对话
  */
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { SSEConnectionState } from '@/utils/sse/sse';
 import { XRequest } from '@ant-design/x-sdk';
 import { API_CONFIG } from '@/utils/axios/config';
@@ -37,23 +37,37 @@ interface ChatParams {
   uploaded_files?: string[];
 }
 
+/** 最大重连次数，供外部（index.tsx）消费以保持一致 */
+export const MAX_RECONNECT_ATTEMPTS = 3;
+
+// --- 工厂函数：创建 AI 消息对象 ---
+const createAIMessage = (
+  content: string,
+  msgId: string,
+  reasoningContent?: string
+): Message => ({
+  id: Date.now(),
+  msg_id: msgId,
+  content,
+  isUser: false,
+  timestamp: new Date(),
+  ...(reasoningContent ? { reasoningContent } : {}),
+});
+
 const useSSEChat = (params: UseSSEChatParams) => {
   const { selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, isDeepThinking = false, generateMsgId, setMessages } = params;
   const { t } = useTranslation();
 
-  // --- Refs ---
-  // 请求实例，使用 any 规避复杂的泛型类型兼容问题
-  const requestRef = useRef<any>(null);
-  // 消息缓存
+  // Refs
+  const requestRef = useRef<ReturnType<typeof XRequest> | null>(null);
   const accumulatedMessageRef = useRef<string>('');
-  // 思考过程缓存（深度思考模式）
   const accumulatedReasoningRef = useRef<string>('');
-  // 用户是否手动停止
   const isUserStoppedRef = useRef<boolean>(false);
-  // 重连定时器
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 用 ref 保存最新 connectionState，解决 onError 闭包陷阱
+  const connectionStateRef = useRef<SSEConnectionState>(SSEConnectionState.DISCONNECTED);
 
-  // --- State ---
+  // State
   const [connectionState, setConnectionState] = useState<SSEConnectionState>(SSEConnectionState.DISCONNECTED);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -63,29 +77,115 @@ const useSSEChat = (params: UseSSEChatParams) => {
   const [loading, setLoading] = useState(false);
   const [documentsCount, setDocumentsCount] = useState(0);
 
-  const MAX_RECONNECT_ATTEMPTS = 3;
+  // 同步 ref，保持最新值供闭包使用
+  useEffect(() => {
+    connectionStateRef.current = connectionState;
+  }, [connectionState]);
 
-  // --- 清理函数 ---
+  // --- 重置流式状态 ---
+  const resetStreamState = useCallback(() => {
+    setCurrentAiMessage('');
+    setCurrentReasoningContent('');
+    setCurrentToolStatus('');
+    accumulatedMessageRef.current = '';
+    accumulatedReasoningRef.current = '';
+  }, []);
+
+  // 清理请求、定时器、缓存
   const cleanup = useCallback(() => {
-    // 中断请求
     if (requestRef.current) {
-      requestRef.current.abort();
+      (requestRef.current as any).abort?.();
       requestRef.current = null;
     }
-
-    // 清除定时器
     if (retryTimerRef.current) {
       clearTimeout(retryTimerRef.current);
       retryTimerRef.current = null;
     }
-
-    // 清空缓存
     accumulatedMessageRef.current = '';
   }, []);
 
-  // --- 建立连接 ---
+  // --- SSE 事件处理器（拆分自巨大的 onUpdate） ---
+
+  const handleErrorEvent = useCallback((chunk: any) => {
+    const errorMsg = chunk?.data || t('chat.sse.unknownError');
+    console.error('SSE Error Event:', errorMsg);
+    const msgLower = String(errorMsg).toLowerCase();
+    if (
+      (msgLower.includes('token') && (msgLower.includes('invalid') || msgLower.includes('失效') || msgLower.includes('过期'))) ||
+      (msgLower.includes('验证') && (msgLower.includes('过期') || msgLower.includes('不存在') || msgLower.includes('非法')))
+    ) {
+      clearAuthStorage();
+    }
+    if (accumulatedMessageRef.current) {
+      setMessages((prev) => [
+        ...prev,
+        createAIMessage(accumulatedMessageRef.current, generateMsgId(), accumulatedReasoningRef.current.trim() || undefined),
+      ]);
+    }
+    setConnectionError(errorMsg);
+    setConnectionState(SSEConnectionState.ERROR);
+    setLoading(false);
+    resetStreamState();
+  }, [t, generateMsgId, setMessages, resetStreamState]);
+
+  const handleToolStatusEvent = useCallback((chunk: any) => {
+    try {
+      const data = typeof chunk?.data === 'string' ? JSON.parse(chunk.data) : chunk?.data;
+      const name = data?.name || data?.tool || '';
+      setCurrentToolStatus(name ? t('chat.thinkChain.executingTool', { name }) : t('chat.thinkChain.executingToolGeneric'));
+    } catch {
+      setCurrentToolStatus(t('chat.thinkChain.executingToolGeneric'));
+    }
+  }, [t]);
+
+  const handleDonePayload = useCallback(() => {
+    const finalMsg = accumulatedMessageRef.current.trim();
+    if (finalMsg) {
+      setMessages((prev) => [
+        ...prev,
+        createAIMessage(finalMsg, generateMsgId(), accumulatedReasoningRef.current.trim() || undefined),
+      ]);
+    }
+    resetStreamState();
+    setLoading(false);
+    setConnectionState(SSEConnectionState.DISCONNECTED);
+  }, [generateMsgId, setMessages, resetStreamState]);
+
+  const handleContentPayload = useCallback((payload: string) => {
+    let contentSegment = payload;
+    let reasoningSegment = '';
+    try {
+      const parsed = JSON.parse(payload);
+      if (typeof parsed?.content === 'string') {
+        contentSegment = parsed.content;
+      } else if (typeof parsed?.delta === 'string') {
+        contentSegment = parsed.delta;
+      }
+      if (typeof parsed?.reasoning_content === 'string') {
+        reasoningSegment = parsed.reasoning_content;
+      }
+    } catch { /* 非 JSON，当做纯文本 */ }
+
+    // 检查内容是否包含 [DONE] 标记
+    if (contentSegment.includes('[DONE]')) {
+      const parts = contentSegment.split('[DONE]');
+      contentSegment = parts[0];
+      accumulatedMessageRef.current += contentSegment;
+      setCurrentAiMessage(accumulatedMessageRef.current);
+      handleDonePayload();
+      return;
+    }
+
+    accumulatedMessageRef.current += contentSegment;
+    setCurrentAiMessage(accumulatedMessageRef.current);
+    if (reasoningSegment) {
+      accumulatedReasoningRef.current += reasoningSegment;
+      setCurrentReasoningContent(accumulatedReasoningRef.current);
+    }
+  }, [handleDonePayload]);
+
+  // 建立 SSE 连接，支持重试
   const createConnection = useCallback(async (question: string, sessionId: string, uploadedFiles: string[] = [], attempt = 0) => {
-    // 已停止则不发起请求
     if (isUserStoppedRef.current) return;
 
     const base = API_CONFIG.BASE_URL.replace(/\/$/, '');
@@ -95,17 +195,12 @@ const useSSEChat = (params: UseSSEChatParams) => {
     setConnectionState(attempt === 0 ? SSEConnectionState.CONNECTING : SSEConnectionState.RECONNECTING);
     setConnectionError(null);
     if (attempt === 0) {
-        setCurrentAiMessage('');
-        setCurrentReasoningContent('');
-        setCurrentToolStatus('');
-        accumulatedMessageRef.current = '';
-        accumulatedReasoningRef.current = '';
-        setDocumentsCount(0);
+      resetStreamState();
+      setDocumentsCount(0);
     }
 
     try {
       let isFirstChunk = true;
-      // 使用 XRequest 发起请求
       const request = XRequest<ChatParams, any>(endpoint, {
         method: 'POST',
         headers: {
@@ -123,69 +218,29 @@ const useSSEChat = (params: UseSSEChatParams) => {
           is_deep_thinking: isDeepThinking,
           ...(uploadedFiles.length > 0 ? { uploaded_files: uploadedFiles } : {}),
         },
-        // 处理 SSE 流
-    
         callbacks: {
           onUpdate: (chunk: any) => {
             if (isUserStoppedRef.current) return;
 
-            // 检查错误事件
             if (chunk?.event === 'error') {
-              const errorMsg = chunk?.data || t('chat.sse.unknownError');
-              console.error('SSE Error Event:', errorMsg);
-              // token 无效时自动退出登录
-              const msgLower = String(errorMsg).toLowerCase();
-              if (msgLower.includes('token') && (msgLower.includes('invalid') || msgLower.includes('失效') || msgLower.includes('过期')) ||
-                  msgLower.includes('验证') && (msgLower.includes('过期') || msgLower.includes('不存在') || msgLower.includes('非法'))) {
-                clearAuthStorage();
-              }
-              // 如果有累积的消息，先保存
-              if (accumulatedMessageRef.current) {
-                  const finalReasoning = accumulatedReasoningRef.current.trim();
-                  const aiMessage: Message = {
-                    id: Date.now(),
-                    msg_id: generateMsgId(),
-                    content: accumulatedMessageRef.current,
-                    isUser: false,
-                    timestamp: new Date(),
-                    ...(finalReasoning ? { reasoningContent: finalReasoning } : {}),
-                  };
-                  setMessages((prev) => [...prev, aiMessage]);
-              }
-              
-              setConnectionError(errorMsg);
-              setConnectionState(SSEConnectionState.ERROR);
-              setLoading(false);
-              setCurrentAiMessage('');
-              setCurrentReasoningContent('');
-              accumulatedMessageRef.current = '';
-              accumulatedReasoningRef.current = '';
+              handleErrorEvent(chunk);
               return;
             }
-            
-            // 首次收到数据标记为已连接
+
             if (isFirstChunk) {
-               setConnectionState(SSEConnectionState.CONNECTED);
-               setReconnectAttempts(0);
-               isFirstChunk = false;
+              setConnectionState(SSEConnectionState.CONNECTED);
+              setReconnectAttempts(0);
+              isFirstChunk = false;
             }
 
-            // 解析 tool_status 事件：工具执行中，展示「正在执行 XXX」避免用户以为卡住
             if (chunk?.event === 'tool_status') {
-              try {
-                const data = typeof chunk?.data === 'string' ? JSON.parse(chunk.data) : chunk?.data;
-                const name = data?.name || data?.tool || '';
-                setCurrentToolStatus(name ? t('chat.thinkChain.executingTool', { name }) : t('chat.thinkChain.executingToolGeneric'));
-              } catch {
-                setCurrentToolStatus(t('chat.thinkChain.executingToolGeneric'));
-              }
+              handleToolStatusEvent(chunk);
               return;
             }
 
-            // 收到内容时清除工具状态
             setCurrentToolStatus('');
 
-            // 解析 documents 事件（SSE 格式为 documents: {...}，XStream 解析为 chunk.documents 字符串）
+            // 解析 documents 事件
             const documentsStr = chunk?.documents;
             if (typeof documentsStr === 'string') {
               try {
@@ -198,15 +253,10 @@ const useSSEChat = (params: UseSSEChatParams) => {
             }
 
             let data = chunk?.data ?? '';
-            // 兼容可能的字符串类型
-            if (typeof chunk === 'string') {
-                 data = chunk;
-            }
-
+            if (typeof chunk === 'string') data = chunk;
             const payload = typeof data === 'string' ? data.trim() : '';
 
-            // 兜底：部分 SSE 解析器不传 event，tool_status 的 data 会作为普通 data 到达
-            // 若 payload 形如 {"tool":"skill","name":"skill(xxx)"} 且无 content/reasoning_content，按 tool_status 处理
+            // 兜底：处理无 event 字段的 tool_status
             try {
               const parsed = JSON.parse(payload);
               if (parsed && (parsed.tool != null || parsed.name != null) && parsed.content == null && parsed.reasoning_content == null && parsed.delta == null) {
@@ -214,157 +264,69 @@ const useSSEChat = (params: UseSSEChatParams) => {
                 setCurrentToolStatus(name ? t('chat.thinkChain.executingTool', { name }) : t('chat.thinkChain.executingToolGeneric'));
                 return;
               }
-            } catch {
-              /* 非 JSON，继续按 content 处理 */
-            }
+            } catch { /* 非 JSON */ }
 
             if (payload === '[DONE]') {
-              // 传输完成
-              const finalMsg = accumulatedMessageRef.current.trim();
-              const finalReasoning = accumulatedReasoningRef.current.trim();
-              if (finalMsg) {
-                const aiMessage: Message = {
-                  id: Date.now(),
-                  msg_id: generateMsgId(),
-                  content: finalMsg,
-                  isUser: false,
-                  timestamp: new Date(),
-                  ...(finalReasoning ? { reasoningContent: finalReasoning } : {}),
-                };
-                setMessages((prev) => [...prev, aiMessage]);
-              }
-              
-              setCurrentAiMessage('');
-              setCurrentReasoningContent('');
-              setCurrentToolStatus('');
-              accumulatedMessageRef.current = '';
-              accumulatedReasoningRef.current = '';
-              setLoading(false);
-              setConnectionState(SSEConnectionState.DISCONNECTED);
+              handleDonePayload();
               return;
             }
 
             setCurrentToolStatus('');
-
-            // 解析内容与思考过程
-            let contentSegment = payload;
-            let reasoningSegment = '';
-            try {
-              const parsed = JSON.parse(payload);
-              if (typeof parsed?.content === 'string') {
-                contentSegment = parsed.content;
-              } else if (typeof parsed?.delta === 'string') {
-                contentSegment = parsed.delta;
-              }
-              if (typeof parsed?.reasoning_content === 'string') {
-                reasoningSegment = parsed.reasoning_content;
-              }
-            } catch {
-              // 非 JSON，当做纯文本
-            }
-
-            // 检查内容是否包含 [DONE] 标记，有时它会附在最后一条消息中
-            if (contentSegment.includes('[DONE]')) {
-                const parts = contentSegment.split('[DONE]');
-                contentSegment = parts[0];
-                accumulatedMessageRef.current += contentSegment;
-                setCurrentAiMessage(accumulatedMessageRef.current);
-
-                // 触发结束逻辑
-                const finalMsg = accumulatedMessageRef.current.trim();
-                const finalReasoning = accumulatedReasoningRef.current.trim();
-                if (finalMsg) {
-                  const aiMessage: Message = {
-                    id: Date.now(),
-                    msg_id: generateMsgId(),
-                    content: finalMsg,
-                    isUser: false,
-                    timestamp: new Date(),
-                    ...(finalReasoning ? { reasoningContent: finalReasoning } : {}),
-                  };
-                  setMessages((prev) => [...prev, aiMessage]);
-                }
-                
-              setCurrentAiMessage('');
-              setCurrentReasoningContent('');
-              setCurrentToolStatus('');
-              accumulatedMessageRef.current = '';
-              accumulatedReasoningRef.current = '';
-              setLoading(false);
-              setConnectionState(SSEConnectionState.DISCONNECTED);
-              return;
-            }
-
-            accumulatedMessageRef.current += contentSegment;
-            setCurrentAiMessage(accumulatedMessageRef.current);
-            if (reasoningSegment) {
-              accumulatedReasoningRef.current += reasoningSegment;
-              setCurrentReasoningContent(accumulatedReasoningRef.current);
-            }
+            handleContentPayload(payload);
           },
           onSuccess: () => {
-             // 请求结束，确保状态正确
-             setCurrentToolStatus('');
-             setLoading(false);
-             setConnectionState((prev) => {
-                 // 如果当前是错误状态，保留错误状态
-                 if (prev === SSEConnectionState.ERROR) return prev;
-                 return SSEConnectionState.DISCONNECTED;
-             });
+            setCurrentToolStatus('');
+            setLoading(false);
+            setConnectionState((prev) => {
+              if (prev === SSEConnectionState.ERROR) return prev;
+              return SSEConnectionState.DISCONNECTED;
+            });
           },
           onError: (error: Error) => {
-            // token 无效或 401 时自动退出登录
             const errStr = String(error?.message || error || '').toLowerCase();
             if (errStr.includes('401') || (errStr.includes('token') && (errStr.includes('invalid') || errStr.includes('失效') || errStr.includes('过期')))) {
               clearAuthStorage();
             }
-            // 检查是否为中断错误
             const isAbort = error.name === 'AbortError';
-            
             if (isAbort || isUserStoppedRef.current) {
               if (isUserStoppedRef.current) {
-                  setLoading(false);
-                  setConnectionState(SSEConnectionState.DISCONNECTED);
+                setLoading(false);
+                setConnectionState(SSEConnectionState.DISCONNECTED);
               }
               return;
             }
-
             console.error('SSE Error:', error);
-            
-            // 如果当前已经是ERROR状态，不需要再重试，直接返回
-            if(connectionState === SSEConnectionState.ERROR) {
-                 return;
-            }
 
-            // 重试逻辑
+            // 用 ref 读取最新 connectionState，避免闭包陷阱
+            if (connectionStateRef.current === SSEConnectionState.ERROR) return;
+
             if (attempt < MAX_RECONNECT_ATTEMPTS) {
               const nextAttempt = attempt + 1;
               setReconnectAttempts(nextAttempt);
               setConnectionError(t('chat.sse.reconnecting', { attempt: nextAttempt }));
               setConnectionState(SSEConnectionState.RECONNECTING);
-
-              // 延迟重连
               retryTimerRef.current = setTimeout(() => {
-                  createConnection(question, sessionId, uploadedFiles, nextAttempt);
+                createConnection(question, sessionId, uploadedFiles, nextAttempt);
               }, 2000);
             } else {
               setConnectionError(t('chat.sse.connectionFailed'));
               setConnectionState(SSEConnectionState.ERROR);
               setLoading(false);
             }
-          }
-        }
+          },
+        },
       });
 
-      requestRef.current = request;
-      request.run();
-
+      requestRef.current = request as any;
+      (request as any).run();
     } catch (error: any) {
-       console.error('Request creation error:', error);
-       setLoading(false);
-       setConnectionState(SSEConnectionState.ERROR);
+      console.error('Request creation error:', error);
+      setLoading(false);
+      setConnectionState(SSEConnectionState.ERROR);
     }
-  }, [selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, isDeepThinking, generateMsgId, setMessages, connectionState]);
+  // connectionState 从依赖数组移除，改用 connectionStateRef.current
+  }, [selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, isDeepThinking, generateMsgId, setMessages, t,
+      resetStreamState, handleErrorEvent, handleToolStatusEvent, handleDonePayload, handleContentPayload]);
 
   // --- 导出方法 ---
 
@@ -376,41 +338,21 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
   const stop = useCallback(() => {
     isUserStoppedRef.current = true;
-    
-    // 中止请求
-    if (requestRef.current) {
-      requestRef.current.abort();
-    }
-    // 清除重连
-    if (retryTimerRef.current) {
-        clearTimeout(retryTimerRef.current);
-    }
+    if (requestRef.current) (requestRef.current as any).abort?.();
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
 
-    // 保存已生成的内容
     if (accumulatedMessageRef.current.trim()) {
-      const finalReasoning = accumulatedReasoningRef.current.trim();
-      const aiMessage: Message = {
-        id: Date.now(),
-        msg_id: generateMsgId(),
-        content: accumulatedMessageRef.current.trim(),
-        isUser: false,
-        timestamp: new Date(),
-        ...(finalReasoning ? { reasoningContent: finalReasoning } : {}),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
+      setMessages((prev) => [
+        ...prev,
+        createAIMessage(accumulatedMessageRef.current.trim(), generateMsgId(), accumulatedReasoningRef.current.trim() || undefined),
+      ]);
     }
 
-    // 重置状态
-    setCurrentAiMessage('');
-    setCurrentReasoningContent('');
-    setCurrentToolStatus('');
-    accumulatedReasoningRef.current = '';
-    accumulatedMessageRef.current = '';
+    resetStreamState();
     setLoading(false);
     setConnectionState(SSEConnectionState.DISCONNECTED);
     setConnectionError(null);
-  }, [generateMsgId, setMessages]);
-
+  }, [generateMsgId, setMessages, resetStreamState]);
 
   return {
     connectionState,

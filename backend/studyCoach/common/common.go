@@ -1,5 +1,5 @@
-// Package common 提供知识库公共能力：字段常量、Config、索引/集合操作（IndexExists、CreateIndex、DeleteDocument、GetKnowledgeBaseList、SearchDocumentsByIDs）。
-// 支持 Elasticsearch 与 Qdrant 双向量存储，通过 Config.Client 或 Config.QdrantClient 选择实现，为 Milvus 等扩展预留接口形态。
+// Package common 提供知识库公共能力：字段常量、Config、索引操作。
+// 支持 ES、Qdrant、Milvus 三种向量存储。
 package common
 
 const (

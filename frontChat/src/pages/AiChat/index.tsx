@@ -1,9 +1,5 @@
 /**
- * @fileoverview AIChat 页面入口
- * @description 负责整体聊天页面的布局与状态管理，连接各组件与 Hooks。
- * - 布局：侧边栏、消息列表、输入区、信息面板/抽屉
- * - 状态：会话列表与当前会话、SSE连接、文件上传、语音朗读、知识库选择
- * - 交互：发送消息、停止生成、滚动行为、打开/关闭抽屉与高级设置
+ * 主聊天页面：包含会话列表、消息展示、输入区、知识库检索、语音交互
  */
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Button, Alert, message, Empty } from 'antd';
@@ -11,14 +7,13 @@ import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { useBreakpoints } from '@/hooks/useMediaQuery';
 import { useChatSessions } from '@/hooks/useChatSessions';
-// import './scrollbar.scss';
 import { type KnowledgeSelectorRef } from '@/components/KnowledgeSelector';
 import type { UploadedFile } from '@/types/chat';
 import type { FileUploadRef } from './components/FileUpload';
 import { SessionInfoPanel, SessionInfoDrawer, ChatTopBar, BubbleMessageList, useReferences, useScrollHandlers, useChatComposer } from './components';
 import ChatSidebar from './components/pc/ChatSidebar';
 import SidebarDrawer from './components/mobile/SidebarDrawer';
-import useSSEChat from './components/useSSEChat.tsx';
+import useSSEChat, { MAX_RECONNECT_ATTEMPTS } from './components/useSSEChat.tsx';
 import useVoiceService from './components/useVoiceService.tsx';
 import InputArea from './components/InputArea';
 import { useChatSettings } from '@/hooks/useChatSettings';
@@ -26,7 +21,6 @@ import { useChatSettings } from '@/hooks/useChatSettings';
 
 const AIChat: React.FC = () => {
   const { t } = useTranslation();
-  // 使用聊天会话管理Hook
   const {
     currentSessionId,
     chatSessions,
@@ -34,17 +28,14 @@ const AIChat: React.FC = () => {
     createNewSession,
     loadSession,
     deleteSession,
-    updateCurrentSession,
     setMessages,
     generateMsgId,
   } = useChatSessions();
-
 
   const { isScrolling, isMessageScrolling, handleScroll, handleMessageScroll } = useScrollHandlers();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [sessionInfoDrawerVisible, setSessionInfoDrawerVisible] = useState(false);
 
-  // 新增状态
   const {
     selectedKnowledge,
     advancedSettings,
@@ -61,7 +52,6 @@ const AIChat: React.FC = () => {
   } = useReferences();
   const knowledgeSelectorRef = useRef<KnowledgeSelectorRef>(null);
 
-  // 聊天设置（按用户 ID 持久化到 localStorage）
   const {
     isNetworkEnabled,
     isStudyMode,
@@ -70,7 +60,7 @@ const AIChat: React.FC = () => {
     toggleDeepThinking,
     toggleNetwork,
   } = useChatSettings();
-  // SSE 连接相关状态
+
   const {
     connectionState,
     reconnectAttempts,
@@ -93,45 +83,37 @@ const AIChat: React.FC = () => {
     setMessages,
   });
 
-  // 文件上传相关状态
   const [currentUploadedFiles, setCurrentUploadedFiles] = useState<UploadedFile[]>([]);
   const fileUploadRef = useRef<FileUploadRef | null>(null);
 
-  // 朗读功能 - 初始化语音服务（供消息气泡内调用 voiceService 使用）
   useVoiceService();
-
-  // 响应式断点
   const { isMobile, isTablet } = useBreakpoints();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
 
-  // 常量配置
-  const MAX_RECONNECT_ATTEMPTS = 3;
-
-  // 清理资源
   useEffect(() => {
     return () => {
       stop();
     };
   }, []);
 
-  // 聊天记录滚动事件处理
-  const scrollToBottom = () => {
-    // 使用 setTimeout 确保在 DOM 更新后执行滚动
-    // 直接操作容器的 scrollTop 属性，确保滚动到底部
-    setTimeout(() => {
+  // 滚动到底部：用 RAF 代替固定延迟，确保在浏览器绘制后执行
+  const rafRef = useRef<number>(0);
+  const scrollToBottom = useCallback(() => {
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
       if (messagesEndRef.current) {
         messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
       }
-    }, 100);
-  };
+    });
+  }, []);
 
+  // messages 新增 / AI 流式内容更新时滚动；移除 currentReasoningContent 减少不必要触发
   useEffect(() => {
     scrollToBottom();
-  }, [messages, currentAiMessage, currentReasoningContent]);
+  }, [messages, currentAiMessage, scrollToBottom]);
 
-  // 发送消息
   const handleStop = () => { stop(); };
 
   const uploadFilesIfNeeded = useCallback(async (sessionId: string) => {
@@ -164,9 +146,9 @@ const AIChat: React.FC = () => {
     clearUploadedFiles,
   });
   // 处理文件上传变化
-  const handleFilesChange = (files: UploadedFile[]) => {
+  const handleFilesChange = useCallback((files: UploadedFile[]) => {
     setCurrentUploadedFiles(files);
-  };
+  }, []);
 
   // 处理文件上传完成
   const handleUploadComplete = useCallback((files: UploadedFile[]) => {
@@ -277,8 +259,7 @@ const AIChat: React.FC = () => {
               icon={<ExclamationCircleOutlined />}
               style={{ marginBottom: '16px' }}
               showIcon
-              closable
-              onClose={() => setConnectionError(null)}
+              closable={{ onClose: () => setConnectionError(null) }}
             />
           )}
 
@@ -291,8 +272,6 @@ const AIChat: React.FC = () => {
                 onScroll={handleMessageScroll}
                 loading={streamingLoading}
                 connectionState={connectionState}
-                reconnectAttempts={reconnectAttempts}
-                maxReconnectAttempts={MAX_RECONNECT_ATTEMPTS}
                 currentAiMessage={currentAiMessage}
                 currentReasoningContent={currentReasoningContent}
                 messagesEndRef={messagesEndRef}

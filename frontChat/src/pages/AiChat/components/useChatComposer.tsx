@@ -58,11 +58,14 @@ const useChatComposer = (params: UseChatComposerParams) => {
     if (!trimmed && currentUploadedFiles.length === 0) return;
     const questionText = trimmed || '请查看我上传的文件';
 
-    // 为图片文件生成预览 URL，用于在消息气泡中展示
+    // 为图片文件生成预览 URL，为其他文件生成文件信息，用于在消息气泡中展示
     const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    const attachments = currentUploadedFiles
-      .filter((f) => imageTypes.includes(f.file.type))
-      .map((f) => ({ type: 'image' as const, url: URL.createObjectURL(f.file) }));
+    const attachments = currentUploadedFiles.map((f) => {
+      if (imageTypes.includes(f.file.type)) {
+        return { type: 'image' as const, url: URL.createObjectURL(f.file) };
+      }
+      return { type: 'file' as const, url: '', name: f.file.name };
+    });
 
     const userMessage: Message = {
       id: Date.now(),

@@ -31,23 +31,19 @@ func toolDisplayName(tc schema.ToolCall) string {
 	return SkillToolDisplayName(tc.Function.Name, tc.Function.Arguments)
 }
 
-// reasoningChunkSize 思考内容模拟流式时每段最大字符数（按 rune 计，避免截断中文）
-const reasoningChunkSize = 4
-
-// reasoningChunkIntervalMs 思考内容每段之间的间隔（毫秒）
-const reasoningChunkIntervalMs = 35
-
-// contentChunkSize 回答内容模拟流式时每段最大字符数
-const contentChunkSize = 6
-
-// contentChunkIntervalMs 回答内容每段之间的间隔（毫秒）
-const contentChunkIntervalMs = 25
+// 模拟流式输出：按 rune 分段，避免截断中文
+const (
+	reasoningChunkSize       = 4  // 思考内容每段字符数
+	reasoningChunkIntervalMs = 35 // 思考内容段间隔（毫秒）
+	contentChunkSize         = 6  // 回答内容每段字符数
+	contentChunkIntervalMs   = 25 // 回答内容段间隔（毫秒）
+)
 
 type StreamData struct {
-	Id               string             `json:"id"`                // 同一个消息里面的id是相同的
-	Created          int64              `json:"created"`           // 消息初始生成时间
-	Content          string             `json:"content"`           // 消息具体内容
-	ReasoningContent string             `json:"reasoning_content"` // 思考过程（深度思考模式）
+	Id               string             `json:"id"`
+	Created          int64              `json:"created"`
+	Content          string             `json:"content"`
+	ReasoningContent string             `json:"reasoning_content"` // 深度思考内容
 	Document         []*schema.Document `json:"document"`
 }
 
@@ -279,9 +275,9 @@ type toolCallNotify struct {
 // toolCallNotifyKey 通过 context 传递工具调用通知 channel 的 key。
 type toolCallNotifyKey struct{}
 
-// BuildNotifyMiddleware 返回一个工具中间件，在工具执行前向 ctx 中的通知 channel 发送工具名与参数。
-// 若只传 Name 不传 Args，skill 等工具会显示为 "skill" 而非 "skill(emotion-companion)"。
-// 如果 channel 已满（缓冲 10），跳过发送以避免阻塞工具执行。
+// BuildNotifyMiddleware 返回工具中间件，通过 channel 通知工具执行。
+// 仅 Name 时显示为 "skill"；Name+Args 时显示为 "skill(emotion-companion)"。
+// 缓冲已满（10）时跳过，避免阻塞。
 func BuildNotifyMiddleware() compose.ToolMiddleware {
 	return compose.ToolMiddleware{
 		Invokable: func(next compose.InvokableToolEndpoint) compose.InvokableToolEndpoint {
@@ -300,18 +296,9 @@ func BuildNotifyMiddleware() compose.ToolMiddleware {
 	}
 }
 
-// BuildGenToStream 返回一个 stream 函数，解决 Eino 0.8.4 中 ins.Stream 仅暴露
-// 第一轮 LLM 流（Turn 1）、工具执行后 Turn 2 无法到达 SSE 消费者的问题。
-//
-// 实现：
-//   - 用 schema.Pipe 创建活的 StreamReader/StreamWriter 对。
-//   - 在 goroutine 中调用 ins.Generate（同步跑完所有工具轮次）。
-//   - 工具中间件通过 toolCallNotifyKey channel 实时通知工具调用，
-//     通知 goroutine 将其转为带 ToolCalls 的 Message 写入 sw，
-//     SteamResponse 会据此发送 tool_status SSE 事件。
-//   - Generate 完成后将最终消息写入 sw 并关闭，SSE 层以打字机效果呈现。
-//
-// 供 CoachChat、NormalChat 等使用 react.Agent 的模块调用。
+// BuildGenToStream 解决 Eino 0.8.4 中 ins.Stream 无法传递工具调用后内容的问题。
+// 使用 schema.Pipe + goroutine 实现完整的多轮次流输出，中间件通过 channel 通知 SSE 层。
+// 供 react.Agent 模块使用。
 func BuildGenToStream(ins *react.Agent) func(context.Context, []*schema.Message, ...agent.AgentOption) (*schema.StreamReader[*schema.Message], error) {
 	return func(genCtx context.Context, msgs []*schema.Message, opts ...agent.AgentOption) (*schema.StreamReader[*schema.Message], error) {
 		sr, sw := schema.Pipe[*schema.Message](20)
@@ -361,11 +348,8 @@ func BuildGenToStream(ins *react.Agent) func(context.Context, []*schema.Message,
 	}
 }
 
-// DrainStreamChecker 读完 LLM 整轮流再决定路由方向，避免默认 firstChunkStreamToolCallChecker
-// 在遇到第一个有 Content 的 chunk 就提前返回 false，导致对"先出文字再出 ToolCalls"
-// 的模型（如火山方舟）误判为无工具调用。行为与 adk/react.go 的 toolCallCheck 一致。
-//
-// 供 CoachChat、NormalChat 等使用 react.Agent 的模块作为 StreamToolCallChecker 传入。
+// DrainStreamChecker 等待完整流再判断工具调用，避免误判"先文字后工具"的模型（如火山方舟）。
+// 供 react.Agent 作为 StreamToolCallChecker 使用。
 func DrainStreamChecker(_ context.Context, sr *schema.StreamReader[*schema.Message]) (bool, error) {
 	defer sr.Close()
 	hasToolCall := false
