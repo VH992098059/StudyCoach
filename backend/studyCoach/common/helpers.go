@@ -12,6 +12,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/refresh"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/densevectorsimilarity"
+	"github.com/milvus-io/milvus/client/v2/milvusclient"
 	"github.com/qdrant/go-client/qdrant"
 )
 
@@ -102,7 +103,7 @@ func (c *Config) CreateIndex(ctx context.Context) error {
 	return fmt.Errorf("no valid client configuration")
 }
 
-// DeleteDocument 按文档 ID 删除单条文档（Milvus 待实现）。
+// DeleteDocument 按文档 ID 删除单条文档（支持 ES、Qdrant、Milvus）。
 func (c *Config) DeleteDocument(ctx context.Context, documentID string) error {
 	if c.UseES() {
 		// ES
@@ -136,7 +137,14 @@ func (c *Config) DeleteDocument(ctx context.Context, documentID string) error {
 		return nil
 	}
 	if c.UseMilvus() {
-		return fmt.Errorf("DeleteDocument for Milvus not implemented yet")
+		if c.MilvusClient == nil {
+			return fmt.Errorf("milvus client not configured")
+		}
+		_, err := c.MilvusClient.Delete(ctx, milvusclient.NewDeleteOption(c.IndexName).WithExpr(fmt.Sprintf("id == \"%s\"", documentID)))
+		if err != nil {
+			return fmt.Errorf("failed to delete document from milvus: %w", err)
+		}
+		return nil
 	}
 	return fmt.Errorf("no valid client configuration")
 }

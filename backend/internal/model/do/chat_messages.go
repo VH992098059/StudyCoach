@@ -16,6 +16,7 @@ type ChatMessages struct {
 	SessionUuid      any         //
 	MsgId            any         //
 	Content          any         //
+	MultiContent     any         //
 	IsUser           any         //
 	Timestamp        *gtime.Time //
 	ReasoningContent any         //

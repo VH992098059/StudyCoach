@@ -20,6 +20,14 @@ func (c *ControllerV1) AiChat(ctx context.Context, req *v1.AiChatReq) (res *v1.A
 		g.Log().Infof(ctx, "AiChat 接口总耗时: %v", duration)
 	}()
 
+	// 调试：打印 MultiContent
+	multiContent := req.GetMultiContent()
+	g.Log().Infof(ctx, "MultiContent 长度: %d", len(multiContent))
+	for i, part := range multiContent {
+		g.Log().Infof(ctx, "MultiContent[%d]: Type=%s, Text=%s, Base64Data长度=%d",
+			i, part.Type, part.Text, len(part.Base64Data))
+	}
+
 	var streamReader *schema.StreamReader[*schema.Message]
 	fmt.Printf("使用联网状态：%t，知识库使用：%s\n", req.IsNetwork, req.KnowledgeName)
 	if req.IsStudyMode != true {

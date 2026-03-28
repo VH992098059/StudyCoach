@@ -25,6 +25,7 @@ type ChatMessagesColumns struct {
 	SessionUuid      string //
 	MsgId            string //
 	Content          string //
+	MultiContent     string //
 	IsUser           string //
 	Timestamp        string //
 	ReasoningContent string //
@@ -36,6 +37,7 @@ var chatMessagesColumns = ChatMessagesColumns{
 	SessionUuid:      "session_uuid",
 	MsgId:            "msg_id",
 	Content:          "content",
+	MultiContent:     "multi_content",
 	IsUser:           "is_user",
 	Timestamp:        "timestamp",
 	ReasoningContent: "reasoning_content",

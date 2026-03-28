@@ -17,6 +17,17 @@ func addDocIDAndMerge(ctx context.Context, docs []*schema.Document) (output []*s
 	if len(docs) == 0 {
 		return docs, nil
 	}
+
+	// 从 context 获取文件名并添加到所有文档的 MetaData
+	if fileName, ok := ctx.Value("_file_name").(string); ok && fileName != "" {
+		for _, doc := range docs {
+			if doc.MetaData == nil {
+				doc.MetaData = make(map[string]any)
+			}
+			doc.MetaData["_file_name"] = fileName
+		}
+	}
+
 	for _, doc := range docs {
 		doc.ID = uuid.New().String() // 覆盖之前的id
 	}

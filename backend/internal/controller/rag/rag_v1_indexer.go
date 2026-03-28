@@ -72,11 +72,22 @@ func (c *ControllerV1) Indexer(ctx context.Context, req *v1.IndexerReq) (res *v1
 		URI:           url,
 		KnowledgeName: req.KnowledgeName,
 		DocumentsId:   documentsId,
+		FileName:      fileName,
 	}
 	ids, err := svr.Index(ctx, indexReq)
 	if err != nil {
 		return
 	}
+
+	// 异步生成 QA 内容（后台处理，不阻塞响应）
+	go func() {
+		asyncCtx := context.Background()
+		asyncCtx = context.WithValue(asyncCtx, "userId", userUUID)
+		if err := svr.GenerateQAAsync(asyncCtx, documentsId, req.KnowledgeName); err != nil {
+			g.Log().Warningf(ctx, "GenerateQAAsync failed for documentsId=%d: %v", documentsId, err)
+		}
+	}()
+
 	res = &v1.IndexerRes{
 		DocIDs: ids,
 	}

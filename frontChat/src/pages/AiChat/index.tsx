@@ -163,20 +163,6 @@ const AIChat: React.FC = () => {
   const handleOpenInfo = useCallback(() => setSessionInfoDrawerVisible(true), []);
 
   /** 检测上一条 AI 消息是否为学习计划（含番茄钟、项目启动计划等关键词） */
-  const showConfirmSavePlan = useMemo(() => {
-    if (streamingLoading || messages.length === 0) return false;
-    const last = messages[messages.length - 1];
-    if (last.isUser) return false;
-    const content = (last.content || '').toString();
-    const keywords = ['番茄钟', '项目启动计划', '模版 A', '费曼实战计划', '任务切片', '🍅', 'MVP'];
-    return keywords.some((k) => content.includes(k)) && content.length > 80;
-  }, [messages, streamingLoading]);
-
-  /** 点击「确认保存计划」：发送固定文案触发后端 save_plan */
-  const handleConfirmSavePlan = useCallback(() => {
-    sendQuestionByText('我确认采纳这个计划，请保存');
-  }, [sendQuestionByText]);
-
   /** 保存成功提示：当 AI 回复包含「已保存」时显示 Toast */
   const lastToastMsgIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -290,8 +276,6 @@ const AIChat: React.FC = () => {
                 currentUploadedFiles={currentUploadedFiles}
                 sessionId={currentSessionId}
                 fileUploadRef={fileUploadRef}
-                showConfirmSavePlan={showConfirmSavePlan}
-                onConfirmSavePlan={handleConfirmSavePlan}
                 onVoiceTranscript={(text) => sendQuestionByText(text)}
                 onInputChange={setInputValue}
                 onSend={handleSend}

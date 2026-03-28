@@ -3,6 +3,7 @@ package knowledge
 import (
 	"backend/internal/dao"
 	"backend/internal/model/entity"
+	"backend/studyCoach/common"
 	"context"
 	"fmt"
 
@@ -105,19 +106,37 @@ func GetDocumentsList(ctx context.Context, where entity.KnowledgeDocuments, page
 	return documents, total, nil
 }
 
-// DeleteDocument 删除文档及其相关数据
+// DeleteDocument 删除文档及其相关数据（MySQL + 向量库）
 func DeleteDocument(ctx context.Context, id int64) error {
 	g.Log().Debugf(ctx, "删除文档: ID=%d", id)
 
 	return dao.KnowledgeDocuments.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		// 先删除文档块
-		_, err := dao.KnowledgeChunks.Ctx(ctx).TX(tx).Where("knowledge_doc_id", id).Delete()
+		// 获取该文档的所有 chunk_id
+		var chunks []entity.KnowledgeChunks
+		err := dao.KnowledgeChunks.Ctx(ctx).TX(tx).Where("knowledge_doc_id", id).Scan(&chunks)
+		if err != nil {
+			g.Log().Errorf(ctx, "获取文档块失败: ID=%d, 错误: %v", id, err)
+			return fmt.Errorf("获取文档块失败: %w", err)
+		}
+
+		// 从向量库删除所有 chunk
+		cfg, err := common.BuildVectorConfig(ctx)
+		if err == nil && cfg != nil {
+			for _, chunk := range chunks {
+				if err := cfg.DeleteDocument(ctx, chunk.ChunkId); err != nil {
+					g.Log().Warningf(ctx, "从向量库删除 chunk 失败: chunk_id=%s, 错误: %v", chunk.ChunkId, err)
+				}
+			}
+		}
+
+		// 删除文档块
+		_, err = dao.KnowledgeChunks.Ctx(ctx).TX(tx).Where("knowledge_doc_id", id).Delete()
 		if err != nil {
 			g.Log().Errorf(ctx, "删除文档块失败: ID=%d, 错误: %v", id, err)
 			return fmt.Errorf("删除文档块失败: %w", err)
 		}
 
-		// 再删除文档
+		// 删除文档
 		result, err := dao.KnowledgeDocuments.Ctx(ctx).TX(tx).Where("id", id).Delete()
 		if err != nil {
 			g.Log().Errorf(ctx, "删除文档失败: ID=%d, 错误: %v", id, err)
@@ -132,7 +151,7 @@ func DeleteDocument(ctx context.Context, id int64) error {
 			return fmt.Errorf("文档不存在")
 		}
 
-		g.Log().Infof(ctx, "文档删除成功: ID=%d", id)
+		g.Log().Infof(ctx, "文档删除成功: ID=%d, 清理向量数: %d", id, len(chunks))
 		return nil
 	})
 }

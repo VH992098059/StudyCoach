@@ -4,8 +4,9 @@
  * 当选择了知识库时拉取参考文档并控制其展示。
  */
 import { useCallback, useState } from 'react';
-import type { Message } from '@/types/chat';
+import type { Message, MessagePart } from '@/types/chat';
 import type { ReferenceDocument } from './useReferences';
+import { fileToBase64, isImageFile } from '@/utils/imageHelper';
 
 interface UseChatComposerParams {
   messages: Message[];
@@ -16,7 +17,7 @@ interface UseChatComposerParams {
   fetchReferenceDocuments: (query: string) => Promise<ReferenceDocument[]>;
   setReferenceDocuments: (docs: ReferenceDocument[]) => void;
   setShowReferences: (show: boolean) => void;
-  send: (text: string, sessionId: string, uploadedFiles?: string[]) => void;
+  send: (text: string, sessionId: string, uploadedFiles?: string[], multiContent?: MessagePart[]) => void;
   streamingLoading: boolean;
   /** 上传文件并返回服务端文件名列表，发送前若有附件则调用 */
   uploadFilesIfNeeded?: (sessionId: string) => Promise<string[]>;
@@ -79,13 +80,31 @@ const useChatComposer = (params: UseChatComposerParams) => {
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputValue('');
-    
-    // 若有附件，先上传再发送
+
+    // 构建多模态消息（图片转 base64）
+    let multiContent: MessagePart[] | undefined;
+    const imageFiles = currentUploadedFiles.filter(f => isImageFile(f.file));
+
+    if (imageFiles.length > 0) {
+      multiContent = [{ type: 'text', text: questionText }];
+      for (const { file } of imageFiles) {
+        const base64 = await fileToBase64(file);
+        // 去掉 data:image/xxx;base64, 前缀，只保留纯 base64 字符串
+        const pureBase64 = base64.split(',')[1] || base64;
+        multiContent.push({
+          type: 'image_url',
+          base64_data: pureBase64,
+          mime_type: file.type,
+        });
+      }
+    }
+
+    // 若有非图片附件，先上传再发送
     let fileNames: string[] = [];
     if (currentUploadedFiles.length > 0 && uploadFilesIfNeeded) {
       fileNames = await uploadFilesIfNeeded(currentSessionId);
     }
-    send(questionText, currentSessionId, fileNames);
+    send(questionText, currentSessionId, fileNames, multiContent);
     clearUploadedFiles?.();
 
     // 异步获取引用文档

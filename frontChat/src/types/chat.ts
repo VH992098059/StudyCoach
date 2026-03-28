@@ -3,12 +3,24 @@
  */
 
 /**
+ * 多模态消息部分
+ */
+export interface MessagePart {
+  type: 'text' | 'image_url';
+  text?: string;
+  image_url?: string;
+  base64_data?: string;
+  mime_type?: string;
+}
+
+/**
  * 消息接口 - 与后端API交互的消息格式
  */
 export interface Message {
   id: number;
   msg_id: string;
   content: string;
+  multi_content?: MessagePart[];
   isUser: boolean;
   timestamp: Date;
   /** 思考过程（深度思考模式下的推理内容，可展开查看） */

@@ -7,7 +7,7 @@ import { SSEConnectionState } from '@/utils/sse/sse';
 import { XRequest } from '@ant-design/x-sdk';
 import { API_CONFIG } from '@/utils/axios/config';
 import { clearAuthStorage } from '@/utils/axios/interceptors';
-import type { Message } from '@/types/chat';
+import type { Message, MessagePart } from '@/types/chat';
 import { useTranslation } from 'react-i18next';
 
 interface AdvancedSettings {
@@ -27,7 +27,8 @@ interface UseSSEChatParams {
 
 interface ChatParams {
   id: string;
-  question: string;
+  question?: string;
+  multi_content?: MessagePart[];
   knowledge_name: string;
   top_k: number;
   score: number;
@@ -185,7 +186,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   }, [handleDonePayload]);
 
   // 建立 SSE 连接，支持重试
-  const createConnection = useCallback(async (question: string, sessionId: string, uploadedFiles: string[] = [], attempt = 0) => {
+  const createConnection = useCallback(async (question: string, sessionId: string, uploadedFiles: string[] = [], multiContent?: MessagePart[], attempt = 0) => {
     if (isUserStoppedRef.current) return;
 
     const base = API_CONFIG.BASE_URL.replace(/\/$/, '');
@@ -209,7 +210,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
         },
         params: {
           id: sessionId,
-          question,
+          ...(multiContent ? { multi_content: multiContent } : { question }),
           knowledge_name: selectedKnowledge === 'none' ? '' : selectedKnowledge,
           top_k: advancedSettings.topK,
           score: advancedSettings.score,
@@ -330,10 +331,10 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
   // --- 导出方法 ---
 
-  const send = useCallback((text: string, sessionId: string, uploadedFiles: string[] = []) => {
+  const send = useCallback((text: string, sessionId: string, uploadedFiles: string[] = [], multiContent?: MessagePart[]) => {
     cleanup();
     isUserStoppedRef.current = false;
-    createConnection(text, sessionId, uploadedFiles, 0);
+    createConnection(text, sessionId, uploadedFiles, multiContent, 0);
   }, [createConnection, cleanup]);
 
   const stop = useCallback(() => {

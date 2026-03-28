@@ -17,4 +17,6 @@ type IAiChatV1 interface {
 	GetHistory(ctx context.Context, req *v1.GetHistoryReq) (res *v1.GetHistoryRes, err error)
 	GetSession(ctx context.Context, req *v1.GetSessionReq) (res *v1.GetSessionRes, err error)
 	DeleteSession(ctx context.Context, req *v1.DeleteSessionReq) (res *v1.DeleteSessionRes, err error)
+	PauseTaskPomodoro(ctx context.Context, req *v1.PauseTaskPomodoroReq) (res *v1.PauseTaskPomodoroRes, err error)
+	StopTaskPomodoro(ctx context.Context, req *v1.StopTaskPomodoroReq) (res *v1.StopTaskPomodoroRes, err error)
 }

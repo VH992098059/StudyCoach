@@ -142,7 +142,7 @@ export const useChatSessions = (): UseChatSessionsReturn => {
   }, [generateMsgId]);
 
   // 创建新会话
-  const createNewSession = useCallback(() => {
+  const createNewSession = useCallback(async () => {
     const newSessionId = Date.now().toString();
     const newSession: ChatSession = {
       id: newSessionId,
@@ -172,6 +172,26 @@ export const useChatSessions = (): UseChatSessionsReturn => {
 
     setCurrentSessionId(newSessionId);
     setMessages(newSession.messages);
+
+    // 如果已登录，立即保存到后端
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      try {
+        await ChatHistoryService.saveSession({
+          id: newSessionId,
+          title: '新对话',
+          messages: newSession.messages.map(msg => ({
+            id: msg.id,
+            msg_id: msg.msg_id,
+            content: msg.content,
+            isUser: msg.isUser,
+            timestamp: msg.timestamp.toISOString(),
+          })),
+        });
+      } catch (error) {
+        console.error('保存新会话到后端失败:', error);
+      }
+    }
   }, [generateMsgId, saveChatSessions]);
 
   // 加载指定会话

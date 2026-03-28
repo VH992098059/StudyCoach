@@ -242,3 +242,41 @@ func nextScheduledRunTime(cronExpr string, from time.Time) time.Time {
 	}
 	return sched.Next(from)
 }
+
+// ExecutePomodoroReminder 执行番茄钟提醒任务
+func ExecutePomodoroReminder(ctx context.Context, task *entity.KnowledgeBaseCronSchedule) error {
+	log.Printf("[Pomodoro] 番茄钟提醒触发: %s (ID: %d)", task.CronName, task.Id)
+	insertCronTaskLog(ctx, task, "INFO", fmt.Sprintf("番茄钟提醒触发 id=%d", task.Id))
+
+	// 广播 WebSocket 消息给前端
+	ws.BroadcastCronCompleteGlobal(task.Id, task.CronName, true)
+
+	// 记录执行时间
+	now := time.Now()
+	nextRun := nextScheduledRunTime(task.CronExpression, now)
+	cronExecCols := dao.CronExecute.Columns()
+	res, upErr := dao.CronExecute.Ctx(ctx).
+		Where(cronExecCols.CronNameFk, task.CronName).
+		Data(do.CronExecute{
+			ExecuteTime: gtime.NewFromTime(now),
+			NextTime:    gtime.NewFromTime(nextRun),
+		}).Update()
+	if upErr != nil {
+		log.Printf("[Pomodoro] 更新执行记录失败: %v", upErr)
+	} else {
+		n, _ := res.RowsAffected()
+		if n == 0 {
+			_, insErr := dao.CronExecute.Ctx(ctx).Data(do.CronExecute{
+				CronNameFk:  task.CronName,
+				ExecuteTime: gtime.NewFromTime(now),
+				NextTime:    gtime.NewFromTime(nextRun),
+			}).Insert()
+			if insErr != nil {
+				log.Printf("[Pomodoro] 记录执行日志失败: %v", insErr)
+			}
+		}
+	}
+
+	insertCronTaskLog(ctx, task, "INFO", fmt.Sprintf("番茄钟提醒完成，下次计划=%s", nextRun.Format(time.RFC3339)))
+	return nil
+}

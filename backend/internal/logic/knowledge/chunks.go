@@ -4,6 +4,7 @@ import (
 	v1 "backend/api/rag/v1"
 	"backend/internal/dao"
 	"backend/internal/model/entity"
+	"backend/studyCoach/common"
 	"context"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -112,7 +113,22 @@ func GetChunkById(ctx context.Context, id int64) (chunk entity.KnowledgeChunks, 
 
 // DeleteChunkById 根据ID软删除知识块
 func DeleteChunkById(ctx context.Context, id int64) error {
-	_, err := dao.KnowledgeChunks.Ctx(ctx).Where("id", id).Delete()
+	// 先获取 chunk_id
+	chunk, err := GetChunkById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// 从向量库删除
+	cfg, err := common.BuildVectorConfig(ctx)
+	if err == nil && cfg != nil && chunk.ChunkId != "" {
+		if err := cfg.DeleteDocument(ctx, chunk.ChunkId); err != nil {
+			g.Log().Warningf(ctx, "从向量库删除 chunk 失败: chunk_id=%s, 错误: %v", chunk.ChunkId, err)
+		}
+	}
+
+	// 删除数据库记录
+	_, err = dao.KnowledgeChunks.Ctx(ctx).Where("id", id).Delete()
 	return err
 }
 

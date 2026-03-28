@@ -2,6 +2,7 @@ package ai_chat
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -91,35 +92,39 @@ func (c *ChatBase) SaveSession(ctx context.Context, userId string, req *v1.SaveS
 				msgIdMap[m.MsgId] = m.Id
 			}
 
-			msgEntities := make([]entity.ChatMessages, 0, len(req.Messages))
 			for _, msg := range req.Messages {
-				msgEntity := entity.ChatMessages{
-					// Id will be set below based on lookup
-					SessionUuid:      sessionUuid,
-					MsgId:            msg.MsgId,
-					Content:          msg.Content,
-					IsUser:           0,
-					Timestamp:        msg.Timestamp,
-					ReasoningContent: msg.ReasoningContent,
+				// 构建基础数据
+				data := g.Map{
+					dao.ChatMessages.Columns().SessionUuid:      sessionUuid,
+					dao.ChatMessages.Columns().MsgId:            msg.MsgId,
+					dao.ChatMessages.Columns().Content:          msg.Content,
+					dao.ChatMessages.Columns().IsUser:           0,
+					dao.ChatMessages.Columns().Timestamp:        msg.Timestamp,
+					dao.ChatMessages.Columns().ReasoningContent: msg.ReasoningContent,
 				}
 
-				// Use existing ID if found by msg_id, otherwise 0 (Insert, let DB auto-increment generate ID)
-				if existingId, ok := msgIdMap[msg.MsgId]; ok {
-					msgEntity.Id = existingId
-				} else {
-					// For new messages, Id is 0
-					msgEntity.Id = 0
+				// 只有当 MultiContent 不为空时才添加该字段
+				if len(msg.MultiContent) > 0 {
+					multiJSON, _ := json.Marshal(msg.MultiContent)
+					data[dao.ChatMessages.Columns().MultiContent] = string(multiJSON)
 				}
 
 				if msg.IsUser {
-					msgEntity.IsUser = 1
+					data[dao.ChatMessages.Columns().IsUser] = 1
 				}
-				msgEntities = append(msgEntities, msgEntity)
-			}
-			// Batch Save
-			_, err = dao.ChatMessages.Ctx(ctx).TX(tx).Save(msgEntities)
-			if err != nil {
-				return err
+
+				// 如果存在则更新，否则插入
+				if existingId, ok := msgIdMap[msg.MsgId]; ok {
+					_, err = dao.ChatMessages.Ctx(ctx).TX(tx).
+						Where(dao.ChatMessages.Columns().Id, existingId).
+						Data(data).
+						Update()
+				} else {
+					_, err = dao.ChatMessages.Ctx(ctx).TX(tx).Data(data).Insert()
+				}
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -185,14 +190,24 @@ func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId stri
 		if m.IsUser == 1 {
 			isUser = true
 		}
-		res.Messages = append(res.Messages, v1.ChatMessage{
+		chatMsg := v1.ChatMessage{
 			Id:               m.Id,
 			MsgId:            m.MsgId,
 			Content:          m.Content,
 			IsUser:           isUser,
 			Timestamp:        m.Timestamp,
 			ReasoningContent: m.ReasoningContent,
-		})
+		}
+		// 解析多模态内容
+		if m.MultiContent != "" {
+			var multiContent []v1.MessagePart
+			if err := json.Unmarshal([]byte(m.MultiContent), &multiContent); err == nil {
+				chatMsg.MultiContent = multiContent
+			} else {
+				g.Log().Warningf(ctx, "failed to unmarshal multi_content for msg %s: %v, raw: %s", m.MsgId, err, m.MultiContent)
+			}
+		}
+		res.Messages = append(res.Messages, chatMsg)
 	}
 
 	return res, nil

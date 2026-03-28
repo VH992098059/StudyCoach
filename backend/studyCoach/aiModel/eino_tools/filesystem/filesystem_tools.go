@@ -28,7 +28,7 @@ func GetWorkDirForSession(ctx context.Context, sessionID string) (string, error)
 	if sessionID == "" {
 		return "", fmt.Errorf("无法获取会话 ID")
 	}
-	base := filepath.Join(utility.FilesStudyPlansLocalDir(ctx), "workdir")
+	base := filepath.Join(utility.FilesRoot(ctx), "uploads", "workdir")
 	workDir := filepath.Join(base, sessionID)
 	if err := os.MkdirAll(workDir, 0755); err != nil {
 		return "", fmt.Errorf("创建工作目录失败: %v", err)
@@ -198,7 +198,8 @@ func (t *ExecuteTool) Info(ctx context.Context) (*schema.ToolInfo, error) {
 		Name: "execute",
 		Desc: `在工作目录内执行 Shell 命令。用于运行 Python 脚本、数据处理命令等。
 参数：command 为要执行的命令（如 "python process.py"、"ls -la"）。
-注意：命令在工作目录内执行，请使用相对路径引用文件。`,
+注意：命令在工作目录内执行，请使用相对路径引用文件。
+【重要限制】不支持图片处理和 OCR 命令（如 tesseract、imagemagick 等）。图片内容请直接通过多模态能力识别，无需调用外部工具。`,
 		ParamsOneOf: schema.NewParamsOneOfByParams(map[string]*schema.ParameterInfo{
 			"command": {
 				Type:     schema.String,
@@ -240,6 +241,10 @@ func (t *ExecuteTool) InvokableRun(ctx context.Context, argumentsInJSON string, 
 
 	execCmd := exec.CommandContext(ctx, shellCmd[0], shellCmd[1:]...)
 	execCmd.Dir = workDir
+
+	// 设置环境变量以支持UTF-8编码
+	execCmd.Env = append(os.Environ(), "PYTHONIOENCODING=utf-8")
+
 	out, err := execCmd.CombinedOutput()
 	outStr := string(out)
 	if runtime.GOOS == "windows" {

@@ -97,7 +97,8 @@ type StreamType struct {
 	Id            string
 	Eh            *eino.History
 	IsStudyMode   bool
-	UploadedFiles []string // 已上传到会话工作目录的文件名，供 prompt 注入
+	UploadedFiles []string         // 已上传到会话工作目录的文件名，供 prompt 注入
+	MultiContent  []v1.MessagePart // 多模态内容
 }
 
 func init() {
@@ -117,6 +118,35 @@ func init() {
 		return
 	}
 	eh = eino.NewEinoHistory(dbConf.String())
+}
+
+// buildMultiContentMessage 构建多模态消息
+func buildMultiContentMessage(parts []v1.MessagePart) *schema.Message {
+	var inputParts []schema.MessageInputPart
+	for _, part := range parts {
+		if part.Type == "text" {
+			inputParts = append(inputParts, schema.MessageInputPart{
+				Type: "text",
+				Text: part.Text,
+			})
+		} else if part.Type == "image_url" {
+			img := &schema.MessageInputImage{}
+			if part.Base64Data != "" {
+				img.Base64Data = &part.Base64Data
+				img.MIMEType = part.MIMEType
+			} else if part.ImageURL != "" {
+				img.URL = &part.ImageURL
+			}
+			inputParts = append(inputParts, schema.MessageInputPart{
+				Type:  "image_url",
+				Image: img,
+			})
+		}
+	}
+	return &schema.Message{
+		Role:                  schema.User,
+		UserInputMultiContent: inputParts,
+	}
 }
 func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*schema.Message], []*schema.Document, error) {
 	var rag *Rag
@@ -162,6 +192,7 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 		Eh:            eh,
 		IsStudyMode:   req.IsStudyMode,
 		UploadedFiles: req.UploadedFiles,
+		MultiContent:  req.GetMultiContent(),
 	}
 	// 将isNetwork参数添加到上下文中，传递给stream函数
 	ctxNew := context.WithValue(ctx, "isNetwork", req.IsNetwork)
@@ -209,6 +240,7 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 		Eh:            eh,
 		IsStudyMode:   req.IsStudyMode,
 		UploadedFiles: req.UploadedFiles,
+		MultiContent:  req.GetMultiContent(),
 	}
 	// 将 isNetwork、isDeepThinking 添加到上下文中，传递给 stream 函数
 	ctxWithNetwork := context.WithValue(ctx, "isNetwork", req.IsNetwork)
@@ -230,6 +262,12 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 	if err != nil {
 		g.Log().Errorf(ctx, "获取历史记录失败: %v", err)
 		return nil, fmt.Errorf("get history failed: %v", err)
+	}
+
+	// 如果有多模态内容，添加到历史末尾
+	if streamType.MultiContent != nil && len(streamType.MultiContent) > 0 {
+		userMsg := buildMultiContentMessage(streamType.MultiContent)
+		history = append(history, userMsg)
 	}
 
 	g.Log().Infof(ctx, "历史记录数量: %d", len(history))

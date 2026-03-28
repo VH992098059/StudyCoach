@@ -2,6 +2,7 @@ import type { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axio
 import { message } from 'antd';
 import type { ApiResponse, ApiError } from './types';
 import i18n from '../../i18n';
+import { showTokenExpiredNotification } from './tokenExpiredNotification';
 
 /** 清除所有认证相关存储（token、userInfo、localStorage、sessionStorage） */
 export const clearAuthStorage = () => {
@@ -97,7 +98,7 @@ export const responseInterceptor = {
           clearAuthStorage();
         }
         if ((config as any).showError !== false) {
-          message.error((data as any)?.message || i18n.t('api.loginExpired'));
+          showTokenExpiredNotification();
         }
       } else {
         const showError = (config as any).showError !== false;
@@ -121,6 +122,9 @@ export const responseInterceptor = {
         case 401:
           errorMessage = (data as any)?.message || i18n.t('api.loginExpired');
           clearAuthStorage();
+          if (showError) {
+            showTokenExpiredNotification();
+          }
           break;
         case 403:
           errorMessage = (data as any)?.message || i18n.t('api.forbidden');

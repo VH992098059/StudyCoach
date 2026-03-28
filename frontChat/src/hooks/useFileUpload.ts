@@ -10,7 +10,7 @@ import { formatFileSize, validateFileType, validateFileSize } from '@/utils/file
 const DEFAULT_CONFIG: FileUploadConfig = {
   maxFileSize: 10 * 1024 * 1024, // 10MB
   maxFileCount: 5,
-  acceptedTypes: ['.txt', '.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.md'],
+  acceptedTypes: ['.txt', '.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.md', '.csv'],
   allowMultiple: true,
 };
 

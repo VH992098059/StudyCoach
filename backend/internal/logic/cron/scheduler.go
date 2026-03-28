@@ -53,8 +53,18 @@ func AddJob(ctx context.Context, schedule *entity.KnowledgeBaseCronSchedule) err
 		// 使用新的上下文，避免依赖传入的 ctx（可能已取消）
 		runCtx := context.Background()
 		log.Printf("[Cron] Triggering job %s (ID: %d)", task.CronName, task.Id)
-		if err := api.RunRegularUpdateTask(runCtx, task); err != nil {
-			log.Printf("[Cron] Job %s (ID: %d) failed: %v", task.CronName, task.Id, err)
+
+		// 根据 SchedulingMethod 判断执行类型
+		if task.SchedulingMethod == "pomodoro_reminder" {
+			// 执行番茄钟提醒
+			if err := api.ExecutePomodoroReminder(runCtx, task); err != nil {
+				log.Printf("[Cron] Pomodoro job %s (ID: %d) failed: %v", task.CronName, task.Id, err)
+			}
+		} else {
+			// 执行知识库更新（默认）
+			if err := api.RunRegularUpdateTask(runCtx, task); err != nil {
+				log.Printf("[Cron] Job %s (ID: %d) failed: %v", task.CronName, task.Id, err)
+			}
 		}
 	})
 

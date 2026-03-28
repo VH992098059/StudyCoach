@@ -5,7 +5,7 @@
 import React from 'react';
 import type { RefObject } from 'react';
 import { Button, Switch, Tooltip, Flex, Divider, theme } from 'antd';
-import { GlobalOutlined, CheckOutlined, PaperClipOutlined } from '@ant-design/icons';
+import { GlobalOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { Sender } from '@ant-design/x';
 import MicRecorderButton from './MicRecorderButton';
 import FileUpload from './FileUpload';
@@ -27,10 +27,6 @@ interface InputAreaProps {
   sessionId?: string;
   fileUploadRef?: RefObject<FileUploadRef | null>;
   onVoiceTranscript?: (text: string) => void;
-  /** 是否显示「确认保存计划」按钮（上一条 AI 消息为学习计划时） */
-  showConfirmSavePlan?: boolean;
-  /** 点击「确认保存计划」时触发 */
-  onConfirmSavePlan?: () => void;
 
   onInputChange: (val: string) => void;
   onSend: () => void;
@@ -53,8 +49,6 @@ const InputArea: React.FC<InputAreaProps> = ({
   sessionId,
   fileUploadRef,
   onVoiceTranscript,
-  showConfirmSavePlan = false,
-  onConfirmSavePlan,
   onInputChange,
   onToggleStudyMode,
   onToggleDeepThinking,
@@ -70,25 +64,9 @@ const InputArea: React.FC<InputAreaProps> = ({
   const iconStyle = React.useMemo(() => ({ fontSize: 18, color: token.colorText }), [token.colorText]);
 
   return (
-    <div style={{ 
+    <div style={{
       borderRadius: '8px',
     }}>
-      {/* 确认保存计划按钮：学习模式下，上一条为计划时显示 */}
-      {showConfirmSavePlan && isStudyMode && onConfirmSavePlan && (
-        <div style={{ marginBottom: 8 }}>
-          <Button
-            type="primary"
-            ghost
-            size="small"
-            icon={<CheckOutlined />}
-            onClick={onConfirmSavePlan}
-            disabled={loading}
-          >
-            {t('chat.confirmSavePlan')}
-          </Button>
-        </div>
-      )}
-
       {/* 文件上传区域：放在输入框上方 */}
       <div style={{ marginBottom: 8 }}>
         <FileUpload
