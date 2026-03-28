@@ -156,8 +156,6 @@ Branch:
 
 Analysis:
   apiKey: "*"
-  baseURL: "https://api.siliconflow.cn/v1"
-  model: "Qwen/Qwen3-Next-80B-A3B-Instruct"
   baseURL: "https://ark.cn-beijing.volces.com/api/v3"
   model: "doubao-seed-2-0-lite-260215"
 
