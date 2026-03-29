@@ -155,3 +155,14 @@ func DeleteDocument(ctx context.Context, id int64) error {
 		return nil
 	})
 }
+
+// GetEnabledKnowledgeBaseIds 获取所有启用的知识库 ID
+func GetEnabledKnowledgeBaseIds(ctx context.Context) ([]int64, error) {
+	var ids []int64
+	err := dao.KnowledgeBase.Ctx(ctx).Where("status", 1).Fields("id").Scan(&ids)
+	if err != nil {
+		g.Log().Errorf(ctx, "获取启用的知识库ID失败: %v", err)
+		return nil, err
+	}
+	return ids, nil
+}

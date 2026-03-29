@@ -3,6 +3,7 @@
  * 连接 /gateway/ws，支持 ready、cron_complete、pong 等消息
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { API_CONFIG } from '@/utils/axios/config';
 
 export type WSConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -13,9 +14,10 @@ export interface WsMessage {
 }
 
 function getWsUrl(): string {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
-  return `${protocol}//${host}/gateway/ws`;
+  const base = API_CONFIG.BASE_URL.replace(/\/$/, '');
+  const wsProtocol = base.startsWith('https') ? 'wss:' : 'ws:';
+  const host = base.replace(/^https?:\/\//, '');
+  return `${wsProtocol}//${host}/gateway/ws`;
 }
 
 export interface UseWebSocketOptions {

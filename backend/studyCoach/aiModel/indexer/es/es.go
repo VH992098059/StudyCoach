@@ -53,6 +53,10 @@ func NewIndexer(ctx context.Context, config *Config) (indexer.Indexer, error) {
 			} else {
 				return nil, fmt.Errorf("必须提供知识库名称")
 			}
+			var knowledgeBaseId int64
+			if value, ok := ctx.Value(common.KnowledgeBaseIdKey).(int64); ok {
+				knowledgeBaseId = value
+			}
 			if !config.IncludeQAVector && len(doc.ID) == 0 {
 				doc.ID = uuid.New().String()
 			}
@@ -73,6 +77,9 @@ func NewIndexer(ctx context.Context, config *Config) (indexer.Indexer, error) {
 				},
 				common.KnowledgeName: {
 					Value: knowledgeName,
+				},
+				common.KnowledgeBaseId: {
+					Value: knowledgeBaseId,
 				},
 			}
 			if config.IncludeQAVector {

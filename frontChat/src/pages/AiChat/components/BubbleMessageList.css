@@ -23,6 +23,18 @@
   height: auto;
 }
 
+/* Fix link display */
+.x-markdown a {
+  color: #1890ff;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.x-markdown a:hover {
+  color: #40a9ff;
+  text-decoration: underline;
+}
+
 @media (max-width:1024px) {
   .x-markdown table:not(pre) {
     display: block;

@@ -29,6 +29,11 @@ func (idx *Indexer) StoreWithNamedVectors(ctx context.Context, docs []*schema.Do
 		return nil, fmt.Errorf("必须提供知识库名称")
 	}
 
+	var knowledgeBaseId int64
+	if value, ok := ctx.Value(common.KnowledgeBaseIdKey).(int64); ok {
+		knowledgeBaseId = value
+	}
+
 	g.Log().Infof(ctx, "QdrantIndexer.StoreWithNamedVectors: storing %d documents to collection %s, knowledge_name=%s", len(docs), idx.config.Collection, knowledgeName)
 
 	points := make([]*qdrantclient.PointStruct, 0, len(docs))
@@ -60,6 +65,11 @@ func (idx *Indexer) StoreWithNamedVectors(ctx context.Context, docs []*schema.Do
 		}
 		payload[common.KnowledgeName] = &qdrantclient.Value{
 			Kind: &qdrantclient.Value_StringValue{StringValue: knowledgeName},
+		}
+		if knowledgeBaseId > 0 {
+			payload[common.KnowledgeBaseId] = &qdrantclient.Value{
+				Kind: &qdrantclient.Value_IntegerValue{IntegerValue: knowledgeBaseId},
+			}
 		}
 
 		if doc.MetaData != nil {

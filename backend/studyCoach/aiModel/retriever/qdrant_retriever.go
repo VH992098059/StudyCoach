@@ -2,6 +2,7 @@
 package retriever
 
 import (
+	"backend/internal/logic/knowledge"
 	"backend/studyCoach/common"
 	"context"
 	"fmt"
@@ -115,6 +116,22 @@ func (r *QdrantRetriever) Retrieve(ctx context.Context, query string, opts ...re
 		}
 	}
 
+	// 添加知识库状态过滤：只检索启用的知识库
+	enabledKBIds, err := knowledge.GetEnabledKnowledgeBaseIds(ctx)
+	if err == nil && len(enabledKBIds) > 0 {
+		kbFilter := buildKnowledgeBaseFilter(enabledKBIds)
+		if queryReq.Filter == nil {
+			queryReq.Filter = kbFilter
+		} else {
+			// 合并过滤条件
+			queryReq.Filter = &qdrant.Filter{
+				Must: append(queryReq.Filter.Must, &qdrant.Condition{
+					ConditionOneOf: &qdrant.Condition_Filter{Filter: kbFilter},
+				}),
+			}
+		}
+	}
+
 	// 执行搜索
 	searchResp, err := r.config.Client.Query(ctx, queryReq)
 	if err != nil {
@@ -203,4 +220,24 @@ func (r *QdrantRetriever) qdrantPointToDocument(_ context.Context, point *qdrant
 // GetType 返回检索器类型标识，用于日志与调试。
 func (r *QdrantRetriever) GetType() string {
 	return "qdrant_retriever"
+}
+
+// buildKnowledgeBaseFilter 构建知识库 ID 过滤条件
+func buildKnowledgeBaseFilter(kbIds []int64) *qdrant.Filter {
+	conditions := make([]*qdrant.Condition, 0, len(kbIds))
+	for _, id := range kbIds {
+		conditions = append(conditions, &qdrant.Condition{
+			ConditionOneOf: &qdrant.Condition_Field{
+				Field: &qdrant.FieldCondition{
+					Key: common.KnowledgeBaseId,
+					Match: &qdrant.Match{
+						MatchValue: &qdrant.Match_Integer{
+							Integer: id,
+						},
+					},
+				},
+			},
+		})
+	}
+	return &qdrant.Filter{Should: conditions}
 }

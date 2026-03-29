@@ -11,11 +11,15 @@ const (
 	FieldCronID          = "cron_id"           // 定时任务 ID
 	FieldExtra           = "ext"               // 扩展元数据 JSON
 	KnowledgeName        = "_knowledge_name"   // 知识库名称
+	KnowledgeBaseId      = "knowledge_base_id" // 知识库 ID
 
 	RetrieverFieldKey = "_retriever_field" // 检索时指定向量字段（content_vector / qa_content_vector）
 
 	// DocumentsIdKey 用于在 context 中传递文档 ID，供索引流程落库 chunks 使用
 	DocumentsIdKey = "_documents_id"
+
+	// KnowledgeBaseIdKey 用于在 context 中传递知识库 ID
+	KnowledgeBaseIdKey = "_knowledge_base_id"
 
 	// IsDeepThinking 深度思考开关，用于 NormalChat 的 ark Thinking
 	IsDeepThinking = "_is_deep_thinking"

@@ -78,7 +78,8 @@ func (w *indexerWrapper) Store(ctx context.Context, docs []*schema.Document, opt
 	if knowledgeName == "" {
 		return nil, fmt.Errorf("必须提供知识库名称")
 	}
-	g.Log().Infof(ctx, "MilvusIndexer.Store: storing %d documents, knowledge_name=%s", len(docs), knowledgeName)
+	knowledgeBaseId, _ := ctx.Value(common.KnowledgeBaseIdKey).(int64)
+	g.Log().Infof(ctx, "MilvusIndexer.Store: storing %d documents, knowledge_name=%s, kb_id=%d", len(docs), knowledgeName, knowledgeBaseId)
 
 	for _, doc := range docs {
 		if len(doc.ID) == 0 {
@@ -88,6 +89,9 @@ func (w *indexerWrapper) Store(ctx context.Context, docs []*schema.Document, opt
 			doc.MetaData = make(map[string]any)
 		}
 		doc.MetaData[common.KnowledgeName] = knowledgeName
+		if knowledgeBaseId > 0 {
+			doc.MetaData[common.KnowledgeBaseId] = knowledgeBaseId
+		}
 		if ext := docmeta.GetExtData(doc); len(ext) > 0 {
 			marshal, _ := sonic.Marshal(ext)
 			doc.MetaData[common.FieldExtra] = string(marshal)

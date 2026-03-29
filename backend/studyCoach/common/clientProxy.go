@@ -35,7 +35,7 @@ func ClientProxy() *http.Client {
 	// ⚠️ 注意：确认你的代理协议。
 	// 如果是 v2ray/clash 的 HTTP 端口，用 http://
 	// 如果是 SOCKS5 端口，用 socks5://127.0.0.1:10808
-	proxyURL, err := url.Parse("http://10.0.0.1:7893")
+	proxyURL, err := url.Parse("http://127.0.0.1:10808")
 	if err != nil {
 		// 解析失败时回退到直连，避免返回 nil
 		transport := &UserAgentTransport{Transport: http.DefaultTransport}

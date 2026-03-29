@@ -1,5 +1,8 @@
+// 检测是否在 Tauri 环境中
+const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
+
 export const API_CONFIG={
-    BASE_URL:"http://localhost:8000",
+    BASE_URL: isTauri ? "http://127.0.0.1:8000" : "http://localhost:8000",
     TIMEOUT:60000, // 增加到60秒，适应后端检索操作的耗时
     RETRY_COUNT:3,
     RETRY_DELAY:1000,

@@ -189,8 +189,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   const createConnection = useCallback(async (question: string, sessionId: string, uploadedFiles: string[] = [], multiContent?: MessagePart[], attempt = 0) => {
     if (isUserStoppedRef.current) return;
 
-    const base = API_CONFIG.BASE_URL.replace(/\/$/, '');
-    const endpoint = (import.meta as any).env?.MODE === 'production' ? '/api/gateway/chat' : `${base}/gateway/chat`;
+    const endpoint = `${API_CONFIG.BASE_URL}/gateway/chat`;
 
     setLoading(true);
     setConnectionState(attempt === 0 ? SSEConnectionState.CONNECTING : SSEConnectionState.RECONNECTING);
@@ -307,7 +306,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
               setConnectionError(t('chat.sse.reconnecting', { attempt: nextAttempt }));
               setConnectionState(SSEConnectionState.RECONNECTING);
               retryTimerRef.current = setTimeout(() => {
-                createConnection(question, sessionId, uploadedFiles, nextAttempt);
+                createConnection(question, sessionId, uploadedFiles, multiContent, nextAttempt);
               }, 2000);
             } else {
               setConnectionError(t('chat.sse.connectionFailed'));

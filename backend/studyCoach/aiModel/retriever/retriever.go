@@ -1,6 +1,7 @@
 package retriever
 
 import (
+	"backend/internal/logic/knowledge"
 	"backend/studyCoach/aiModel/CoachChat"
 	"backend/studyCoach/common"
 	"context"
@@ -50,10 +51,11 @@ func newRetriever(ctx context.Context, conf *common.Config) (rtr retriever.Retri
 			ResultParser: EsHit2Document,
 			Embedding:    embeddingIns,
 		}
-		rtr, err = es8.NewRetriever(ctx, retrieverConfig)
+		baseRetriever, err := es8.NewRetriever(ctx, retrieverConfig)
 		if err != nil {
 			return nil, err
 		}
+		rtr = &esRetrieverWrapper{inner: baseRetriever}
 		return rtr, nil
 	}
 	if conf.UseQdrant() {
@@ -118,4 +120,40 @@ func EsHit2Document(ctx context.Context, hit types.Hit) (doc *schema.Document, e
 	}
 
 	return doc, nil
+}
+
+// esRetrieverWrapper 包装 ES 检索器，添加知识库状态过滤
+type esRetrieverWrapper struct {
+	inner retriever.Retriever
+}
+
+func (w *esRetrieverWrapper) Retrieve(ctx context.Context, query string, opts ...retriever.Option) ([]*schema.Document, error) {
+	docs, err := w.inner.Retrieve(ctx, query, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取启用的知识库 ID
+	enabledKBIds, err := getEnabledKBIds(ctx)
+	if err != nil || len(enabledKBIds) == 0 {
+		return docs, nil
+	}
+
+	// 过滤结果
+	kbIdMap := make(map[int64]bool)
+	for _, id := range enabledKBIds {
+		kbIdMap[id] = true
+	}
+
+	filtered := make([]*schema.Document, 0, len(docs))
+	for _, doc := range docs {
+		if kbId, ok := doc.MetaData[common.KnowledgeBaseId].(int64); ok && kbIdMap[kbId] {
+			filtered = append(filtered, doc)
+		}
+	}
+	return filtered, nil
+}
+
+func getEnabledKBIds(ctx context.Context) ([]int64, error) {
+	return knowledge.GetEnabledKnowledgeBaseIds(ctx)
 }
