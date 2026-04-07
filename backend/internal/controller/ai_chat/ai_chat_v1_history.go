@@ -30,11 +30,16 @@ func (c *ControllerV1) GetHistory(ctx context.Context, req *v1.GetHistoryReq) (r
 	}
 	userId := gconv.String(claims["Username"])
 
-	list, err := logic.GetChat().GetHistory(ctx, userId)
+	list, total, err := logic.GetChat().GetHistory(ctx, userId, req.Page, req.PageSize)
 	if err != nil {
 		return nil, err
 	}
-	return &v1.GetHistoryRes{List: list}, nil
+	return &v1.GetHistoryRes{
+		List:     list,
+		Total:    total,
+		Page:     req.Page,
+		PageSize: req.PageSize,
+	}, nil
 }
 
 func (c *ControllerV1) GetSession(ctx context.Context, req *v1.GetSessionReq) (res *v1.GetSessionRes, err error) {
@@ -44,7 +49,7 @@ func (c *ControllerV1) GetSession(ctx context.Context, req *v1.GetSessionReq) (r
 	}
 	userId := gconv.String(claims["Username"])
 
-	res, err = logic.GetChat().GetSession(ctx, userId, req.Id)
+	res, err = logic.GetChat().GetSession(ctx, userId, req.Id, req.BeforeMsgId, req.Limit)
 	return
 }
 

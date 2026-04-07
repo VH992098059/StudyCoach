@@ -33,7 +33,6 @@ func Login(ctx context.Context, username, password string) (id uint64, uuid, tok
 		if user.Id == 0 {
 			return gerror.NewCode(gcode.New(401, "用户名不存在", ""))
 		}
-
 		/*密码验证*/
 		passwordComparison := utility.Verify(password, user.Password)
 		if !passwordComparison {
@@ -46,7 +45,6 @@ func Login(ctx context.Context, username, password string) (id uint64, uuid, tok
 				Status:      "active",
 			}).Unscoped().Update()
 		return err
-
 	})
 	if err != nil {
 		return 0, "", "", err

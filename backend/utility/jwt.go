@@ -23,19 +23,25 @@ type JwtClaims struct {
 }
 
 // Decryption 身份验证解密
+// 注意：严格检查 token 过期时间，不接受过期 token
 func Decryption(token string, claims jwt.Claims) (*jwt.Token, error) {
 	withClaims, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			msg := fmt.Errorf("unexpected signing method: %v", token.Header["alg"]).Error()
-			return nil, gerror.NewCode(gcode.New(500, msg, nil))
+			return nil, gerror.NewCode(gcode.New(401, msg, nil))
 		}
 		return []byte(consts.JwtKey), nil
 	})
 	if err != nil {
-		return nil, err
+		// jwt.Parse 会自动检查过期时间，返回 ValidationErrorExpired
+		// 确保过期 token 返回 401 状态码，而非 500
+		if err.Error() == jwt.ErrTokenExpired.Error() {
+			return nil, gerror.NewCode(gcode.New(401, "token已过期", nil))
+		}
+		return nil, gerror.NewCode(gcode.New(401, "token is invalid", nil))
 	}
 	if !withClaims.Valid {
-		return nil, gerror.NewCode(gcode.New(500, "验证无效", nil))
+		return nil, gerror.NewCode(gcode.New(401, "token已过期或无效", nil))
 	}
 	return withClaims, nil
 }
@@ -53,7 +59,7 @@ func GetJWT(ctx context.Context) (token string) {
 func JWTMap(ctx context.Context) (claims jwt.MapClaims, err error) {
 	getJwt := GetJWT(ctx)
 	if getJwt == "" {
-		err = gerror.NewCode(gcode.CodeInvalidParameter, "token is empty")
+		err = gerror.NewCode(gcode.New(401, "token is empty", nil))
 		return nil, err
 	}
 	//解密JWT
@@ -64,13 +70,46 @@ func JWTMap(ctx context.Context) (claims jwt.MapClaims, err error) {
 		}
 		return []byte(consts.JwtKey), nil
 	})
-	if err != nil || !token.Valid {
-		return nil, gerror.NewCode(gcode.CodeInvalidParameter, "token is invalid")
+	if err != nil {
+		// 过期 token 返回 401 而不是默认的业务错误码
+		if err.Error() == jwt.ErrTokenExpired.Error() {
+			return nil, gerror.NewCode(gcode.New(401, "token已过期", nil))
+		}
+		return nil, gerror.NewCode(gcode.New(401, "token is invalid", nil))
+	}
+	if !token.Valid {
+		return nil, gerror.NewCode(gcode.New(401, "token已过期或无效", nil))
 	}
 	mapClaims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, gerror.NewCode(gcode.CodeInvalidParameter, "token claims invalid")
+		return nil, gerror.NewCode(gcode.New(401, "token claims invalid", nil))
 	}
+
+	// 从 JWT 中提取用户名用于 Redis 检查
+	username, ok := mapClaims["Username"].(string)
+	if !ok || username == "" {
+		return nil, gerror.NewCode(gcode.New(401, "token中缺少用户名", nil))
+	}
+
+	// 检查 Redis 白名单：token 是否还在线
+	userKey := fmt.Sprintf("user:%s", username)
+	checkJWT, err := CheckJWT(ctx, userKey, getJwt)
+	if err != nil {
+		return nil, gerror.NewCode(gcode.New(401, "token验证失败", nil))
+	}
+	if !checkJWT {
+		return nil, gerror.NewCode(gcode.New(401, "token不存在，请重新登录", nil))
+	}
+
+	// 检查 Redis 黑名单：token 是否被登出
+	checkBlack, err := CheckBlackTokens(ctx, username, getJwt)
+	if err != nil {
+		return nil, gerror.NewCode(gcode.New(401, "token验证失败", nil))
+	}
+	if checkBlack {
+		return nil, gerror.NewCode(gcode.New(401, "token已被登出，请重新登录", nil))
+	}
+
 	return mapClaims, nil
 }
 

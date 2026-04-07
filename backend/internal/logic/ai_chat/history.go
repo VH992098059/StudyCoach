@@ -133,12 +133,25 @@ func (c *ChatBase) SaveSession(ctx context.Context, userId string, req *v1.SaveS
 	return sessionUuid, err
 }
 
-// GetHistory 获取历史会话
-func (c *ChatBase) GetHistory(ctx context.Context, userId string) ([]v1.ChatSession, error) {
-	var sessions []entity.ChatSessions
-	err := dao.ChatSessions.Ctx(ctx).Where(dao.ChatSessions.Columns().UserId, userId).OrderDesc(dao.ChatSessions.Columns().UpdatedAt).Scan(&sessions)
+// GetHistory 获取历史会话（分页）
+func (c *ChatBase) GetHistory(ctx context.Context, userId string, page, pageSize int) ([]v1.ChatSession, int, error) {
+	// 先查总数
+	total, err := dao.ChatSessions.Ctx(ctx).Where(dao.ChatSessions.Columns().UserId, userId).Count()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
+	}
+
+	// 分页查询
+	var sessions []entity.ChatSessions
+	offset := (page - 1) * pageSize
+	err = dao.ChatSessions.Ctx(ctx).
+		Where(dao.ChatSessions.Columns().UserId, userId).
+		OrderDesc(dao.ChatSessions.Columns().UpdatedAt).
+		Limit(pageSize).
+		Offset(offset).
+		Scan(&sessions)
+	if err != nil {
+		return nil, 0, err
 	}
 
 	res := make([]v1.ChatSession, 0, len(sessions))
@@ -150,11 +163,11 @@ func (c *ChatBase) GetHistory(ctx context.Context, userId string) ([]v1.ChatSess
 			UpdatedAt: s.UpdatedAt,
 		})
 	}
-	return res, nil
+	return res, total, nil
 }
 
-// GetSession 获取单个会话详情
-func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId string) (*v1.GetSessionRes, error) {
+// GetSession 获取单个会话详情（支持滚动加载）
+func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId string, beforeMsgId int64, limit int) (*v1.GetSessionRes, error) {
 	var session entity.ChatSessions
 	// Query by UUID
 	err := dao.ChatSessions.Ctx(ctx).
@@ -169,12 +182,26 @@ func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId stri
 	}
 
 	var messages []entity.ChatMessages
-	err = dao.ChatMessages.Ctx(ctx).
-		Where(dao.ChatMessages.Columns().SessionUuid, sessionId).
-		OrderAsc(dao.ChatMessages.Columns().Timestamp).
+	query := dao.ChatMessages.Ctx(ctx).
+		Where(dao.ChatMessages.Columns().SessionUuid, sessionId)
+
+	// 滚动加载条件：返回早于beforeMsgId的消息
+	if beforeMsgId > 0 {
+		query = query.WhereLT(dao.ChatMessages.Columns().Id, beforeMsgId)
+	}
+
+	// 按ID倒序取最新的limit条，再反转成正序，保持时间升序排列
+	err = query.
+		OrderDesc(dao.ChatMessages.Columns().Id).
+		Limit(limit).
 		Scan(&messages)
 	if err != nil {
 		return nil, err
+	}
+
+	// 反转切片，恢复时间升序
+	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
+		messages[i], messages[j] = messages[j], messages[i]
 	}
 
 	res := &v1.GetSessionRes{

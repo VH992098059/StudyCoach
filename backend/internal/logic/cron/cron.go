@@ -146,10 +146,17 @@ func RuCronRun(ctx context.Context, id int64) (success string, err error) {
 	go func() {
 		// 创建一个新的上下文，避免因 HTTP 请求结束而取消
 		runCtx := context.Background()
-		if err := api.RunRegularUpdateTask(runCtx, &schedule); err != nil {
-			// 这里可以记录错误日志
-			// log.Printf("Manual run failed for task %d: %v", id, err)
-		}
+		// 执行任务并记录日志，和定时调度保持一致的逻辑
+		executeJobWithLog(runCtx, &schedule, func(ctx context.Context) error {
+			// 根据 SchedulingMethod 判断执行类型
+			if schedule.SchedulingMethod == "pomodoro_reminder" {
+				// 执行番茄钟提醒
+				return api.ExecutePomodoroReminder(ctx, &schedule)
+			} else {
+				// 执行知识库更新（默认）
+				return api.RunRegularUpdateTask(ctx, &schedule)
+			}
+		})
 	}()
 
 	return "success", nil

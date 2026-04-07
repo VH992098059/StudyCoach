@@ -13,6 +13,7 @@ import type { MenuProps } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { LoginRegisterService } from '../services/login_register';
 import { clearAuthStorage } from '../utils/axios/interceptors';
+import { checkAndHandleTokenExpiry } from '../utils/token/tokenValidator';
 
 /**
  * 懒加载页面组件
@@ -66,6 +67,7 @@ interface RouteGuardProps {
 /**
  * 路由守卫组件
  * @description 用于控制页面访问权限，可以根据用户认证状态决定是否允许访问
+ * 同时主动检查 token 过期状态（不依赖后端 401 响应）
  * @param {RouteGuardProps} props - 组件属性
  * @example
  * ```tsx
@@ -77,14 +79,22 @@ interface RouteGuardProps {
 const RouteGuard: React.FC<RouteGuardProps> = ({ children, requireAuth = false })=> {
   const location = useLocation();
   const token = localStorage.getItem('access_token');
-  
+
   if (requireAuth) {
+    // 主动检查 token 是否过期
+    const isExpired = checkAndHandleTokenExpiry();
+    if (isExpired) {
+      // token 已过期，跳转到登录页
+      return <Navigate to="/login" state={{ from: location, authRequired: true }} replace />;
+    }
+
+    // 检查是否存在有效 token
     if (!token) {
       // 未登录时跳转登录页并传递提示信息
       return <Navigate to="/login" state={{ from: location, authRequired: true }} replace />;
     }
   }
-  
+
   return <>{children}</>;
 };
 

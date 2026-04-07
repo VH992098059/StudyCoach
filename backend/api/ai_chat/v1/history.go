@@ -29,11 +29,16 @@ type SaveSessionRes struct {
 
 // GetHistoryReq 获取历史会话列表请求
 type GetHistoryReq struct {
-	g.Meta `path:"/chat/history" method:"get" tags:"AI Chat" summary:"获取历史会话列表"`
+	g.Meta   `path:"/chat/history" method:"get" tags:"AI Chat" summary:"获取历史会话列表"`
+	Page     int `json:"page" v:"min:1" d:"1" description:"页码，默认第1页"`
+	PageSize int `json:"page_size" v:"min:1|max:100" d:"20" description:"每页数量，默认20条，最大100条"`
 }
 
 type GetHistoryRes struct {
-	List []ChatSession `json:"list" description:"会话列表"`
+	List     []ChatSession `json:"list" description:"会话列表"`
+	Total    int           `json:"total" description:"会话总数"`
+	Page     int           `json:"page" description:"当前页码"`
+	PageSize int           `json:"page_size" description:"每页数量"`
 }
 
 type ChatSession struct {
@@ -45,8 +50,10 @@ type ChatSession struct {
 
 // GetSessionReq 获取单个会话详情请求
 type GetSessionReq struct {
-	g.Meta `path:"/chat/session/:id" method:"get" tags:"AI Chat" summary:"获取单个会话详情"`
-	Id     string `json:"id" v:"required" description:"会话ID"`
+	g.Meta      `path:"/chat/session/:id" method:"get" tags:"AI Chat" summary:"获取单个会话详情"`
+	Id          string `json:"id" v:"required" description:"会话ID"`
+	BeforeMsgId int64  `json:"before_msg_id" d:"0" description:"起始消息ID，返回小于该ID的消息，用于向上滚动加载，默认0表示从最新消息开始"`
+	Limit       int    `json:"limit" v:"min:1|max:200" d:"20" description:"每次加载消息数量，默认20条，最大200条"`
 }
 
 type GetSessionRes struct {

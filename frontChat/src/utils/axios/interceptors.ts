@@ -3,6 +3,7 @@ import { message } from 'antd';
 import type { ApiResponse, ApiError } from './types';
 import i18n from '../../i18n';
 import { showTokenExpiredNotification } from './tokenExpiredNotification';
+import { isTokenExpired } from '../token/tokenValidator';
 
 /** 清除所有认证相关存储（token、userInfo、localStorage、sessionStorage） */
 export const clearAuthStorage = () => {
@@ -17,8 +18,19 @@ export const clearAuthStorage = () => {
  */
 export const requestInterceptor = {
   onFulfilled: (config: InternalAxiosRequestConfig) => {
-    // 添加认证 token
+    // 主动检查 token 是否过期（在发送请求前）
     const token = localStorage.getItem('access_token');
+    if (token && isTokenExpired(token)) {
+      // token 已过期，清除认证信息并拒绝请求
+      clearAuthStorage();
+      showTokenExpiredNotification();
+      // 返回拒绝的 Promise，阻止请求发送
+      return Promise.reject(
+        new Error('Token expired - authentication cleared')
+      ) as any;
+    }
+
+    // 添加认证 token
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }

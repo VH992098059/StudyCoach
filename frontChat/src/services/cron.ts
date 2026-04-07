@@ -98,12 +98,64 @@ export interface CronExecuteListReq {
 
 export interface CronExecute {
     id: number;
+    cron_id: number;
+    cronId?: number; // Compatible with camelCase
     cron_name_fk: string;
     cronNameFk?: string; // Compatible with camelCase
     execute_time: string;
     executeTime?: string; // Compatible with camelCase
     next_time?: string;
     nextTime?: string; // Compatible with camelCase
+    status: number; // 执行状态：0=执行中，1=成功，2=失败
+    error_message?: string;
+    errorMessage?: string; // Compatible with camelCase
+    duration?: number; // 执行耗时（毫秒）
+    created_at: string;
+    createdAt?: string; // Compatible with camelCase
+    updated_at: string;
+    updatedAt?: string; // Compatible with camelCase
+}
+
+export interface CronLog {
+    id: number;
+    execute_id: number;
+    executeId?: number; // Compatible with camelCase
+    cron_id: number;
+    cronId?: number; // Compatible with camelCase
+    cron_name_fk: string;
+    cronNameFk?: string; // Compatible with camelCase
+    content: string;
+    level: string;
+    create_time: string;
+    createTime?: string; // Compatible with camelCase
+}
+
+export interface CronExecuteListByCronIdReq {
+    cronId: number;
+    page: number;
+    size: number;
+}
+
+export interface CronExecuteListByCronIdRes {
+    list: CronExecute[];
+    total: number;
+}
+
+export interface CronExecuteDetailReq {
+    id: number;
+}
+
+export interface CronExecuteDetailRes extends CronExecute {}
+
+export interface CronExecuteLogReq {
+    executeId: number;
+    page: number;
+    size: number;
+}
+
+export interface CronExecuteLogRes {
+    list: CronLog[];
+    total: number;
 }
 
 export interface CronExecuteListRes {
@@ -135,5 +187,14 @@ export const CronService = {
     },
     listLogs: (params: CronExecuteListReq) => {
         return http.get<CronExecuteListRes>('/gateway/v1/cronExecuteList', params);
+    },
+    listByCronId: (params: CronExecuteListByCronIdReq) => {
+        return http.get<CronExecuteListByCronIdRes>('/gateway/v1/cronExecuteListByCronId', params);
+    },
+    getExecuteDetail: (params: CronExecuteDetailReq) => {
+        return http.get<CronExecuteDetailRes>('/gateway/v1/cronExecuteDetail', params);
+    },
+    getExecuteLogs: (params: CronExecuteLogReq) => {
+        return http.get<CronExecuteLogRes>('/gateway/v1/cronExecuteLog', params);
     }
 };

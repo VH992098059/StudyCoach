@@ -19,7 +19,10 @@ const theme = {
 };
 import './i18n';
 import router from './router';
+import { initTokenExpiryChecker } from './utils/token/tokenExpiryChecker';
 
+// 初始化全局 token 过期检查
+initTokenExpiryChecker();
 
 /**
  * 应用程序启动

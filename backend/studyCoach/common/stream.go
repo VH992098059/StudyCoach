@@ -11,6 +11,8 @@ import (
 	"github.com/cloudwego/eino/flow/agent"
 	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
+	"github.com/gogf/gf/v2/errors/gcode"
+	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/google/uuid"
@@ -53,7 +55,7 @@ type ToolStatusData struct {
 	Name string `json:"name"` // 具体操作，如 high-eq-communication、skill 的 skill 参数
 }
 
-func SteamResponse(ctx context.Context, streamReader *schema.StreamReader[*schema.Message], docs []*schema.Document) (err error) {
+func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*schema.Message], docs []*schema.Document) (err error) {
 	// 获取HTTP响应对象
 	httpReq := ghttp.RequestFromCtx(ctx)
 	httpResp := httpReq.Response
@@ -65,9 +67,6 @@ func SteamResponse(ctx context.Context, streamReader *schema.StreamReader[*schem
 	httpResp.Header().Set("Connection", "keep-alive")
 	httpResp.Header().Set("X-Accel-Buffering", "no") // 禁用Nginx缓冲
 	httpResp.Header().Set("X-Content-Type-Options", "nosniff")
-	httpResp.Header().Set("Access-Control-Allow-Origin", "*")
-	httpResp.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	httpResp.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 
 	// 立即发送响应头
 	httpResp.WriteHeader(200)
@@ -86,14 +85,51 @@ func SteamResponse(ctx context.Context, streamReader *schema.StreamReader[*schem
 	var fullContent string
 	var fullReasoning string
 
+	// ======================================
+	// 新增：客户端断开监听 + 心跳保活
+	// ======================================
+	// 心跳定时器：每15秒发送一次ping，防止长连接被中间节点断开
+	heartbeatTicker := time.NewTicker(15 * time.Second)
+	defer heartbeatTicker.Stop()
+
+	// 处理协程：监听上下文取消（客户端断开）和心跳
+	done := make(chan struct{})
+	defer close(done)
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				// 客户端断开连接，立即关闭streamReader释放资源
+				streamReader.Close()
+				g.Log().Infof(ctx, "[Stream] 客户端断开连接，已终止流式响应")
+				return
+			case <-heartbeatTicker.C:
+				// 发送心跳ping事件
+				writeSSEPing(httpResp)
+			case <-done:
+				return
+			}
+		}
+	}()
+
 	// 处理流式响应
 	for {
+		select {
+		case <-ctx.Done():
+			// 客户端断开，直接返回
+			return ctx.Err()
+		default:
+		}
+
 		chunk, err := streamReader.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			writeSSEError(httpResp, err)
+			// 错误脱敏处理，不泄露内部信息
+			g.Log().Error(ctx, "流式响应错误：", err)
+			writeSSEError(httpResp, gerror.NewCode(gcode.New(500, "响应生成失败，请稍后重试", nil)))
 			break
 		}
 
@@ -256,10 +292,21 @@ func writeSSEToolStatus(resp *ghttp.Response, data string) {
 }
 
 // writeSSEError 写入SSE错误
+// writeSSEPing 发送心跳ping事件，保持长连接存活
+func writeSSEPing(resp *ghttp.Response) {
+	resp.Write([]byte("event: ping\ndata: {}\n\n"))
+	resp.Flush()
+}
+
 func writeSSEError(resp *ghttp.Response, err error) {
 	g.Log().Error(context.Background(), err)
+	// 错误脱敏，只返回错误码和友好提示
+	errMsg := err.Error()
+	if gerror.Code(err).Code() >= 500 {
+		errMsg = "服务暂时不可用，请稍后重试"
+	}
 	resp.Write([]byte("event: error\ndata: "))
-	resp.Write([]byte(err.Error()))
+	resp.Write([]byte(errMsg))
 	resp.Write([]byte("\n\n"))
 	resp.Flush()
 }

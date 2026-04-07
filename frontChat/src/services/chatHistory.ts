@@ -34,6 +34,9 @@ export interface SaveSessionRes {
 
 export interface GetHistoryRes {
   list: ChatSession[];
+  total: number;
+  page: number;
+  page_size: number;
 }
 
 export interface GetSessionRes extends ChatSessionDetail {}
@@ -69,15 +72,19 @@ export const ChatHistoryService = {
   /**
    * 获取历史会话列表
    */
-  getHistory: async (): Promise<GetHistoryRes> => {
-    return ApiClient.get<GetHistoryRes>(`${BASE_PATH}/history`);
+  getHistory: async (page = 1, page_size = 20): Promise<GetHistoryRes> => {
+    return ApiClient.get<GetHistoryRes>(`${BASE_PATH}/history`, {
+      params: { page, page_size }
+    });
   },
 
   /**
    * 获取单个会话详情
    */
-  getSession: async (id: string): Promise<GetSessionRes> => {
-    return ApiClient.get<GetSessionRes>(`${BASE_PATH}/session/${id}`);
+  getSession: async (id: string, before_msg_id = 0, limit = 20): Promise<GetSessionRes> => {
+    return ApiClient.get<GetSessionRes>(`${BASE_PATH}/session/${id}`, {
+      params: { before_msg_id, limit }
+    });
   },
 
   /**
