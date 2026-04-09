@@ -6,7 +6,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: template-single
+    name: studycoach-backend
   minReplicas: 2
   maxReplicas: 8
   metrics:

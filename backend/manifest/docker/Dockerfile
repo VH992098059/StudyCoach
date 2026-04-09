@@ -1,7 +1,10 @@
 # 构建阶段
-FROM golang:alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 ENV GOPROXY=https://goproxy.cn,direct
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+ENV GOARCH=amd64
 
 # 设置工作目录
 WORKDIR /build
@@ -20,8 +23,8 @@ RUN go mod download
 COPY . .
 
 # 构建应用
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags='-w -s -extldflags "-static"' \
+RUN go build \
+    -ldflags='-w -s' \
     -a -installsuffix cgo \
     -o main main.go
 
@@ -33,6 +36,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
     apk --no-cache add ca-certificates tzdata curl
 
 # 设置时区
+ENV TZ=Asia/Shanghai
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo 'Asia/Shanghai' > /etc/timezone
 
@@ -50,7 +54,9 @@ COPY --from=builder /build/manifest ./manifest/
 
 # 设置文件权限
 RUN chown -R appuser:appgroup /app && \
-    chmod +x /app/main
+    chmod +x /app/main && \
+    mkdir -p /app/logs && \
+    chown -R appuser:appgroup /app/logs
 
 # 切换到非root用户
 USER appuser
@@ -59,7 +65,7 @@ USER appuser
 EXPOSE 8000
 
 # 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/healthz || exit 1
 
 # 启动应用

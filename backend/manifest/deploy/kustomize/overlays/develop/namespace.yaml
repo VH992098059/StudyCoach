@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: studycoach-develop
+  labels:
+    name: studycoach-develop
+    env: develop

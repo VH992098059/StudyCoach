@@ -3,13 +3,16 @@ kind: Kustomization
 
 namespace: studycoach
 
+commonLabels:
+  env: production
+  app.kubernetes.io/env: production
+
 resources:
   - ../../base
   - configmap.yaml
   - hpa.yaml
+  - secret.yaml.example
 
 patches:
   - path: deployment.yaml
 
-commonLabels:
-  env: production

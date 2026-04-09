@@ -1,21 +1,73 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: template-single
+  name: studycoach-backend
   labels:
-    app: template-single
+    app: studycoach-backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: template-single
+      app: studycoach-backend
   template:
     metadata:
       labels:
-        app: template-single
+        app: studycoach-backend
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
       containers:
-        - name : main
-          image: template-single
-          imagePullPolicy: Always
+        - name: main
+          image: studycoach-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+              protocol: TCP
+          env:
+            - name: GF_GCFG_FILE
+              value: /app/manifest/config/config.yaml
+            - name: TZ
+              value: Asia/Shanghai
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/manifest/config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 10
+            failureThreshold: 30
+      volumes:
+        - name: config-volume
+          configMap:
+            name: studycoach-backend-configmap
 

@@ -1,10 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: template-single
+  name: studycoach-backend
 spec:
+  replicas: 1
   template:
     spec:
       containers:
-        - name : main
-          image: template-single:develop
+        - name: main
+          image: studycoach-backend:develop
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          env:
+            - name: GF_GCFG_FILE
+              value: /app/manifest/config/config.yaml
+            - name: TZ
+              value: Asia/Shanghai

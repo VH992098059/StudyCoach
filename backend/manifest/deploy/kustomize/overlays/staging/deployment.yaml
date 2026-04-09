@@ -1,14 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: template-single
+  name: studycoach-backend
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   template:
     spec:
       containers:
         - name: main
           image: studycoach-backend:staging
+          imagePullPolicy: IfNotPresent
           resources:
             requests:
               cpu: "250m"
@@ -19,29 +25,33 @@ spec:
           env:
             - name: GF_GCFG_FILE
               value: "/app/manifest/config/config.yaml"
+            - name: TZ
+              value: Asia/Shanghai
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: studycoach-secrets
                   key: db-password
+                  optional: true
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: studycoach-secrets
                   key: redis-password
+                  optional: true
           livenessProbe:
             httpGet:
-              path: /gateway/healthz
+              path: /healthz
               port: 8000
-            initialDelaySeconds: 15
-            periodSeconds: 20
-            timeoutSeconds: 5
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /gateway/readyz
+              path: /readyz
               port: 8000
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
-            timeoutSeconds: 3
+            timeoutSeconds: 5
             failureThreshold: 3

@@ -280,11 +280,11 @@ python api.py
 - ✅ 深度思考模式与 reasoning_content
 - ✅ CI/CD 流水线（GitHub Actions）
 - ✅ 监控栈（Prometheus + Grafana）
+- ✅ 向量删除一致性（同步 MySQL chunk 删除与向量库）
+- ✅ Qdrant/Milvus 异步索引的 QA 向量支持
+- ✅ Grader 模块集成用于检索质量评估
 
 ### 🚧 进行中
-- 🚧 向量删除一致性（同步 MySQL chunk 删除与向量库）
-- 🚧 Qdrant/Milvus 异步索引的 QA 向量支持
-- 🚧 Grader 模块集成用于检索质量评估
 
 ### 📋 计划中
 - 📋 MCP（模型上下文协议）生态集成

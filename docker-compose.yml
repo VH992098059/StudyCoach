@@ -7,9 +7,8 @@ services:
     container_name: studycoach-mysql
     restart: unless-stopped
     environment:
-      MYSQL_USER: root
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: chat_history
+      MYSQL_DATABASE: studyCoach
       TZ: Asia/Shanghai
     ports:
       - "3306:3306"

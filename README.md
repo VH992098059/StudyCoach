@@ -280,11 +280,11 @@ Configure the ASR endpoint in `backend/manifest/config/config.yaml`
 - ✅ Deep thinking mode with reasoning_content
 - ✅ CI/CD pipelines (GitHub Actions)
 - ✅ Monitoring stack (Prometheus + Grafana)
+- ✅ Vector deletion consistency (sync MySQL chunk deletion with vector stores)
+- ✅ QA vector support for Qdrant/Milvus async indexing
+- ✅ Grader module integration for retrieval quality assessment
 
 ### 🚧 In Progress
-- 🚧 Vector deletion consistency (sync MySQL chunk deletion with vector stores)
-- 🚧 QA vector support for Qdrant/Milvus async indexing
-- 🚧 Grader module integration for retrieval quality assessment
 
 ### 📋 Planned
 - 📋 MCP (Model Context Protocol) ecosystem integration

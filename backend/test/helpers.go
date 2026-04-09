@@ -21,7 +21,7 @@ type gfAPIResponse struct {
 func baseURL() string {
 	u := os.Getenv("STUDYCOACH_TEST_BASE_URL")
 	if u == "" {
-		u = "http://127.0.0.1:8000"
+		u = "http://localhost:8000"
 	}
 	return strings.TrimRight(strings.TrimSpace(u), "/")
 }

@@ -108,9 +108,15 @@ export const responseInterceptor = {
         const isLoginRequest = String(config?.url || '').includes('/login') && (config?.method?.toLowerCase() === 'post');
         if (!isLoginRequest) {
           clearAuthStorage();
-        }
-        if ((config as any).showError !== false) {
-          showTokenExpiredNotification();
+          if ((config as any).showError !== false) {
+            showTokenExpiredNotification();
+          }
+        } else {
+          // 登录请求的401是用户名密码错误，直接显示后端返回的错误信息
+          const showError = (config as any).showError !== false;
+          if (showError) {
+            message.error(error.message);
+          }
         }
       } else {
         const showError = (config as any).showError !== false;
@@ -130,13 +136,24 @@ export const responseInterceptor = {
       const { status, data } = response;
       let errorMessage = i18n.t('api.requestFailed');
 
+      let messageShown = false;
       switch (status) {
         case 401:
+          const isLoginRequest = String(config?.url || '').includes('/login') && (config?.method?.toLowerCase() === 'post');
           errorMessage = (data as any)?.message || i18n.t('api.loginExpired');
-          clearAuthStorage();
-          if (showError) {
-            showTokenExpiredNotification();
+          if (!isLoginRequest) {
+            clearAuthStorage();
+            if (showError) {
+              showTokenExpiredNotification();
+            }
+            // 非登录请求的401已经通过notification显示了错误，不需要再显示普通message
+          } else {
+            if (showError) {
+              message.error(errorMessage);
+            }
           }
+          // 无论哪种情况，都不走到下面的通用message.error
+          messageShown = true;
           break;
         case 403:
           errorMessage = (data as any)?.message || i18n.t('api.forbidden');
@@ -151,7 +168,7 @@ export const responseInterceptor = {
           errorMessage = (data as any)?.message || i18n.t('api.requestFailedWithStatus', { status });
       }
 
-      if (showError) {
+      if (showError && !messageShown) {
         message.error(errorMessage);
       }
 

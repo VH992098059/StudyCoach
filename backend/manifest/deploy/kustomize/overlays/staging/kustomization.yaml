@@ -3,12 +3,16 @@ kind: Kustomization
 
 namespace: studycoach-staging
 
+commonLabels:
+  env: staging
+  app.kubernetes.io/env: staging
+
 resources:
   - ../../base
+  - namespace.yaml
   - configmap.yaml
+  - secret.yaml.example
 
 patches:
   - path: deployment.yaml
 
-commonLabels:
-  env: staging
