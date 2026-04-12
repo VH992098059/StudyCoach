@@ -316,7 +316,6 @@ python api.py
 
 ## 📚 文档
 
-- [架构文档](ARCHITECTURE.md) - 详细的系统架构说明（中文）
 - [API 文档](http://localhost:8000/swagger) - OpenAPI/Swagger UI（启动后端后访问）
 - [文件布局](docs/FILES_LAYOUT.md) - 本地目录约定
 

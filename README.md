@@ -316,7 +316,6 @@ Special thanks to:
 
 ## 📚 Documentation
 
-- [Architecture Documentation](ARCHITECTURE.md) - Detailed system architecture (Chinese)
 - [API Documentation](http://localhost:8000/swagger) - OpenAPI/Swagger UI (after starting backend)
 - [Files Layout](docs/FILES_LAYOUT.md) - Local directory conventions
 

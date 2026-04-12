@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # 继承基础设施服务
+  mysql:
+    extends:
+      file: docker-compose.yml
+      service: mysql
+
+  redis:
+    extends:
+      file: docker-compose.yml
+      service: redis
+
+  elasticsearch:
+    extends:
+      file: docker-compose.yml
+      service: elasticsearch
+
+  seaweedfs-filer:
+    extends:
+      file: docker-compose.yml
+      service: seaweedfs-filer
+
+  qdrant:
+    extends:
+      file: docker-compose.yml
+      service: qdrant
+
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: manifest/docker/Dockerfile
+    container_name: studycoach-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      elasticsearch:
+        condition: service_started
+      seaweedfs-filer:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    networks:
+      - studycoach-network
+    volumes:
+      - ./backend/files:/app/files
+      - ./backend/log:/app/log
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontChat
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost/gateway
+    container_name: studycoach-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - studycoach-network
+
+  # 入口 Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: studycoach-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./ops/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - studycoach-network
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  seaweedfs_data:
+    driver: local
+  seaweedfs_filer_data:
+    driver: local
+
+networks:
+  studycoach-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
