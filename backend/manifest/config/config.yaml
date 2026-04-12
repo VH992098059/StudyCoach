@@ -94,7 +94,7 @@ database:
   default:
     #  - link: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
     #  - link: "pgsql:postgres:root@tcp(studycoach-postgres:5432)/postgres"
-    - link: "mysql:root:root@tcp(mysql:3306)/studyCoach?loc=Local&parseTime=true&charset=utf8mb4"
+    - link: "mysql:root:root@tcp(localhost:3306)/studyCoach?loc=Local&parseTime=true&charset=utf8mb4"
       debug: true
 # database:
 #   分组名称:
@@ -128,14 +128,14 @@ database:
 #     timeMaintainDisabled:  "(可选)是否完全关闭时间更新特性，true时CreatedAt/UpdatedAt/DeletedAt都将失效"
 redis:
   default:
-    address: "redis:6379"
+    address: "localhost:6379"
     #    address: "studycoach-redis:6379"
     pass: "123456"
     db: 1
     idleTimeout: "60s"
 
 db:
-  mysql: "root:root@tcp(mysql:3306)/studyCoach?loc=Local&parseTime=true&charset=utf8mb4"
+  mysql: "root:root@tcp(127.0.0.1:3306)/studyCoach?loc=Local&parseTime=true&charset=utf8mb4"
 #  history: "host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 #  history: "host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 
@@ -194,20 +194,15 @@ siliconflow:
   baseURL: "https://api.siliconflow.cn/v1"
   model: "deepseek-ai/DeepSeek-V3.2"
 
-cron:
-  apiKey: ""
-  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-seed-2-0-lite-260215"
-
 seaweedfs:
-  filer: "http://seaweedfs-filer:8888"
+  filer: "http://localhost:8888"
 
 # 向量引擎: es(默认) | qdrant | milvus
 vectorEngine: "es"
 
 es:
   #  address: "http://studycoach-elasticsearch:9200"
-  address: "http://elasticsearch:9200"
+  address: "http://localhost:9200"
   indexName: "study"
 #  username: "elastic"
 #  password: "123456"
@@ -250,5 +245,8 @@ plantask:
 studyplan:
   localDir: "files/study_plans"
 
-
+cron:
+  apiKey: "*"
+  baseURL: "https://api.siliconflow.cn/v1"
+  model: "zai-org/GLM-4.6"
 
