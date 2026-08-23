@@ -22,12 +22,12 @@ type KBCreateReq struct {
 }
 
 type KBCreateRes struct {
-	Id int64 `json:"id" dc:"kb id"`
+	Id string `json:"id" dc:"kb id"` // UUID
 }
 
 type KBUpdateReq struct {
 	g.Meta      `path:"/v1/kb/{id}" method:"put" tags:"kb" summary:"Update kb"`
-	Id          int64   `v:"required" dc:"kb id"`
+	Id          string  `v:"required" dc:"kb id"`
 	Name        *string `v:"length:3,50" dc:"kb name"`
 	Description *string `v:"length:3,200" dc:"kb description"`
 	Category    *string `v:"length:3,50" dc:"kb category"`
@@ -37,13 +37,13 @@ type KBUpdateRes struct{}
 
 type KBDeleteReq struct {
 	g.Meta `path:"/v1/kb/{id}" method:"delete" tags:"kb" summary:"Delete kb"`
-	Id     int64 `v:"required" dc:"kb id"`
+	Id     string `v:"required" dc:"kb id"`
 }
 type KBDeleteRes struct{}
 
 type KBGetOneReq struct {
 	g.Meta `path:"/v1/kb/{id}" method:"get" tags:"kb" summary:"Get one kb"`
-	Id     int64 `v:"required" dc:"kb id"`
+	Id     string `v:"required" dc:"kb id"`
 }
 type KBGetOneRes struct {
 	*entity.KnowledgeBase `dc:"kb"`

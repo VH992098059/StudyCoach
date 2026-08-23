@@ -14,11 +14,11 @@ import (
 
 // buildRetrieverFilterOptions 根据向量引擎类型构建检索过滤选项。
 // 返回 TopK + 引擎专属 filter 的 retriever.Option 列表。
-func buildRetrieverFilterOptions(conf *common.Config, knowledgeName string, excludeIDs []string, topK int) ([]er.Option, error) {
+func buildRetrieverFilterOptions(conf *common.Config, knowledgeName string, excludeIDs []string, topK int, metadataFilter map[string]interface{}) ([]er.Option, error) {
 	opts := []er.Option{er.WithTopK(topK)}
 
 	if conf.UseES() {
-		esQuery := buildESFilterQuery(knowledgeName, excludeIDs)
+		esQuery := buildESFilterQuery(knowledgeName, excludeIDs, metadataFilter)
 		opts = append(opts, es8.WithFilters(esQuery))
 		return opts, nil
 	}
@@ -57,12 +57,34 @@ func buildMilvusFilterExpr(knowledgeName string, excludeIDs []string) string {
 	return strings.Join(parts, " && ")
 }
 
-// buildESFilterQuery 构建 ES bool query：knowledge_name 匹配 + 排除指定 _id。
-func buildESFilterQuery(knowledgeName string, excludeIDs []string) []types.Query {
+// buildESFilterQuery 构建 ES bool query：knowledge_name 匹配 + 排除指定 _id + 元数据过滤。
+func buildESFilterQuery(knowledgeName string, excludeIDs []string, metadataFilter map[string]interface{}) []types.Query {
+	mustClauses := []types.Query{
+		{Match: map[string]types.MatchQuery{common.KnowledgeName: {Query: knowledgeName}}},
+	}
+	// 追加元数据 term 过滤
+	for field, val := range metadataFilter {
+		switch v := val.(type) {
+		case int:
+			mustClauses = append(mustClauses, types.Query{
+				Term: map[string]types.TermQuery{field: {Value: v}},
+			})
+		case int64:
+			mustClauses = append(mustClauses, types.Query{
+				Term: map[string]types.TermQuery{field: {Value: v}},
+			})
+		case float64:
+			mustClauses = append(mustClauses, types.Query{
+				Term: map[string]types.TermQuery{field: {Value: v}},
+			})
+		case string:
+			mustClauses = append(mustClauses, types.Query{
+				Term: map[string]types.TermQuery{field: {Value: v}},
+			})
+		}
+	}
 	q := types.Query{
-		Bool: &types.BoolQuery{
-			Must: []types.Query{{Match: map[string]types.MatchQuery{common.KnowledgeName: {Query: knowledgeName}}}},
-		},
+		Bool: &types.BoolQuery{Must: mustClauses},
 	}
 	if len(excludeIDs) > 0 {
 		q.Bool.MustNot = []types.Query{

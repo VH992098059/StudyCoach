@@ -13,7 +13,7 @@ type CronExecuteCreateReq struct {
 	ExecuteTime *gtime.Time `json:"execute_time" v:"required"`
 }
 type CronExecuteCreateRes struct {
-	Id int64 `json:"id"`
+	Id string `json:"id"` // UUID
 }
 
 type CronExecuteListReq struct {
@@ -31,9 +31,9 @@ type CronExecuteListRes struct {
 // 按任务ID查询执行历史
 type CronExecuteListByCronIdReq struct {
 	g.Meta `path:"/v1/cronExecuteListByCronId" method:"get"`
-	CronId int64 `json:"cronId" v:"required"`
-	Page   int   `json:"page" d:"1" v:"min:1"`
-	Size   int   `json:"size" d:"10" v:"max:100"`
+	CronId string `json:"cronId" v:"required"` // UUID
+	Page   int    `json:"page" d:"1" v:"min:1"`
+	Size   int    `json:"size" d:"10" v:"max:100"`
 }
 type CronExecuteListByCronIdRes struct {
 	List  []entity.CronExecute `json:"list"`
@@ -43,7 +43,7 @@ type CronExecuteListByCronIdRes struct {
 // 查询执行详情
 type CronExecuteDetailReq struct {
 	g.Meta `path:"/v1/cronExecuteDetail" method:"get"`
-	Id     int64 `json:"id" v:"required"`
+	Id     string `json:"id" v:"required"` // UUID
 }
 type CronExecuteDetailRes struct {
 	entity.CronExecute
@@ -52,9 +52,9 @@ type CronExecuteDetailRes struct {
 // 查询执行日志列表
 type CronExecuteLogReq struct {
 	g.Meta    `path:"/v1/cronExecuteLog" method:"get"`
-	ExecuteId int64 `json:"executeId" v:"required"`
-	Page      int   `json:"page" d:"1" v:"min:1"`
-	Size      int   `json:"size" d:"20" v:"max:100"`
+	ExecuteId string `json:"executeId" v:"required"` // UUID
+	Page      int    `json:"page" d:"1" v:"min:1"`
+	Size      int    `json:"size" d:"20" v:"max:100"`
 }
 type CronExecuteLogRes struct {
 	List  []entity.CronLog `json:"list"`

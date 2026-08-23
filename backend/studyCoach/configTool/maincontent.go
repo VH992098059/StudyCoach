@@ -4,7 +4,7 @@ import (
 	"backend/studyCoach/common"
 	"context"
 	"encoding/json"
-	"log"
+	"github.com/gogf/gf/v2/frame/g"
 	"net/http"
 	"strings"
 	"time"
@@ -15,7 +15,7 @@ import (
 func ExtractMainContent(ctx context.Context, url string) string {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		log.Printf("创建请求失败: %s: %v", url, err)
+		g.Log().Infof(ctx, "创建请求失败: %s: %v", url, err)
 		return ""
 	}
 
@@ -32,14 +32,14 @@ func ExtractMainContent(ctx context.Context, url string) string {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("获取网页失败: %s: %v", url, err)
+		g.Log().Infof(ctx, "获取网页失败: %s: %v", url, err)
 		return ""
 	}
 	defer resp.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		log.Printf("解析网页失败: %s: %v", url, err)
+		g.Log().Infof(ctx, "解析网页失败: %s: %v", url, err)
 		return ""
 	}
 	minLen := 20
@@ -156,6 +156,6 @@ func ExtractMainContent(ctx context.Context, url string) string {
 		return fallback
 	}
 
-	log.Printf("未找到有效正文内容: %s", url)
+	g.Log().Infof(ctx, "未找到有效正文内容: %s", url)
 	return ""
 }

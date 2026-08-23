@@ -28,7 +28,7 @@ func EnsureKnowledgeBaseBelongsToUser(ctx context.Context, userUUID string, kbNa
 }
 
 // EnsureDocumentBelongsToUser 根据文档 ID 校验其所属知识库是否属于当前用户。
-func EnsureDocumentBelongsToUser(ctx context.Context, userUUID string, documentId int64) error {
+func EnsureDocumentBelongsToUser(ctx context.Context, userUUID string, documentId string) error {
 	doc, err := GetDocumentById(ctx, documentId)
 	if err != nil {
 		return err
@@ -37,13 +37,13 @@ func EnsureDocumentBelongsToUser(ctx context.Context, userUUID string, documentI
 }
 
 // EnsureCronScheduleBelongsToUser 根据定时任务 ID 校验其关联知识库是否属于当前用户。
-func EnsureCronScheduleBelongsToUser(ctx context.Context, userUUID string, cronID int64) error {
+func EnsureCronScheduleBelongsToUser(ctx context.Context, userUUID string, cronID string) error {
 	var s entity.KnowledgeBaseCronSchedule
 	err := dao.KnowledgeBaseCronSchedule.Ctx(ctx).Where("id", cronID).Scan(&s)
 	if err != nil {
 		return err
 	}
-	if s.Id == 0 {
+	if s.Id == "" {
 		return gerror.NewCode(gcode.CodeNotFound, "定时任务不存在")
 	}
 	return EnsureKnowledgeBaseBelongsToUser(ctx, userUUID, s.KnowledgeBaseName)

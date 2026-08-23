@@ -13,7 +13,7 @@ func TestIntegration_KnowledgeBase_ListCreateRetriever(t *testing.T) {
 	base := requireServer(t)
 	client := &http.Client{Timeout: 60 * time.Second}
 
-	ts := time.Now().UnixNano()
+	ts := time.Now().UnixMilli()
 	username := fmt.Sprintf("kb_%d", ts)
 	password := "TestPass123!"
 	email := fmt.Sprintf("kb_%d@example.com", ts)

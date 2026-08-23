@@ -21,7 +21,7 @@ func (c *ControllerV1) UpdateChunk(ctx context.Context, req *v1.UpdateChunkReq) 
 		if e != nil {
 			return nil, e
 		}
-		if chunk.Id == 0 {
+		if chunk.Id == "" {
 			return nil, gerror.NewCode(gcode.CodeNotFound, "切片不存在")
 		}
 		if err = knowledge.EnsureDocumentBelongsToUser(ctx, userUUID, chunk.KnowledgeDocId); err != nil {

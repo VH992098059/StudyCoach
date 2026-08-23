@@ -14,7 +14,7 @@ type AnonymousSessionPayload struct {
 
 // ChatMessage 聊天消息（与 ai_chat 保持一致）
 type ChatMessage struct {
-	Id               int64       `json:"id" description:"消息ID"`
+	Id               string      `json:"id" description:"消息ID（UUID）"`
 	MsgId            string      `json:"msg_id" description:"前端消息ID"`
 	Content          string      `json:"content" description:"消息内容"`
 	IsUser           bool        `json:"isUser" description:"是否为用户发送"`
@@ -30,7 +30,7 @@ type LoginReq struct {
 }
 type LoginRes struct {
 	g.Meta `mime:"application/json"`
-	Id     uint64 `json:"id"`
+	Id     string `json:"id"`
 	Uuid   string `json:"uuid"`
 	Token  string `json:"token" dc:"在需要鉴权的接口中header加入Authorization: token"`
 }
@@ -42,7 +42,7 @@ type RegisterReq struct {
 }
 type RegisterRes struct {
 	g.Meta `mime:"application/json"`
-	Id     int64 `json:"id"`
+	Id     string `json:"id"`
 }
 
 type LogoutReq struct {

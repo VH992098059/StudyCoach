@@ -12,6 +12,7 @@
     "tauri:build": "bun run build && tauri build"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.2.2",
     "@ant-design/x": "^2.0.0",
     "@ant-design/x-markdown": "^2.0.0",
     "@ant-design/x-sdk": "^2.0.0",
@@ -25,8 +26,10 @@
     "antd": "^6.0.0",
     "axios": "^1.10.0",
     "clsx": "^2.1.1",
+    "dayjs": "^1.11.20",
     "framer-motion": "^12.23.12",
     "highlight.js": "^11.11.1",
+    "i18next": "^26.0.10",
     "katex": "^0.16.22",
     "lucide-react": "^0.544.0",
     "markdown-it": "^14.1.0",

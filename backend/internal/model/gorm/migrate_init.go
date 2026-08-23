@@ -5,31 +5,24 @@ import (
 	"strings"
 
 	"github.com/gogf/gf/v2/frame/g"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-// RunMigrateOnStartup 启动时执行数据库迁移。
+// RunMigrateOnStartup 启动时执行数据库迁移（PostgreSQL）。
 // 仅迁移 ProjectTables 中的表：表不存在则创建，已存在则仅补充缺失列。
-// ExcludedTables（chat-history 管理的表）不参与迁移。
 func RunMigrateOnStartup(ctx context.Context) error {
-	dsn, err := g.Cfg().Get(ctx, "db.mysql")
+	dsn, err := g.Cfg().Get(ctx, "db.pgsql")
 	if err != nil || dsn.String() == "" {
-		g.Log().Warningf(ctx, "db.mysql not configured, skip migrate: %v", err)
+		g.Log().Warningf(ctx, "db.pgsql not configured, skip migrate: %v", err)
 		return nil
 	}
-	// DSN 格式: mysql:user:pass@tcp(host:port)/db?params -> user:pass@tcp(host:port)/db?params
-	connStr := strings.TrimPrefix(dsn.String(), "mysql:")
-	if connStr == dsn.String() {
-		connStr = dsn.String()
+	// gorm postgres DSN 格式：host=... user=... password=... dbname=... port=... sslmode=... TimeZone=...
+	// 目标库不存在时先自动创建（库名取自 DSN 的 dbname），再执行表迁移
+	if err := ensureDatabase(ctx, dsn.String()); err != nil {
+		return err
 	}
-	// 确保连接和表字段使用 utf8mb4 + utf8mb4_unicode_ci
-	if strings.Contains(connStr, "?") {
-		connStr += "&charset=utf8mb4"
-	} else {
-		connStr += "?charset=utf8mb4"
-	}
-	db, err := gorm.Open(mysql.Open(connStr), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(dsn.String()), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {

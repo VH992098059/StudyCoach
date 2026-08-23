@@ -3,7 +3,7 @@ import { ApiClient } from '../utils/axios';
 const BASE_PATH = '/gateway/chat';
 
 export interface Message {
-  id: number;
+  id: string;
   msg_id: string;
   content: string;
   isUser: boolean;
@@ -81,9 +81,9 @@ export const ChatHistoryService = {
   /**
    * 获取单个会话详情
    */
-  getSession: async (id: string, before_msg_id = 0, limit = 20): Promise<GetSessionRes> => {
+  getSession: async (id: string, before_timestamp = 0, limit = 20): Promise<GetSessionRes> => {
     return ApiClient.get<GetSessionRes>(`${BASE_PATH}/session/${id}`, {
-      params: { before_msg_id, limit }
+      params: { before_timestamp, limit }
     });
   },
 

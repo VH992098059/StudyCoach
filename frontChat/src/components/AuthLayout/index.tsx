@@ -7,7 +7,7 @@
 
 import React, { Suspense } from 'react';
 import { Layout as AntLayout, Spin, Alert, Button } from 'antd';
-import { ErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
 import './index.scss';
 
@@ -43,16 +43,17 @@ interface AuthLayoutProps {
  * @param {Error} props.error - 错误对象
  * @param {Function} props.resetErrorBoundary - 重置错误边界的函数
  */
-const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> = ({
+const ErrorFallback: React.FC<FallbackProps> = ({
   error,
   resetErrorBoundary,
 })=> {
   const { t } = useTranslation();
+  const message = error instanceof Error ? error.message : String(error ?? '');
   return (
     <div className="auth-error-boundary">
       <Alert
         message={t('common.pageError')}
-        description={error.message}
+        description={message}
         type="error"
         showIcon
         action={

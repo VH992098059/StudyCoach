@@ -24,7 +24,7 @@ export interface UseWebSocketOptions {
   /** 是否启用连接（如页面可见时才连接） */
   enabled?: boolean;
   /** 收到 cron_complete 时的回调 */
-  onCronComplete?: (payload: { cron_id: number; cron_name: string; success: boolean }) => void;
+  onCronComplete?: (payload: { cron_id: string; cron_name: string; success: boolean }) => void;
   /** 收到任意消息时的回调 */
   onMessage?: (msg: WsMessage) => void;
   /** 连接状态变化 */
@@ -96,9 +96,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           onMessageRef.current?.(msg);
 
           if (msg.type === 'cron_complete' && msg.payload && onCronCompleteRef.current) {
-            const p = msg.payload as { cron_id?: number; cron_name?: string; success?: boolean };
+            const p = msg.payload as { cron_id?: string; cron_name?: string; success?: boolean };
             onCronCompleteRef.current({
-              cron_id: p.cron_id ?? 0,
+              cron_id: p.cron_id ?? '',
               cron_name: String(p.cron_name ?? ''),
               success: Boolean(p.success),
             });

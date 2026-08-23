@@ -8,8 +8,8 @@ export enum ChunkStatus {
 
 // 知识块数据类型
 export interface KnowledgeChunk {
-  id: number;
-  knowledgeDocId: number;
+  id: string;
+  knowledgeDocId: string;
   chunkId: string;
   content: string;
   ext: string;
@@ -20,7 +20,7 @@ export interface KnowledgeChunk {
 
 // API 请求/响应类型
 export interface ChunksListReq {
-  knowledge_doc_id: number;
+  knowledge_doc_id: string;
   page?: number;
   size?: number;
 }
@@ -33,16 +33,16 @@ export interface ChunksListRes {
 }
 
 export interface ChunkDeleteReq {
-  id: number;
+  id: string;
 }
 
 export interface UpdateChunkReq {
-  ids: number[];
+  ids: string[];
   status: ChunkStatus;
 }
 
 export interface UpdateChunkContentReq {
-  id: number;
+  id: string;
   content: string;
 }
 

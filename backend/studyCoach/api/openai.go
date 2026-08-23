@@ -3,9 +3,11 @@ package api
 import (
 	v1 "backend/api/ai_chat/v1"
 	v1rag "backend/api/rag/v1"
+	"backend/internal/logic/ai_chat/session"
 	"backend/internal/logic/knowledge"
 	"backend/studyCoach/aiModel/CoachChat"
 	"backend/studyCoach/aiModel/NormalChat"
+	knowledgetool "backend/studyCoach/aiModel/eino_tools/knowledge"
 	"backend/studyCoach/aiModel/eino_tools/studyplan"
 	"backend/studyCoach/aiModel/indexer"
 	"backend/studyCoach/aiModel/retriever"
@@ -22,7 +24,6 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/wangle201210/chat-history/eino"
 )
 
 const (
@@ -30,9 +31,16 @@ const (
 	esTopK = 50
 )
 
-var client *elasticsearch.Client
-var esConf *common.Config
-var eh *eino.History
+// appState 应用级共享状态：向量配置 + 会话历史存储，由 getAppState 惰性初始化（替代包级可变全局）。
+type appState struct {
+	vectorConf *common.Config
+	history    *session.History
+}
+
+var (
+	stateOnce sync.Once
+	state     *appState
+)
 
 // coachGraph 按 isNetwork 缓存已编译的 CoachChat 图，避免每次请求都重建
 type coachGraphEntry struct {
@@ -95,29 +103,35 @@ type StreamType struct {
 	Question      string
 	Knowledge     []*schema.Document
 	Id            string
-	Eh            *eino.History
+	Eh            *session.History
 	IsStudyMode   bool
 	UploadedFiles []string         // 已上传到会话工作目录的文件名，供 prompt 注入
 	MultiContent  []v1.MessagePart // 多模态内容
+	Rag           *Rag             // 知识库检索实例，供 search_knowledge 工具使用
+	KnowledgeName string           // 当前知识库名称，供 search_knowledge 工具过滤
 }
 
-func init() {
-	ctx := context.Background()
-	var err error
-	esConf, err = common.BuildVectorConfig(ctx)
-	if err != nil {
-		g.Log().Errorf(ctx, "BuildVectorConfig failed: %v", err)
-		return
-	}
-	if esConf.UseES() {
-		client = esConf.Client
-	}
-	dbConf, err := g.Cfg().Get(ctx, "db.mysql")
-	if err != nil || dbConf.String() == "" {
-		g.Log().Warningf(ctx, "config missing: db.mysql, err=%v", err)
-		return
-	}
-	eh = eino.NewEinoHistory(dbConf.String())
+// getAppState 惰性初始化并返回应用级共享状态（向量配置 + 会话历史存储）。
+// 原 init() 在包加载期即构建，改为首次使用时构建；构建失败仅记日志（vectorConf 为 nil，由调用方判空），不阻断启动。
+func getAppState() *appState {
+	stateOnce.Do(func() {
+		ctx := context.Background()
+		s := &appState{}
+		if conf, err := common.BuildVectorConfig(ctx); err != nil {
+			g.Log().Errorf(ctx, "BuildVectorConfig failed: %v", err)
+		} else {
+			s.vectorConf = conf
+		}
+		// 对话历史存储：原 chat-history（依赖 gorm/sqlite CGO）已移除，改用项目自管文件存储。
+		// 目录优先取配置 chatHistory.dir，缺失时回退到 ./data/chat_history。
+		dir := g.Cfg().MustGet(ctx, "chatHistory.dir").String()
+		if dir == "" {
+			dir = "./data/chat_history"
+		}
+		s.history = session.NewFileHistory(dir)
+		state = s
+	})
+	return state
 }
 
 // buildMultiContentMessage 构建多模态消息
@@ -161,7 +175,7 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 		ChatModel: g.Cfg().MustGet(ctx, "siliconflow.model").String(),
 	}
 	// 初始化 RAG 组件，避免后续调用空指针
-	rag, err := NewRagChat(ctx, esConf)
+	rag, err := NewRagChat(ctx, getAppState().vectorConf)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init rag failed: %w", err)
 	}
@@ -175,9 +189,12 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 			KnowledgeName: req.KnowledgeName,
 		})
 		if err != nil {
-			return nil, nil, err
+			// 降级：向量检索失败不阻断对话，改为纯 LLM 回答（知识库暂不可用）。
+			g.Log().Warningf(ctx, "[ChatAiModel] 知识库检索失败，降级为纯 LLM 回答: %v", err)
+			documents = nil
+		} else {
+			g.Log().Infof(ctx, "[ChatAiModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
 		}
-		g.Log().Infof(ctx, "[ChatAiModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
 	} else {
 		g.Log().Infof(ctx, "知识库未启用")
 	}
@@ -189,10 +206,12 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 		Question:      req.Question,
 		Knowledge:     documents,
 		Id:            req.ID,
-		Eh:            eh,
+		Eh:            getAppState().history,
 		IsStudyMode:   req.IsStudyMode,
 		UploadedFiles: req.UploadedFiles,
 		MultiContent:  req.GetMultiContent(),
+		Rag:           rag,
+		KnowledgeName: req.KnowledgeName,
 	}
 	// 将isNetwork参数添加到上下文中，传递给stream函数
 	ctxNew := context.WithValue(ctx, "isNetwork", req.IsNetwork)
@@ -203,7 +222,7 @@ func ChatAiModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamReader[*
 		return nil, nil, fmt.Errorf("生成答案失败：%w", err)
 	}
 	srs := streamData.Copy(2)
-	sr, err := chanOutput(ctx, srs, req, eh)
+	sr, err := chanOutput(ctx, srs, req, getAppState().history)
 	return sr, documents, err
 }
 
@@ -212,7 +231,7 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 	var documents []*schema.Document
 	g.Log().Info(ctx, "用户内容：", req.Question)
 	// 初始化RAG组件
-	rag, err := NewRagChat(ctx, esConf)
+	rag, err := NewRagChat(ctx, getAppState().vectorConf)
 	if err != nil {
 		return nil, nil, fmt.Errorf("init rag failed: %w", err)
 	}
@@ -226,9 +245,12 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 			KnowledgeName: req.KnowledgeName,
 		})
 		if err != nil {
-			return nil, nil, err
+			// 降级：向量检索失败不阻断对话，改为纯 LLM 回答（知识库暂不可用）。
+			g.Log().Warningf(ctx, "[ChatNormalModel] 知识库检索失败，降级为纯 LLM 回答: %v", err)
+			documents = nil
+		} else {
+			g.Log().Infof(ctx, "[ChatNormalModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
 		}
-		g.Log().Infof(ctx, "[ChatNormalModel] 知识库检索完成 - ID: %s, 结果数量: %d", req.ID, len(documents))
 	} else {
 		g.Log().Infof(ctx, "知识库未启用")
 	}
@@ -237,10 +259,12 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 		Question:      req.Question,
 		Knowledge:     documents,
 		Id:            req.ID,
-		Eh:            eh,
+		Eh:            getAppState().history,
 		IsStudyMode:   req.IsStudyMode,
 		UploadedFiles: req.UploadedFiles,
 		MultiContent:  req.GetMultiContent(),
+		Rag:           rag,
+		KnowledgeName: req.KnowledgeName,
 	}
 	// 将 isNetwork、isDeepThinking 添加到上下文中，传递给 stream 函数
 	ctxWithNetwork := context.WithValue(ctx, "isNetwork", req.IsNetwork)
@@ -252,7 +276,7 @@ func ChatNormalModel(ctx context.Context, req *v1.AiChatReq) (*schema.StreamRead
 		return nil, nil, fmt.Errorf("生成答案失败：%w", err)
 	}
 	srs := streamData.Copy(2)
-	sr, err := chanOutput(ctx, srs, req, eh)
+	sr, err := chanOutput(ctx, srs, req, getAppState().history)
 	return sr, documents, err
 }
 
@@ -282,8 +306,10 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 			return nil, fmt.Errorf("构建模型失败: %v", err)
 		}
 	} else {
+		// 保留 chat_history/knowledge 字符串 key：lambda 节点（newLambda*）仍消费，P2 仅治理分支，lambda 延后阶段二/三
 		ctx = context.WithValue(ctx, "chat_history", history)
-		ctx = context.WithValue(ctx, "question", streamType.Question)
+		// P2：question 改用 CoachChat 类型化 key（RouteInput）供 newBranch 路由判断，去除魔法字符串
+		ctx = CoachChat.WithRouteInput(ctx, streamType.Question, history)
 		ctx = context.WithValue(ctx, "knowledge", streamType.Knowledge)
 		ctx = context.WithValue(ctx, studyplan.SessionIDContextKey{}, streamType.Id)
 		isNetwork := ctx.Value("isNetwork")
@@ -305,10 +331,21 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 	} else {
 		output["uploaded_files"] = ""
 	}
+	// 注入知识库检索器，供 search_knowledge 工具在运行时获取 Rag 实例
+	if streamType.Rag != nil {
+		ctx = context.WithValue(ctx, knowledgetool.RetrieverKey{}, knowledgetool.RetrieverFunc(streamType.Rag.Retrieve))
+		ctx = context.WithValue(ctx, knowledgetool.KnowledgeNameKey{}, streamType.KnowledgeName)
+	}
+
+	// 进度可观测性：请求级回调，经 stageChan 下发阶段事件（event: stage），非全局避免并发串号
+	stageChan := make(chan common.StageEvent, 32)
+	ctx = common.WithProgressStage(ctx, stageChan)
+	progressCb := CoachChat.NewProgressHandler(streamType.Id, stageChan)
+
 	// 添加重试机制，最多重试3次，但只重试Stream调用
 	maxRetries := 3
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		res, err = modelStream.Stream(ctx, output)
+		res, err = modelStream.Stream(ctx, output, compose.WithCallbacks(progressCb))
 		if err != nil {
 			mode := "NormalChat"
 			if streamType.IsStudyMode {
@@ -359,7 +396,7 @@ func stream(ctx context.Context, streamType *StreamType, output map[string]inter
 }
 
 // 输出管道
-func chanOutput(ctx context.Context, srs []*schema.StreamReader[*schema.Message], req *v1.AiChatReq, eh *eino.History) (*schema.StreamReader[*schema.Message], error) {
+func chanOutput(ctx context.Context, srs []*schema.StreamReader[*schema.Message], req *v1.AiChatReq, eh *session.History) (*schema.StreamReader[*schema.Message], error) {
 	go func() {
 		defer srs[1].Close()
 		fullMsgs := make([]*schema.Message, 0)
@@ -377,19 +414,19 @@ func chanOutput(ctx context.Context, srs []*schema.StreamReader[*schema.Message]
 				// 流结束，保存完整消息
 				fullMsg, err := schema.ConcatMessages(fullMsgs)
 				if err != nil {
-					fmt.Printf("error concatenating messages: %v\n", err)
+					g.Log().Errorf(ctx, "error concatenating messages: %v", err)
 					return
 				}
 				err = eh.SaveMessage(fullMsg, req.ID)
 				if err != nil {
-					fmt.Printf("save assistant message err: %v\n", err)
+					g.Log().Errorf(ctx, "save assistant message err: %v", err)
 					return
 				}
 				GetMsg(fullMsg)
 				return
 			}
 			if err != nil {
-				fmt.Printf("message processing error: %v\n", err)
+				g.Log().Errorf(ctx, "message processing error: %v", err)
 				return
 			}
 
@@ -404,9 +441,13 @@ func NewRagChat(ctx context.Context, conf *common.Config) (*Rag, error) {
 	if len(conf.IndexName) == 0 {
 		return nil, fmt.Errorf("indexName is empty")
 	}
+	dim := conf.VectorDim
+	if dim <= 0 {
+		dim = 2048
+	}
 	// 确保索引/集合存在
 	if conf.UseES() {
-		if err := common.CreateIndexIfNotExists(ctx, conf.Client, conf.IndexName); err != nil {
+		if err := common.CreateIndexIfNotExists(ctx, conf.Client, conf.IndexName, dim); err != nil {
 			return nil, err
 		}
 	}
@@ -415,10 +456,10 @@ func NewRagChat(ctx context.Context, conf *common.Config) (*Rag, error) {
 	if err != nil {
 		return nil, err
 	}
-	onIndexed := func(ctx context.Context, docs []*schema.Document, documentsId int64) {
+	onIndexed := func(ctx context.Context, docs []*schema.Document, documentsId string) {
 		_, err := buildIndexAsync.Invoke(ctx, docs)
 		if err != nil {
-			g.Log().Errorf(ctx, "IndexAsync (QA) failed, documentsId=%d, err=%v", documentsId, err)
+			g.Log().Errorf(ctx, "IndexAsync (QA) failed, documentsId=%s, err=%v", documentsId, err)
 			return
 		}
 		knowledge.UpdateDocumentsStatus(ctx, documentsId, int(v1rag.StatusActive))
@@ -431,10 +472,15 @@ func NewRagChat(ctx context.Context, conf *common.Config) (*Rag, error) {
 	if err != nil {
 		return nil, err
 	}
-	qaCtx := context.WithValue(ctx, common.RetrieverFieldKey, common.FieldQAContentVector)
-	qaRetriever, err := retriever.BuildRetriever(qaCtx, conf)
-	if err != nil {
-		return nil, err
+	// QA 双路检索：仅 ES/Qdrant（有独立 qa_content_vector 向量字段）支持；
+	// Milvus 只有单一 content_vector 字段，QA 内容也存于此，内容检索已覆盖，故跳过（否则每次检索报 anns_field not found）。
+	var qaRetriever compose.Runnable[string, []*schema.Document]
+	if !conf.UseMilvus() {
+		qaCtx := context.WithValue(ctx, common.RetrieverFieldKey, common.FieldQAContentVector)
+		qaRetriever, err = retriever.BuildRetriever(qaCtx, conf)
+		if err != nil {
+			return nil, err
+		}
 	}
 	cm, err := CoachChat.QaModel(ctx)
 	if err != nil {

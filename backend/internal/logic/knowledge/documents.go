@@ -9,6 +9,7 @@ import (
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/google/uuid"
 )
 
 const (
@@ -17,50 +18,47 @@ const (
 )
 
 // SaveDocumentsInfo 保存文档信息
-func SaveDocumentsInfo(ctx context.Context, documents entity.KnowledgeDocuments) (id int64, err error) {
-	// 构造插入数据，排除Id字段让数据库自动生成
+func SaveDocumentsInfo(ctx context.Context, documents entity.KnowledgeDocuments) (id string, err error) {
+	// 主键为 UUID：显式生成，Insert 后返回
+	id = uuid.NewString()
 	data := g.Map{
+		"id":                  id,
 		"knowledge_base_name": documents.KnowledgeBaseName,
 		"file_name":           documents.FileName,
 		"status":              documents.Status,
 	}
 
-	result, err := dao.KnowledgeDocuments.Ctx(ctx).Data(data).Save()
+	_, err = dao.KnowledgeDocuments.Ctx(ctx).Data(data).Insert()
 	if err != nil {
 		g.Log().Errorf(ctx, "保存文档信息失败: %+v, 错误: %v", documents, err)
-		return 0, fmt.Errorf("保存文档信息失败: %w", err)
+		return "", fmt.Errorf("保存文档信息失败: %w", err)
 	}
 
-	id, err = result.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("获取插入ID失败: %w", err)
-	}
-
-	g.Log().Infof(ctx, "文档保存成功, ID: %d", id)
+	g.Log().Infof(ctx, "文档保存成功, ID: %s", id)
 	return id, nil
 }
 
 // UpdateDocumentsStatus 更新文档状态
-func UpdateDocumentsStatus(ctx context.Context, documentsId int64, status int) error {
+func UpdateDocumentsStatus(ctx context.Context, documentsId string, status int) error {
 	data := g.Map{
 		"status": status,
 	}
 
 	_, err := dao.KnowledgeDocuments.Ctx(ctx).Where("id", documentsId).Data(data).Update()
 	if err != nil {
-		g.Log().Errorf(ctx, "更新文档状态失败: ID=%d, 错误: %v", documentsId, err)
+		g.Log().Errorf(ctx, "更新文档状态失败: ID=%s, 错误: %v", documentsId, err)
 	}
 
 	return err
 }
 
 // GetDocumentById 根据ID获取文档信息
-func GetDocumentById(ctx context.Context, id int64) (document entity.KnowledgeDocuments, err error) {
-	g.Log().Debugf(ctx, "获取文档信息: ID=%d", id)
+func GetDocumentById(ctx context.Context, id string) (document entity.KnowledgeDocuments, err error) {
+	g.Log().Debugf(ctx, "获取文档信息: ID=%s", id)
 
 	err = dao.KnowledgeDocuments.Ctx(ctx).Where("id", id).Scan(&document)
 	if err != nil {
-		g.Log().Errorf(ctx, "获取文档信息失败: ID=%d, 错误: %v", id, err)
+		g.Log().Errorf(ctx, "获取文档信息失败: ID=%s, 错误: %v", id, err)
 		return document, fmt.Errorf("获取文档信息失败: %w", err)
 	}
 
@@ -106,16 +104,16 @@ func GetDocumentsList(ctx context.Context, where entity.KnowledgeDocuments, page
 	return documents, total, nil
 }
 
-// DeleteDocument 删除文档及其相关数据（MySQL + 向量库）
-func DeleteDocument(ctx context.Context, id int64) error {
-	g.Log().Debugf(ctx, "删除文档: ID=%d", id)
+// DeleteDocument 删除文档及其相关数据（PostgreSQL + 向量库）
+func DeleteDocument(ctx context.Context, id string) error {
+	g.Log().Debugf(ctx, "删除文档: ID=%s", id)
 
 	return dao.KnowledgeDocuments.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		// 获取该文档的所有 chunk_id
 		var chunks []entity.KnowledgeChunks
 		err := dao.KnowledgeChunks.Ctx(ctx).TX(tx).Where("knowledge_doc_id", id).Scan(&chunks)
 		if err != nil {
-			g.Log().Errorf(ctx, "获取文档块失败: ID=%d, 错误: %v", id, err)
+			g.Log().Errorf(ctx, "获取文档块失败: ID=%s, 错误: %v", id, err)
 			return fmt.Errorf("获取文档块失败: %w", err)
 		}
 
@@ -132,14 +130,14 @@ func DeleteDocument(ctx context.Context, id int64) error {
 		// 删除文档块
 		_, err = dao.KnowledgeChunks.Ctx(ctx).TX(tx).Where("knowledge_doc_id", id).Delete()
 		if err != nil {
-			g.Log().Errorf(ctx, "删除文档块失败: ID=%d, 错误: %v", id, err)
+			g.Log().Errorf(ctx, "删除文档块失败: ID=%s, 错误: %v", id, err)
 			return fmt.Errorf("删除文档块失败: %w", err)
 		}
 
 		// 删除文档
 		result, err := dao.KnowledgeDocuments.Ctx(ctx).TX(tx).Where("id", id).Delete()
 		if err != nil {
-			g.Log().Errorf(ctx, "删除文档失败: ID=%d, 错误: %v", id, err)
+			g.Log().Errorf(ctx, "删除文档失败: ID=%s, 错误: %v", id, err)
 			return fmt.Errorf("删除文档失败: %w", err)
 		}
 
@@ -151,14 +149,14 @@ func DeleteDocument(ctx context.Context, id int64) error {
 			return fmt.Errorf("文档不存在")
 		}
 
-		g.Log().Infof(ctx, "文档删除成功: ID=%d, 清理向量数: %d", id, len(chunks))
+		g.Log().Infof(ctx, "文档删除成功: ID=%s, 清理向量数: %d", id, len(chunks))
 		return nil
 	})
 }
 
 // GetEnabledKnowledgeBaseIds 获取所有启用的知识库 ID
-func GetEnabledKnowledgeBaseIds(ctx context.Context) ([]int64, error) {
-	var ids []int64
+func GetEnabledKnowledgeBaseIds(ctx context.Context) ([]string, error) {
+	var ids []string
 	err := dao.KnowledgeBase.Ctx(ctx).Where("status", 1).Fields("id").Scan(&ids)
 	if err != nil {
 		g.Log().Errorf(ctx, "获取启用的知识库ID失败: %v", err)

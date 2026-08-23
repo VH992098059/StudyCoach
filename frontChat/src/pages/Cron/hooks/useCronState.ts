@@ -141,7 +141,7 @@ export const useCronState = () => {
       const res = await CronService.list({ page: 1, size: 100 });
       if (res && res.list) {
         const apiTasks: CronTask[] = res.list.map(item => ({
-          id: String(item.id),
+          id: item.id,
           cronName: item.cronName || item.cron_name || `${t('cron.task')} ${item.id}`,
           cronExpression: item.cronExpression || item.cron_expression,
           knowledgeBasename: item.knowledgeBaseName || item.knowledge_base_name,
@@ -313,7 +313,7 @@ export const useCronState = () => {
             const res = await CronService.create(createData);
             if (res && res.id) {
                 const newTask: CronTask = {
-                    id: String(res.id),
+                    id: res.id,
                     cronName: createData.cron_name,
                     knowledgeBasename: createData.knowledge_base_name,
                     cronExpression: createData.cron_expression,
@@ -337,7 +337,7 @@ export const useCronState = () => {
             const currentTask = tasks.find(t => t.id === selectedTaskId);
             
             const updateData = {
-                id: parseInt(selectedTaskId),
+                id: selectedTaskId,
                 cron_name: values.cronName,
                 knowledge_base_name: (values.kbId || '') as string,
                 scheduling_method: values.mode || 'custom',
@@ -370,14 +370,13 @@ export const useCronState = () => {
   };
 
   const applyCronRunFinished = useCallback(
-    (cronId: number, success: boolean) => {
-      const idStr = String(cronId);
-      if (idStr !== selectedTaskId) return;
+    (cronId: string, success: boolean) => {
+      if (cronId !== selectedTaskId) return;
       clearRunPoll();
       setExecStatus(success ? 'success' : 'failed');
-      const task = tasks.find(t => t.id === idStr);
+      const task = tasks.find(t => t.id === cronId);
       if (task) {
-        void fetchLogs(idStr, task.cronName, { syncExec: true });
+        void fetchLogs(cronId, task.cronName, { syncExec: true });
       }
     },
     [selectedTaskId, tasks, fetchLogs]
@@ -397,7 +396,7 @@ export const useCronState = () => {
     message.loading({ content: t('cron.messages.startExec'), key: 'runNow' });
 
     try {
-      await CronService.run({ id: parseInt(taskId, 10) });
+      await CronService.run({ id: taskId });
       message.success({ content: t('cron.messages.runTriggered'), key: 'runNow' });
 
       let n = 0;
@@ -432,7 +431,7 @@ export const useCronState = () => {
     
     const nextStatus = enabled ? 0 : 1;
     try {
-        await CronService.updateOneStatus({ id: parseInt(selectedTaskId), status: nextStatus });
+        await CronService.updateOneStatus({ id: selectedTaskId, status: nextStatus });
         setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, status: nextStatus } : t));
         message.info(nextStatus !== 0 ? t('cron.messages.enable') : t('cron.messages.disable'));
     } catch (error) {
@@ -445,7 +444,7 @@ export const useCronState = () => {
     if (!selectedTaskId) return;
     const nextStatus = paused ? 1 : 2;
     try {
-        await CronService.updateOneStatus({ id: parseInt(selectedTaskId), status: nextStatus });
+        await CronService.updateOneStatus({ id: selectedTaskId, status: nextStatus });
         setTasks(prev => prev.map(t => t.id === selectedTaskId ? { ...t, status: nextStatus } : t));
         message.info(nextStatus === 1 ? t('cron.messages.resumeSuccess') : t('cron.messages.pauseSuccess'));
     } catch (error) {
@@ -473,7 +472,7 @@ export const useCronState = () => {
 
   const handleDeleteTask = async (id: string) => {
     try {
-        await CronService.delete({ id: parseInt(id) });
+        await CronService.delete({ id });
         setTasks(prev => prev.filter(t => t.id !== id));
         if (selectedTaskId === id) {
             setSelectedTaskId(undefined);

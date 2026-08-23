@@ -37,7 +37,7 @@ func NewIndexer(ctx context.Context, config *Config) (indexer.Indexer, error) {
 		return nil, fmt.Errorf("collection name is required")
 	}
 	if config.VectorDim <= 0 {
-		config.VectorDim = 1024
+		config.VectorDim = 2048
 	}
 	if config.BatchSize <= 0 {
 		config.BatchSize = 10

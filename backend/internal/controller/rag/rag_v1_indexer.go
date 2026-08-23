@@ -84,7 +84,7 @@ func (c *ControllerV1) Indexer(ctx context.Context, req *v1.IndexerReq) (res *v1
 		asyncCtx := context.Background()
 		asyncCtx = context.WithValue(asyncCtx, "userId", userUUID)
 		if err := svr.GenerateQAAsync(asyncCtx, documentsId, req.KnowledgeName); err != nil {
-			g.Log().Warningf(ctx, "GenerateQAAsync failed for documentsId=%d: %v", documentsId, err)
+			g.Log().Warningf(ctx, "GenerateQAAsync failed for documentsId=%s: %v", documentsId, err)
 		}
 	}()
 

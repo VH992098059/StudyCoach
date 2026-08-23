@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
@@ -17,7 +16,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
-func createEsIndex(ctx context.Context, client *elasticsearch.Client, indexName string) error {
+func createEsIndex(ctx context.Context, client *elasticsearch.Client, indexName string, dim int) error {
 	_, err := create.NewCreateFunc(client)(indexName).Request(&create.Request{
 		Settings: &types.IndexSettings{
 			// 缩短 refresh 周期，使新写入文档更快可被搜索（默认 1s，显式设置避免被调大）
@@ -30,15 +29,16 @@ func createEsIndex(ctx context.Context, client *elasticsearch.Client, indexName 
 				FieldCronID:   types.NewKeywordProperty(),
 				KnowledgeName: types.NewKeywordProperty(), // 必须为 keyword，SearchDocumentsByIDs 用 Match 精确匹配
 				FieldContentVector: &types.DenseVectorProperty{
-					Dims:       TypeOf(1024),
+					Dims:       TypeOf(dim),
 					Index:      TypeOf(true),
 					Similarity: TypeOf(densevectorsimilarity.Cosine),
 				},
 				FieldQAContentVector: &types.DenseVectorProperty{
-					Dims:       TypeOf(1024),
+					Dims:       TypeOf(dim),
 					Index:      TypeOf(true),
 					Similarity: TypeOf(densevectorsimilarity.Cosine),
 				},
+				KnowledgeBaseId: &types.LongNumberProperty{Index: TypeOf(true)},
 			},
 		},
 	}).Do(ctx)
@@ -47,17 +47,17 @@ func createEsIndex(ctx context.Context, client *elasticsearch.Client, indexName 
 	}
 	return err
 }
-func CreateIndexIfNotExists(ctx context.Context, client *elasticsearch.Client, indexName string) error {
+func CreateIndexIfNotExists(ctx context.Context, client *elasticsearch.Client, indexName string, dim int) error {
 	indexExists, err := exists.NewExistsFunc(client)(indexName).Do(ctx)
 	if err != nil {
-		log.Printf("Checking if index '%s' exists...", indexName)   // 新增日志
-		log.Printf("Error creating index '%s': %v", indexName, err) // 新增日志
+		g.Log().Infof(ctx, "Checking if index '%s' exists...", indexName)   // 新增日志
+		g.Log().Infof(ctx, "Error creating index '%s': %v", indexName, err) // 新增日志
 		return err
 	}
 	if indexExists {
 		return nil
 	}
-	err = createEsIndex(ctx, client, indexName)
+	err = createEsIndex(ctx, client, indexName, dim)
 	return err
 }
 

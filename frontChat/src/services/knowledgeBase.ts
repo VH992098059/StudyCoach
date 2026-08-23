@@ -8,7 +8,7 @@ export enum KBStatus {
 
 // 知识库数据类型
 export interface KnowledgeBase {
-  id: number;
+  id: string;
   name: string;
   description: string;
   category: string;
@@ -25,11 +25,11 @@ export interface KBCreateReq {
 }
 
 export interface KBCreateRes {
-  id: number;
+  id: string;
 }
 
 export interface KBUpdateReq {
-  id: number;
+  id: string;
   name?: string;
   description?: string;
   category?: string;
@@ -70,14 +70,14 @@ export const KnowledgeBaseService = {
   /**
    * 删除知识库
    */
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     return ApiClient.delete<void>(`${BASE_PATH}/${id}`);
   },
 
   /**
    * 获取单个知识库
    */
-  getOne: async (id: number): Promise<KnowledgeBase> => {
+  getOne: async (id: string): Promise<KnowledgeBase> => {
     return ApiClient.get<KnowledgeBase>(`${BASE_PATH}/${id}`);
   },
 

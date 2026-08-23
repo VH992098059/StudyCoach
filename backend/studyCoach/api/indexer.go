@@ -15,14 +15,14 @@ import (
 type IndexReq struct {
 	URI           string // 文档地址，可以是文件路径（pdf，html，md等），也可以是网址
 	KnowledgeName string // 知识库名称
-	DocumentsId   int64  // 文档ID
+	DocumentsId   string // 文档ID（UUID）
 	FileName      string // 文件名
 }
 
 type IndexAsyncReq struct {
 	Docs          []*schema.Document
 	KnowledgeName string // 知识库名称
-	DocumentsId   int64  // 文档ID
+	DocumentsId   string // 文档ID（UUID）
 }
 
 // Index
@@ -36,7 +36,7 @@ func (x *Rag) Index(ctx context.Context, req *IndexReq) (ids []string, err error
 	ctx = context.WithValue(ctx, common.DocumentsIdKey, req.DocumentsId)
 	ctx = context.WithValue(ctx, "_file_name", req.FileName)
 	start := time.Now()
-	g.Log().Infof(ctx, "Index start: uri=%s knowledge=%s documentsId=%d (含 PDF 解析、切分、Embedding 批量写入，大文件或 chunk 多时会较慢)", req.URI, req.KnowledgeName, req.DocumentsId)
+	g.Log().Infof(ctx, "Index start: uri=%s knowledge=%s documentsId=%s (含 PDF 解析、切分、Embedding 批量写入，大文件或 chunk 多时会较慢)", req.URI, req.KnowledgeName, req.DocumentsId)
 	ids, err = x.idxer.Invoke(ctx, s)
 	if err != nil {
 		g.Log().Errorf(ctx, "Index idxer.Invoke failed after %v, err:\n%v", time.Since(start), err)
@@ -55,7 +55,7 @@ func (x *Rag) Index(ctx context.Context, req *IndexReq) (ids []string, err error
 func (x *Rag) IndexAsync(ctx context.Context, req *IndexAsyncReq) (ids []string, err error) {
 	ctx = context.WithValue(ctx, common.KnowledgeName, req.KnowledgeName)
 	start := time.Now()
-	g.Log().Infof(ctx, "IndexAsync start: knowledge=%s documentsId=%d docs=%d", req.KnowledgeName, req.DocumentsId, len(req.Docs))
+	g.Log().Infof(ctx, "IndexAsync start: knowledge=%s documentsId=%s docs=%d", req.KnowledgeName, req.DocumentsId, len(req.Docs))
 	ids, err = x.idxerAsync.Invoke(ctx, req.Docs)
 	if err != nil {
 		g.Log().Errorf(ctx, "IndexAsync idxerAsync.Invoke failed after %v, err=%v", time.Since(start), err)
@@ -70,17 +70,17 @@ func (x *Rag) DeleteDocument(ctx context.Context, documentID string) error {
 }
 
 // GenerateQAAsync 异步生成 QA 内容并更新向量库
-func (x *Rag) GenerateQAAsync(ctx context.Context, documentsId int64, knowledgeName string) error {
+func (x *Rag) GenerateQAAsync(ctx context.Context, documentsId string, knowledgeName string) error {
 	// 从 MySQL 获取该文档的所有 chunks
 	var chunks []*entity.KnowledgeChunks
 	err := dao.KnowledgeChunks.Ctx(ctx).Where("knowledge_doc_id", documentsId).Scan(&chunks)
 	if err != nil {
-		g.Log().Errorf(ctx, "GenerateQAAsync: 获取 chunks 失败 documentsId=%d, err=%v", documentsId, err)
+		g.Log().Errorf(ctx, "GenerateQAAsync: 获取 chunks 失败 documentsId=%s, err=%v", documentsId, err)
 		return err
 	}
 
 	if len(chunks) == 0 {
-		g.Log().Infof(ctx, "GenerateQAAsync: 文档无 chunks, documentsId=%d", documentsId)
+		g.Log().Infof(ctx, "GenerateQAAsync: 文档无 chunks, documentsId=%s", documentsId)
 		return nil
 	}
 
@@ -102,10 +102,10 @@ func (x *Rag) GenerateQAAsync(ctx context.Context, documentsId int64, knowledgeN
 		DocumentsId:   documentsId,
 	})
 	if err != nil {
-		g.Log().Errorf(ctx, "GenerateQAAsync: IndexAsync 失败 documentsId=%d, err=%v", documentsId, err)
+		g.Log().Errorf(ctx, "GenerateQAAsync: IndexAsync 失败 documentsId=%s, err=%v", documentsId, err)
 		return err
 	}
 
-	g.Log().Infof(ctx, "GenerateQAAsync: 完成 documentsId=%d, chunks=%d", documentsId, len(chunks))
+	g.Log().Infof(ctx, "GenerateQAAsync: 完成 documentsId=%s, chunks=%d", documentsId, len(chunks))
 	return nil
 }

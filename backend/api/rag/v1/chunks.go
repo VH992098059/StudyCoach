@@ -8,9 +8,9 @@ import (
 
 type ChunksListReq struct {
 	g.Meta         `path:"/v1/chunksList" method:"get" tags:"rag"`
-	KnowledgeDocId int64 `p:"knowledge_doc_id" dc:"knowledge_doc_id" v:"required"`
-	Page           int   `p:"page" dc:"page" v:"required|min:1" d:"1"`
-	Size           int   `p:"size" dc:"size" v:"required|min:1|max:100" d:"10"`
+	KnowledgeDocId string `p:"knowledge_doc_id" dc:"knowledge_doc_id" v:"required"`
+	Page           int    `p:"page" dc:"page" v:"required|min:1" d:"1"`
+	Size           int    `p:"size" dc:"size" v:"required|min:1|max:100" d:"10"`
 }
 
 type ChunksListRes struct {
@@ -23,7 +23,7 @@ type ChunksListRes struct {
 
 type ChunkDeleteReq struct {
 	g.Meta `path:"/v1/chunksDelete" method:"delete" tags:"rag"`
-	Id     int64 `p:"id" dc:"id" v:"required"`
+	Id     string `p:"id" dc:"id" v:"required"` // UUID
 }
 
 type ChunkDeleteRes struct {
@@ -32,8 +32,8 @@ type ChunkDeleteRes struct {
 
 type UpdateChunkReq struct {
 	g.Meta `path:"/v1/chunksPut" method:"put" tags:"rag"`
-	Ids    []int64 `p:"ids" dc:"ids" v:"required"`
-	Status int     `p:"status" dc:"状态：0=禁用 1=启用（与 knowledge_chunks.status 一致）" v:"required|in:0,1"`
+	Ids    []string `p:"ids" dc:"ids" v:"required"` // UUID 列表
+	Status int      `p:"status" dc:"状态：0=禁用 1=启用（与 knowledge_chunks.status 一致）" v:"required|in:0,1"`
 }
 
 type UpdateChunkRes struct {
@@ -42,7 +42,7 @@ type UpdateChunkRes struct {
 
 type UpdateChunkContentReq struct {
 	g.Meta  `path:"/v1/chunks_content" method:"put" tags:"rag"`
-	Id      int64  `p:"id" dc:"id" v:"required"`
+	Id      string `p:"id" dc:"id" v:"required"` // UUID
 	Content string `p:"content" dc:"content" v:"required"`
 }
 

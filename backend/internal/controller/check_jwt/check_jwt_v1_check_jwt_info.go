@@ -6,7 +6,7 @@ import (
 	"backend/utility/consts"
 	"context"
 	"fmt"
-	"log"
+	"github.com/gogf/gf/v2/frame/g"
 
 	"github.com/golang-jwt/jwt/v5"
 
@@ -45,9 +45,9 @@ func (c *ControllerV1) CheckJwtInfo(ctx context.Context, req *v1.CheckJwtInfoReq
 		return nil, err
 	}
 	checkJWTBlack, err := utility.CheckBlackTokens(ctx, username, getJwt)
-	log.Println("验证token是否在redis黑名单：", checkJWTBlack)
+	g.Log().Info(ctx, "验证token是否在redis黑名单：", checkJWTBlack)
 	if err != nil {
-		log.Printf("check_jwt出错: %v", err)
+		g.Log().Infof(ctx, "check_jwt出错: %v", err)
 		return nil, gerror.NewCode(gcode.CodeInternalError, "验证失败")
 	}
 	if !checkJWT || checkJWTBlack {

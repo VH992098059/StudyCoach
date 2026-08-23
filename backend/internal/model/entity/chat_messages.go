@@ -10,7 +10,7 @@ import (
 
 // ChatMessages is the golang structure for table chat_messages.
 type ChatMessages struct {
-	Id               int64       `json:"id"               orm:"id"                description:""` //
+	Id               string      `json:"id"               orm:"id"                description:""` //
 	SessionUuid      string      `json:"sessionUuid"      orm:"session_uuid"      description:""` //
 	MsgId            string      `json:"msgId"            orm:"msg_id"            description:""` //
 	Content          string      `json:"content"          orm:"content"           description:""` //

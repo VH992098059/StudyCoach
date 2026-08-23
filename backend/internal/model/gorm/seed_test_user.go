@@ -33,7 +33,7 @@ func seedTestUserIfAbsent(ctx context.Context, db *gorm.DB) error {
 	}
 	uid := strings.ReplaceAll(uuid.New().String(), "-", "")
 	u := User{
-		UUID:      uid,
+		ID:        uid,
 		Username:  seedTestUsername,
 		Email:     seedTestEmail,
 		Password:  pwd,

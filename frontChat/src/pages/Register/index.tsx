@@ -199,7 +199,7 @@ const Register: React.FC = ()=> {
         className="back-button"
         style={{ marginBottom: '16px' }}
       >
-        {canGoBack ? t('common.back') : t('common.home')}
+        {canGoBack ? t('common.back') : t('menu.home')}
       </Button>
       
       <Form

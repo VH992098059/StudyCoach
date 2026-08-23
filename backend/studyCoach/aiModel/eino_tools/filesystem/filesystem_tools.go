@@ -23,12 +23,16 @@ import (
 	"golang.org/x/text/transform"
 )
 
-// GetWorkDirForSession 根据 sessionID 返回会话工作目录，供上传等场景使用
+// GetWorkDirForSession 根据 sessionID 返回会话工作目录，供上传等场景使用。
+// 工作目录按「用户 UUID / sessionID」二级隔离，防止跨用户文件越权。
 func GetWorkDirForSession(ctx context.Context, sessionID string) (string, error) {
 	if sessionID == "" {
 		return "", fmt.Errorf("无法获取会话 ID")
 	}
 	base := filepath.Join(utility.FilesRoot(ctx), "uploads", "workdir")
+	if prefix := utility.WorkspacePrefix(ctx); prefix != "" {
+		base = filepath.Join(base, prefix)
+	}
 	workDir := filepath.Join(base, sessionID)
 	if err := os.MkdirAll(workDir, 0755); err != nil {
 		return "", fmt.Errorf("创建工作目录失败: %v", err)

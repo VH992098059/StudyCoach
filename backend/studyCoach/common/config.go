@@ -26,6 +26,9 @@ type Config struct {
 
 	IndexName string // ES index / Qdrant collection / Milvus collection 名
 
+	// VectorDim 向量维度（embedding 模型输出维度）。建 collection / mapping 时使用，避免写死。
+	VectorDim int
+
 	// Embedding 相关
 	APIKey         string
 	BaseURL        string
@@ -57,6 +60,7 @@ func (c *Config) Copy() *Config {
 		MilvusClient:   c.MilvusClient,
 		MilvusConfig:   c.MilvusConfig,
 		IndexName:      c.IndexName,
+		VectorDim:      c.VectorDim,
 		APIKey:         c.APIKey,
 		BaseURL:        c.BaseURL,
 		EmbeddingModel: c.EmbeddingModel,

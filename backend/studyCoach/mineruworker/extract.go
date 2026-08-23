@@ -30,7 +30,7 @@ func IsPDFPath(s string) bool {
 
 // ExtractPDFToMarkdownFile 使用 MinerU 精准解析（默认开启 OCR），将 Markdown 写入 <files.root>/mineru/doc_{documentsId}/extracted.md。
 // source 可为本地绝对/相对路径，或 http(s) 指向的 PDF。
-func ExtractPDFToMarkdownFile(ctx context.Context, source string, documentsId int64) (mdAbsPath string, err error) {
+func ExtractPDFToMarkdownFile(ctx context.Context, source string, documentsId string) (mdAbsPath string, err error) {
 	token := getToken(ctx)
 	if token == "" {
 		return "", fmt.Errorf("未配置 mineru.token 或环境变量 MINERU_TOKEN，无法解析 PDF")
@@ -50,7 +50,7 @@ func ExtractPDFToMarkdownFile(ctx context.Context, source string, documentsId in
 		mu.WithPollTimeout(poll),
 	}
 
-	g.Log().Infof(ctx, "[MinerU] 开始精准解析 PDF, documentsId=%d source=%s poll=%v", documentsId, source, poll)
+	g.Log().Infof(ctx, "[MinerU] 开始精准解析 PDF, documentsId=%s source=%s poll=%v", documentsId, source, poll)
 	result, err := client.Extract(ctx, source, opts...)
 	if err != nil {
 		return "", fmt.Errorf("MinerU Extract 失败: %w", err)
@@ -62,7 +62,7 @@ func ExtractPDFToMarkdownFile(ctx context.Context, source string, documentsId in
 		return "", fmt.Errorf("MinerU 返回空 Markdown，State=%s", result.State)
 	}
 
-	outDir := filepath.Join(utility.FilesMinerUDir(ctx), fmt.Sprintf("doc_%d", documentsId))
+	outDir := filepath.Join(utility.FilesMinerUDir(ctx), fmt.Sprintf("doc_%s", documentsId))
 	if err := os.MkdirAll(outDir, 0755); err != nil {
 		return "", fmt.Errorf("创建 MinerU 缓存目录失败: %w", err)
 	}

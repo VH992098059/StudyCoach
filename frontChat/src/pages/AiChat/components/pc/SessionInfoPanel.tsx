@@ -191,14 +191,14 @@ const SessionInfoPanel: React.FC<SessionInfoPanelProps> = (props: SessionInfoPan
                       />
                     </Tooltip>
                   </div>
-                  <div style={{ fontSize: isTablet ? 10 : 11, color: '#333', lineHeight: '1.5' }}>
+                  <div style={{ fontSize: isTablet ? 10 : 11, lineHeight: '1.5', color: 'var(--ant-color-text)' }}>
                     <MDEditor.Markdown
                       source={
                         doc.content.length > (isTablet ? 120 : 160)
                           ? doc.content.substring(0, isTablet ? 120 : 160) + '...'
                           : doc.content
                       }
-                      style={{ backgroundColor: 'transparent', fontSize: isTablet ? 10 : 11 }}
+                      style={{ backgroundColor: 'transparent', fontSize: isTablet ? 10 : 11, color: 'var(--ant-color-text)' }}
                     />
                   </div>
                 </Card>

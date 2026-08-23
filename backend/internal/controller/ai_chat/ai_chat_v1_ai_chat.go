@@ -7,7 +7,6 @@ import (
 	"backend/studyCoach/common"
 	"backend/utility"
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -49,7 +48,7 @@ func (c *ControllerV1) AiChat(ctx context.Context, req *v1.AiChatReq) (res *v1.A
 			Where(dao.KnowledgeBase.Columns().Name, req.KnowledgeName).
 			Where(dao.KnowledgeBase.Columns().UserUuid, userUUID).
 			Scan(&kb)
-		if err != nil || kb.Id == 0 {
+		if err != nil || kb.Id == "" {
 			return nil, gerror.NewCode(gcode.New(403, "无权访问该知识库或知识库不存在", nil))
 		}
 		if kb.Status != 1 {
@@ -75,7 +74,7 @@ func (c *ControllerV1) AiChat(ctx context.Context, req *v1.AiChatReq) (res *v1.A
 	var streamReader *schema.StreamReader[*schema.Message]
 	var documents []*schema.Document
 
-	fmt.Printf("使用联网状态：%t，知识库使用：%s\n", req.IsNetwork, req.KnowledgeName)
+	g.Log().Infof(ctx, "使用联网状态：%t，知识库使用：%s", req.IsNetwork, req.KnowledgeName)
 	if req.IsStudyMode != true {
 		streamReader, documents, err = api.ChatNormalModel(ctx, req)
 	} else {

@@ -2,7 +2,6 @@ package utility
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/gogf/gf/contrib/nosql/redis/v2"
@@ -41,11 +40,11 @@ func SetJWT(ctx context.Context, key, token string, expiration time.Duration) er
 	}
 	err := g.Redis().SetEX(ctx, "user:"+key, token, ttlSeconds)
 	if err != nil {
-		log.Println("创建jwt报错")
+		g.Log().Info(ctx, "创建jwt报错")
 	}
 	err = DeleteBlackJWT(ctx, key)
 	if err != nil {
-		log.Println("删除jwt黑名单报错")
+		g.Log().Info(ctx, "删除jwt黑名单报错")
 	}
 	return err
 }
@@ -89,7 +88,7 @@ func DeleteJWT(ctx context.Context, userKey string) error {
 	if err != nil {
 		return err
 	}
-	log.Println("redis白名单已删除：", del)
+	g.Log().Info(ctx, "redis白名单已删除：", del)
 	return nil
 }
 

@@ -1,11 +1,12 @@
 package ws
 
 import (
+	"context"
 	"encoding/json"
-	"log"
 	"strings"
 	"sync"
 
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gorilla/websocket"
 )
 
@@ -58,7 +59,7 @@ func (h *Hub) Run() {
 			h.clients[client] = true
 			n := len(h.clients)
 			h.mu.Unlock()
-			log.Printf("[WS] Client connected remote=%s ua=%s total=%d", client.Remote, truncateForLog(client.UserAgent, 120), n)
+			g.Log().Infof(context.Background(), "[WS] Client connected remote=%s ua=%s total=%d", client.Remote, truncateForLog(client.UserAgent, 120), n)
 
 		case client := <-h.unregister:
 			h.mu.Lock()
@@ -68,7 +69,7 @@ func (h *Hub) Run() {
 			}
 			n := len(h.clients)
 			h.mu.Unlock()
-			log.Printf("[WS] Client disconnected remote=%s ua=%s total=%d", client.Remote, truncateForLog(client.UserAgent, 120), n)
+			g.Log().Infof(context.Background(), "[WS] Client disconnected remote=%s ua=%s total=%d", client.Remote, truncateForLog(client.UserAgent, 120), n)
 
 		case message := <-h.broadcast:
 			h.mu.RLock()
@@ -90,18 +91,18 @@ func (h *Hub) Run() {
 func (h *Hub) BroadcastJSON(v any) {
 	data, err := json.Marshal(v)
 	if err != nil {
-		log.Printf("[WS] BroadcastJSON marshal error: %v", err)
+		g.Log().Infof(context.Background(), "[WS] BroadcastJSON marshal error: %v", err)
 		return
 	}
 	select {
 	case h.broadcast <- data:
 	default:
-		log.Printf("[WS] Broadcast channel full, drop message")
+		g.Log().Infof(context.Background(), "[WS] Broadcast channel full, drop message")
 	}
 }
 
 // BroadcastCronComplete 广播定时任务完成通知
-func (h *Hub) BroadcastCronComplete(cronID int64, cronName string, success bool) {
+func (h *Hub) BroadcastCronComplete(cronID string, cronName string, success bool) {
 	h.BroadcastJSON(map[string]any{
 		"type": "cron_complete",
 		"payload": map[string]any{
@@ -123,7 +124,7 @@ func (h *Hub) ClientCount() int {
 var DefaultHub *Hub
 
 // BroadcastCronCompleteGlobal 使用 DefaultHub 广播定时任务完成（供 api 层调用）
-func BroadcastCronCompleteGlobal(cronID int64, cronName string, success bool) {
+func BroadcastCronCompleteGlobal(cronID string, cronName string, success bool) {
 	if DefaultHub != nil {
 		DefaultHub.BroadcastCronComplete(cronID, cronName, success)
 	}

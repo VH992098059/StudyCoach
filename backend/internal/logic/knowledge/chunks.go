@@ -17,13 +17,13 @@ const ChunkStatusDisabled = 0
 
 // SaveChunksData 批量保存知识块数据。
 // 仅当所有 chunk 均保存失败时才标记文档为 Failed；若有任一成功，保持 Indexing，由后续 QA 回调更新为 Active。
-func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.KnowledgeChunks) error {
+func SaveChunksData(ctx context.Context, documentsId string, chunks []entity.KnowledgeChunks) error {
 	if len(chunks) == 0 {
 		return nil
 	}
 	successCount := 0
 	for _, chunk := range chunks {
-		if chunk.KnowledgeDocId == 0 {
+		if chunk.KnowledgeDocId == "" {
 			chunk.KnowledgeDocId = documentsId
 		}
 		if chunk.ChunkId == "" {
@@ -36,7 +36,7 @@ func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.Know
 		var existing entity.KnowledgeChunks
 		err := dao.KnowledgeChunks.Ctx(ctx).Where("chunk_id", chunk.ChunkId).Scan(&existing)
 
-		if err == nil && existing.Id > 0 {
+		if err == nil && existing.Id != "" {
 			// 已存在，更新（排除 id 和 created_at）
 			_, err = dao.KnowledgeChunks.Ctx(ctx).
 				Where("chunk_id", chunk.ChunkId).
@@ -53,8 +53,7 @@ func SaveChunksData(ctx context.Context, documentsId int64, chunks []entity.Know
 				successCount++
 			}
 		} else {
-			// 不存在，插入（id 设为 0 让数据库自动分配）
-			chunk.Id = 0
+			// 不存在，插入（id 留空，由数据库 gen_random_uuid 生成）
 			_, err = dao.KnowledgeChunks.Ctx(ctx).Data(chunk).OmitEmpty().Insert()
 			if err != nil {
 				g.Log().Errorf(ctx, "SaveChunksData insert failed for chunk_id=%s, err=%+v", chunk.ChunkId, err)
@@ -86,7 +85,7 @@ func GetChunksList(ctx context.Context, where entity.KnowledgeChunks, page, size
 	}
 
 	model := dao.KnowledgeChunks.Ctx(ctx)
-	if where.KnowledgeDocId != 0 {
+	if where.KnowledgeDocId != "" {
 		model = model.Where("knowledge_doc_id", where.KnowledgeDocId)
 	}
 	if where.ChunkId != "" {
@@ -106,13 +105,13 @@ func GetChunksList(ctx context.Context, where entity.KnowledgeChunks, page, size
 }
 
 // GetChunkById 根据ID查询单个知识块
-func GetChunkById(ctx context.Context, id int64) (chunk entity.KnowledgeChunks, err error) {
+func GetChunkById(ctx context.Context, id string) (chunk entity.KnowledgeChunks, err error) {
 	err = dao.KnowledgeChunks.Ctx(ctx).Where("id", id).Scan(&chunk)
 	return
 }
 
 // DeleteChunkById 根据ID软删除知识块
-func DeleteChunkById(ctx context.Context, id int64) error {
+func DeleteChunkById(ctx context.Context, id string) error {
 	// 先获取 chunk_id
 	chunk, err := GetChunkById(ctx, id)
 	if err != nil {
@@ -133,7 +132,7 @@ func DeleteChunkById(ctx context.Context, id int64) error {
 }
 
 // UpdateChunkByIds 根据ID更新知识块（内容或状态；status 可为 0 表示禁用）
-func UpdateChunkByIds(ctx context.Context, ids []int64, data entity.KnowledgeChunks) error {
+func UpdateChunkByIds(ctx context.Context, ids []string, data entity.KnowledgeChunks) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -150,7 +149,7 @@ func UpdateChunkByIds(ctx context.Context, ids []int64, data entity.KnowledgeChu
 }
 
 // UpdateChunksStatus 批量更新切片启用/禁用状态（0=禁用，1=启用，与 DB default 一致）
-func UpdateChunksStatus(ctx context.Context, ids []int64, status int) error {
+func UpdateChunksStatus(ctx context.Context, ids []string, status int) error {
 	if len(ids) == 0 {
 		return nil
 	}
@@ -159,13 +158,13 @@ func UpdateChunksStatus(ctx context.Context, ids []int64, status int) error {
 }
 
 // UpdateChunkContentById 按主键更新切片正文
-func UpdateChunkContentById(ctx context.Context, id int64, content string) error {
+func UpdateChunkContentById(ctx context.Context, id string, content string) error {
 	_, err := dao.KnowledgeChunks.Ctx(ctx).Where("id", id).Data(g.Map{"content": content}).Update()
 	return err
 }
 
 // GetAllChunksByDocId gets all chunks by document id
-func GetAllChunksByDocId(ctx context.Context, docId int64, fields ...string) (list []entity.KnowledgeChunks, err error) {
+func GetAllChunksByDocId(ctx context.Context, docId string, fields ...string) (list []entity.KnowledgeChunks, err error) {
 	model := dao.KnowledgeChunks.Ctx(ctx).Where("knowledge_doc_id", docId)
 	if len(fields) > 0 {
 		for _, field := range fields {

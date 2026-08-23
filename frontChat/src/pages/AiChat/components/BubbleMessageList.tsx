@@ -3,34 +3,72 @@
  * @description 使用 Ant Design X 的 Bubble 渲染用户/AI 气泡消息，
  * 支持移动端样式、连接状态指示、思维链展示与实时回复。
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, Avatar, Button } from 'antd';
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
 import { Bubble, XProvider, ThoughtChain } from '@ant-design/x';
 import zhCN from '@ant-design/x/locale/zh_CN';
 import enUS from '@ant-design/x/locale/en_US';
 import XMarkdown, { type ComponentProps } from '@ant-design/x-markdown';
-import HighlightCode from '@ant-design/x-markdown/plugins/HighlightCode';
 import Latex from '@ant-design/x-markdown/plugins/Latex';
-import Mermaid from '@ant-design/x-markdown/plugins/Mermaid';
+import hljs from 'highlight.js/lib/common';
+import mermaid from 'mermaid';
+import 'highlight.js/styles/github.css';
 import { RobotOutlined, UserOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import type { Message } from '@/types/chat';
 import { SSEConnectionState } from '@/utils/sse/sse';
 import type { ThoughtChainItemType } from '@ant-design/x';
+import type { StageStep } from './useSSEChat';
 import '@ant-design/x-markdown/themes/light.css';
 import '@ant-design/x-markdown/themes/dark.css';
 import './BubbleMessageList.css';
 
-const Code: React.FC<ComponentProps> = (props) => {
-  const { className, children } = props;
-  const lang = className?.match(/language-(\w+)/)?.[1] || '';
+// mermaid 渲染初始化（startOnLoad:false，仅按需 render）
+mermaid.initialize({ startOnLoad: false, theme: 'default' });
 
-  if (typeof children !== 'string') return null;
-  if (lang === 'mermaid') {
-    return <Mermaid>{children}</Mermaid>;
+const Code: React.FC<ComponentProps> = (props) => {
+  const { className, children, lang, block } = props;
+  const text = typeof children === 'string' ? children : String(children ?? '');
+  const language = lang || className?.match(/language-(\w+)/)?.[1] || '';
+
+  if (!block) {
+    // 行内代码：直接渲染，走 x-markdown 默认 inline code 样式
+    return <code className={className}>{text}</code>;
   }
-  return <HighlightCode lang={lang}>{children}</HighlightCode>;
+  if (!text) return null;
+  if (language === 'mermaid') {
+    return <MermaidBlock code={text} />;
+  }
+  // 语法高亮（highlight.js）
+  let html = text;
+  try {
+    html = language && hljs.getLanguage(language)
+      ? hljs.highlight(text, { language }).value
+      : hljs.highlightAuto(text).value;
+  } catch {
+    html = text;
+  }
+  return <pre><code className={`hljs ${className || ''}`} dangerouslySetInnerHTML={{ __html: html }} /></pre>;
+};
+
+// MermaidBlock 将 mermaid 源码异步渲染为 SVG 图表
+const MermaidBlock: React.FC<{ code: string }> = ({ code }) => {
+  const [svg, setSvg] = useState('');
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const id = `mermaid-${Math.random().toString(36).slice(2, 10)}`;
+    mermaid
+      .render(id, code)
+      .then(({ svg }) => { if (!cancelled) setSvg(svg); })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, [code]);
+  if (failed) {
+    return <pre><code className="language-mermaid">{code}</code></pre>;
+  }
+  return <div className="mermaid-block" dangerouslySetInnerHTML={{ __html: svg }} />;
 };
 
 const renderMarkdown = (content: React.ReactNode) => {
@@ -109,6 +147,7 @@ interface BubbleMessageListProps {
   documentsCount?: number;
   hasKnowledgeBase?: boolean;
   currentToolStatus?: string;
+  stages?: StageStep[];
 }
 
 const hideAvatar = { display: 'none' } as React.CSSProperties;
@@ -128,6 +167,7 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
   documentsCount = 0,
   hasKnowledgeBase = false,
   currentToolStatus = '',
+  stages = [],
 }) => {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? enUS : zhCN;
@@ -162,6 +202,19 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
         blink: true,
       });
     }
+    // 阶段进度（后端 event: stage）：意图识别 → 学习任务应答 → 工具调用 → 生成
+    stages.forEach((s) => {
+      items.push({
+        key: `stage-${s.stage}`,
+        title: s.status === 'end' && s.elapsedMs > 0
+          ? `${s.label}（${s.elapsedMs}ms）`
+          : s.status === 'error'
+            ? `${s.label}（失败）`
+            : s.label,
+        status: s.status === 'start' ? 'loading' : (s.status === 'error' ? 'error' : 'success'),
+        blink: s.status === 'start',
+      });
+    });
     const isGeneratingPhase = connected && (loading || hasContent);
     items.push({
       key: 'generating',
@@ -170,7 +223,7 @@ const BubbleMessageList: React.FC<BubbleMessageListProps> = ({
       blink: isGeneratingPhase,
     });
     return items;
-  }, [connectionState, currentAiMessage, documentsCount, hasKnowledgeBase, currentToolStatus, loading, t]);
+  }, [connectionState, currentAiMessage, documentsCount, hasKnowledgeBase, currentToolStatus, stages, loading, t]);
 
   return (
     <XProvider locale={locale}>

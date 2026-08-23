@@ -1,5 +1,5 @@
 # 构建阶段
-FROM node:20-alpine AS builder
+FROM node:25.9 AS builder
 
 WORKDIR /app
 
@@ -7,9 +7,8 @@ WORKDIR /app
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-# 安装依赖
-COPY package*.json ./
-RUN npm ci
+# 安装 npm 和依赖
+RUN npm config set registry https://registry.npmmirror.com && npm install
 
 # 复制源代码并构建
 COPY . .

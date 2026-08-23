@@ -10,14 +10,14 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 
 	"strings"
 )
 
 // JwtClaims 定义自定义 JWT 载荷结构
 type JwtClaims struct {
-	Id       uint64
-	Uuid     string `json:"uuid"` // users.uuid，知识库等按用户隔离时使用
+	Id       string // users.id（UUID，主键即用户唯一标识）
 	Username string
 	jwt.RegisteredClaims
 }
@@ -113,36 +113,40 @@ func JWTMap(ctx context.Context) (claims jwt.MapClaims, err error) {
 	return mapClaims, nil
 }
 
-// CurrentUserID 从 JWT 解析当前用户 ID（对应 users.id，登录时写入 claims["Id"]）。
-func CurrentUserID(ctx context.Context) (int64, error) {
-	claims, err := JWTMap(ctx)
-	if err != nil {
-		return 0, err
+// ValidateUserIDFormat 校验用户 ID 是否为合法 UUID。
+// 用于拒绝旧版 token（UUID 迁移前 Id claim 存的是用户名/自增 ID），
+// 避免 "无效的类型 uuid 输入语法" 直接打到数据库层。
+func ValidateUserIDFormat(id string) error {
+	if _, err := uuid.Parse(strings.TrimSpace(id)); err != nil {
+		return gerror.NewCode(gcode.New(401, "登录凭证格式过旧，请重新登录", nil))
 	}
-	id := gconv.Int64(claims["Id"])
-	if id <= 0 {
-		return 0, gerror.NewCode(gcode.CodeInvalidParameter, "token 中缺少有效用户 Id")
-	}
-	return id, nil
+	return nil
 }
 
-// CurrentUserUUID 返回当前用户的 users.uuid：优先 JWT 的 uuid；旧 token 无 uuid 时按 Id 查库（兼容未重登用户）。
-func CurrentUserUUID(ctx context.Context) (string, error) {
+// CurrentUserID 从 JWT 解析当前用户 ID（对应 users.id，UUID 字符串）。
+// 优先取中间件注入的 UserIdentity，回退解析 JWT。
+func CurrentUserID(ctx context.Context) (string, error) {
+	if u, ok := UserIdentityFrom(ctx); ok && strings.TrimSpace(u.ID) != "" {
+		if err := ValidateUserIDFormat(u.ID); err != nil {
+			return "", err
+		}
+		return u.ID, nil
+	}
 	claims, err := JWTMap(ctx)
 	if err != nil {
 		return "", err
 	}
-	if u := strings.TrimSpace(gconv.String(claims["uuid"])); u != "" {
-		return u, nil
+	id := strings.TrimSpace(gconv.String(claims["Id"]))
+	if id == "" {
+		return "", gerror.NewCode(gcode.CodeInvalidParameter, "token 中缺少有效用户 Id")
 	}
-	id := gconv.Int64(claims["Id"])
-	if id <= 0 {
-		return "", gerror.NewCode(gcode.CodeInvalidParameter, "token 中缺少用户信息")
+	if err := ValidateUserIDFormat(id); err != nil {
+		return "", err
 	}
-	var uuid string
-	err = g.DB().Ctx(ctx).Model("users").Where("id", id).Fields("uuid").Scan(&uuid)
-	if err != nil || strings.TrimSpace(uuid) == "" {
-		return "", gerror.NewCode(gcode.CodeInvalidParameter, "无法解析用户 UUID，请重新登录")
-	}
-	return uuid, nil
+	return id, nil
+}
+
+// CurrentUserUUID 返回当前用户 UUID（即 users.id，主键即 UUID）。
+func CurrentUserUUID(ctx context.Context) (string, error) {
+	return CurrentUserID(ctx)
 }

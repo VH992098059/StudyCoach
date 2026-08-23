@@ -16,12 +16,12 @@ type CronCreateReq struct {
 	ContentType       int64  `json:"content_type" v:"required"`
 }
 type CronCreateRes struct {
-	ID int64 `json:"id"`
+	ID string `json:"id"` // UUID
 }
 
 type CronDeleteReq struct {
 	g.Meta `path:"/v1/cronDelete" method:"delete"`
-	ID     int64 `json:"id" v:"required"`
+	ID     string `json:"id" v:"required"` // UUID
 }
 type CronDeleteRes struct {
 	IsOK string `json:"is_ok"`
@@ -38,7 +38,7 @@ type CronListRes struct {
 
 type CronGetOneReq struct {
 	g.Meta `path:"/v1/cronGetOne" method:"get"`
-	Id     int64 `json:"id"`
+	Id     string `json:"id"` // UUID
 }
 type CronGetOneRes struct {
 	One *entity.KnowledgeBaseCronSchedule `json:"one"`
@@ -46,7 +46,7 @@ type CronGetOneRes struct {
 
 type CronUpdateOneReq struct {
 	g.Meta            `path:"/v1/cronUpdateOne" method:"put"`
-	Id                int64  `json:"id"`
+	Id                string `json:"id"` // UUID
 	CronName          string `json:"cron_name" v:"required"`
 	KnowledgeBaseName string `json:"knowledge_base_name" v:"required"`
 	CronExpression    string `json:"cron_expression" v:"required"`
@@ -60,8 +60,8 @@ type CronUpdateOneRes struct {
 
 type CronUpdateStatusReq struct {
 	g.Meta `path:"/v1/cronUpdateOneStatus" method:"put"`
-	Id     int64 `json:"id"`
-	Status int64 `json:"status" v:"required"`
+	Id     string `json:"id"` // UUID
+	Status int64  `json:"status" v:"required"`
 }
 type CronUpdateStatusRes struct {
 	IsOK string `json:"is_ok"`
@@ -69,7 +69,7 @@ type CronUpdateStatusRes struct {
 
 type CronRunReq struct {
 	g.Meta `path:"/v1/cronRun" method:"post"`
-	Id     int64 `json:"id" v:"required"`
+	Id     string `json:"id" v:"required"` // UUID
 }
 
 type CronRunRes struct {

@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"io"
+	"regexp"
 	"strings"
 	"time"
 
@@ -17,6 +18,33 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/google/uuid"
 )
+
+// cleanReasoning 过滤推理内容中工具调用相关的 JSON 模式，避免用户在思考区域看到原始 JSON。
+// 深度思考模式下模型会在 reasoning_content 中输出 {"name":"skill",...} 等工具调用结构。
+var toolCallJSONPattern = regexp.MustCompile(`\{[^{}]*"(?:name|arguments|function|tool|skill|query|file_path|content|command)"[^{}]*\}`)
+var emptyJSONPattern = regexp.MustCompile(`\{\s*\}`)
+
+func cleanReasoning(text string) string {
+	text = toolCallJSONPattern.ReplaceAllString(text, "")
+	text = emptyJSONPattern.ReplaceAllString(text, "")
+	return strings.TrimSpace(text)
+}
+
+// cleanContent 过滤回答内容中工具调用相关的 JSON 片段。
+// 模型在调用工具前后可能在 content 中输出 {} 或 JSON 结构，不应展示给用户。
+func cleanContent(text string) string {
+	text = toolCallJSONPattern.ReplaceAllString(text, "")
+	text = emptyJSONPattern.ReplaceAllString(text, "")
+	return strings.TrimSpace(text)
+}
+
+func truncate(s string, maxLen int) string {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	return string(runes[:maxLen]) + "..."
+}
 
 // SkillToolDisplayName 根据工具名与 JSON 参数生成展示名（与 SSE tool_status、日志一致），例如 skill(emotion-companion)。
 func SkillToolDisplayName(toolName, argumentsJSON string) string {
@@ -55,6 +83,42 @@ type ToolStatusData struct {
 	Name string `json:"name"` // 具体操作，如 high-eq-communication、skill 的 skill 参数
 }
 
+// StageEvent 阶段进度事件，供前端渲染纵向步骤条（event: stage）。
+// 通过请求级 ctx 传递的 channel 下发，复用同一条 SSE 连接，不与内容流混。
+type StageEvent struct {
+	Stage     string `json:"stage"`      // 节点名（compose.WithNodeName）
+	Label     string `json:"label"`      // 中文阶段文案
+	Status    string `json:"status"`     // start | end | error
+	Node      string `json:"node"`       // 节点名（冗余字段，便于前端索引）
+	ElapsedMs int64  `json:"elapsed_ms"` // 该阶段耗时（毫秒），end/error 时填充
+}
+
+// progressStageKey 通过 context 传递阶段进度 channel 的 key（请求级，避免并发串号）
+type progressStageKey struct{}
+
+// WithProgressStage 将阶段进度 channel 注入 ctx
+func WithProgressStage(ctx context.Context, ch chan StageEvent) context.Context {
+	return context.WithValue(ctx, progressStageKey{}, ch)
+}
+
+// ProgressStageFrom 从 ctx 取出阶段进度 channel（未设置时 ok=false）
+func ProgressStageFrom(ctx context.Context) (chan StageEvent, bool) {
+	ch, ok := ctx.Value(progressStageKey{}).(chan StageEvent)
+	return ch, ok
+}
+
+// writeSSEStage 写入阶段进度事件，前端可渲染步骤条
+func writeSSEStage(resp *ghttp.Response, data string) {
+	if len(data) == 0 {
+		return
+	}
+	resp.Write([]byte("event: stage\n"))
+	resp.Write([]byte("data:"))
+	resp.Write([]byte(data))
+	resp.Write([]byte("\n\n"))
+	resp.Flush()
+}
+
 func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*schema.Message], docs []*schema.Document) (err error) {
 	// 获取HTTP响应对象
 	httpReq := ghttp.RequestFromCtx(ctx)
@@ -84,6 +148,10 @@ func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*sche
 	// 用于跟踪已发送的内容长度，实现增量发送
 	var fullContent string
 	var fullReasoning string
+	// inToolRound 标记当前是否处于工具调用轮次中。
+	// 工具调用期间模型输出的 content（如 "{}"）不应发送到前端，等工具执行完毕、
+	// 模型生成最终回复后再开始发送 content。
+	var inToolRound bool
 
 	// ======================================
 	// 新增：客户端断开监听 + 心跳保活
@@ -113,6 +181,18 @@ func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*sche
 		}
 	}()
 
+	// 阶段进度消费者：图执行期间 handler 通过 stageChan 推送 StageEvent，
+	// handler 在全部节点结束后关闭 channel，本 goroutine 随之退出（无泄漏）。
+	if stageChan, ok := ProgressStageFrom(ctx); ok && stageChan != nil {
+		go func() {
+			for stage := range stageChan {
+				if b, _ := sonic.Marshal(stage); len(b) > 0 {
+					writeSSEStage(httpResp, string(b))
+				}
+			}
+		}()
+	}
+
 	// 处理流式响应
 	for {
 		select {
@@ -137,8 +217,12 @@ func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*sche
 		hasReasoning := len(chunk.ReasoningContent) > 0
 		hasToolCalls := len(chunk.ToolCalls) > 0
 
+		g.Log().Infof(ctx, "[Stream] Chunk - Content:%q, Reasoning:%q, ToolCalls:%d, inToolRound:%v",
+			truncate(chunk.Content, 50), truncate(chunk.ReasoningContent, 50), len(chunk.ToolCalls), inToolRound)
+
 		// 有 ToolCalls 时发送工具执行状态，让前端展示「正在执行 XXX」避免用户以为卡住
 		if hasToolCalls {
+			inToolRound = true
 			for _, tc := range chunk.ToolCalls {
 				// 流式 ToolCall 分多个 chunk 推送，后续增量 chunk 的 Name 为空，跳过避免发送空事件
 				if tc.Function.Name == "" {
@@ -151,11 +235,23 @@ func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*sche
 					httpResp.Flush()
 				}
 			}
-			// 纯工具调用 chunk（无正文内容）：重置累计内容，为下一轮 LLM 回复做准备
-			if !hasContent {
-				fullContent = ""
-				fullReasoning = ""
-			}
+			// 工具调用 chunk 中的 content 是 LLM 推理文本（如 "{I need to use tool}"），
+			// 不应发送到前端显示，始终重置累计内容
+			fullContent = ""
+			fullReasoning = ""
+			continue
+		}
+
+		// 工具调用轮次结束后，首个无 ToolCalls 的 content chunk = 最终回复，开始正常发送
+		if inToolRound && hasContent {
+			inToolRound = false
+			fullContent = ""
+			fullReasoning = ""
+		}
+
+		// 工具调用轮次中的中间内容（无 ToolCalls 但非最终回复）不发送
+		if inToolRound {
+			continue
 		}
 
 		if !hasContent && !hasReasoning {
@@ -197,12 +293,18 @@ func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*sche
 			}
 		}
 
-		// 回答内容 / 思考过程：拆成小段模拟流式输出
-		if len(contentToSend) > 0 {
-			sendSSEStreamed(httpResp, sd, contentToSend, contentChunkSize, contentChunkIntervalMs, streamFieldContent)
-		}
+		// 思考过程优先发送，让前端先渲染推理区域，再渲染回答内容
 		if len(reasoningToSend) > 0 {
-			sendSSEStreamed(httpResp, sd, reasoningToSend, reasoningChunkSize, reasoningChunkIntervalMs, streamFieldReasoning)
+			reasoningToSend = cleanReasoning(reasoningToSend)
+			if len(reasoningToSend) > 0 {
+				sendSSEStreamed(httpResp, sd, reasoningToSend, reasoningChunkSize, reasoningChunkIntervalMs, streamFieldReasoning)
+			}
+		}
+		if len(contentToSend) > 0 {
+			contentToSend = cleanContent(contentToSend)
+			if len(contentToSend) > 0 {
+				sendSSEStreamed(httpResp, sd, contentToSend, contentChunkSize, contentChunkIntervalMs, streamFieldContent)
+			}
 		}
 	}
 	// 兜底：若最终内容以「正在...」类过渡句结尾，说明模型可能在工具调用后返回空，追加友好提示
@@ -387,6 +489,9 @@ func BuildGenToStream(ins *react.Agent) func(context.Context, []*schema.Message,
 			if genErr != nil {
 				sw.Send(nil, genErr)
 			} else if finalMsg != nil {
+				g.Log().Infof(context.Background(), "[Stream] 最终回复 - Content长度:%d, Reasoning长度:%d, ToolCalls:%d, Content:%q",
+					len(finalMsg.Content), len(finalMsg.ReasoningContent), len(finalMsg.ToolCalls),
+					truncate(finalMsg.Content, 100))
 				sw.Send(finalMsg, nil)
 			}
 		}()

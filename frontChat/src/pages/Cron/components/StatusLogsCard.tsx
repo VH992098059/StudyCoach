@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 type Mode = 'hourly' | 'daily' | 'weekly' | 'monthly' | 'custom';
 
 interface LogEntry {
-  id: number;
+  id: string;
   time: number;
   status: 'success' | 'failed' | 'running';
   detail?: string;

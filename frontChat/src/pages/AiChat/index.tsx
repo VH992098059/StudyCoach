@@ -71,6 +71,7 @@ const AIChat: React.FC = () => {
     currentToolStatus,
     loading: streamingLoading,
     documentsCount,
+    stages,
     send,
     stop,
   } = useSSEChat({
@@ -263,6 +264,7 @@ const AIChat: React.FC = () => {
                 messagesEndRef={messagesEndRef}
                 documentsCount={documentsCount}
                 currentToolStatus={currentToolStatus}
+                stages={stages}
                 hasKnowledgeBase={selectedKnowledge !== 'none' && !!selectedKnowledge}
               />
 

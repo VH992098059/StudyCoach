@@ -41,7 +41,7 @@ const Documents: React.FC<DocumentsProps> = (props) => {
 
   // 知识块 Drawer 状态
   const [chunksDrawerVisible, setChunksDrawerVisible] = useState(false);
-  const [selectedDocumentForChunks, setSelectedDocumentForChunks] = useState<{id: number, fileName: string} | null>(null);
+  const [selectedDocumentForChunks, setSelectedDocumentForChunks] = useState<{id: string, fileName: string} | null>(null);
 
   const fetchDocumentsList = async () => {
     if (!selectedKnowledge) {

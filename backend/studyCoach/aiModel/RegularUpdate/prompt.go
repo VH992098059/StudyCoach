@@ -3,7 +3,7 @@ package RegularUpdate
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/gogf/gf/v2/frame/g"
 
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
@@ -40,6 +40,6 @@ func (impl *ChatTemplateImpl) Format(ctx context.Context, vs map[string]any, opt
 	if len(format) == 0 {
 		return nil, fmt.Errorf("UpdateTemplate消息格式化结果为空")
 	}
-	log.Println("UpdateTemplate初始化模版输出")
+	g.Log().Info(ctx, "UpdateTemplate初始化模版输出")
 	return format, nil
 }

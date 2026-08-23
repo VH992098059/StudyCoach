@@ -2,7 +2,6 @@ package NormalChat
 
 import (
 	"context"
-	"log"
 
 	"backend/studyCoach/common"
 
@@ -21,7 +20,7 @@ func newChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error
 	if isNetwork, _ := ctx.Value("isNetwork").(bool); isNetwork {
 		thinkingType = "disabled"
 	}
-	log.Printf("[NormalChat] 思考模式: %s (联网时强制禁用以保证工具调用)", thinkingType)
+	g.Log().Infof(ctx, "[NormalChat] 思考模式: %s (联网时强制禁用以保证工具调用)", thinkingType)
 	config := &ark.ChatModelConfig{
 		APIKey:  g.Cfg().MustGet(ctx, "ark.apiKey").String(),
 		BaseURL: g.Cfg().MustGet(ctx, "ark.baseURL").String(),

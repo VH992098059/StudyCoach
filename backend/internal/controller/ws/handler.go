@@ -3,7 +3,6 @@ package ws
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/gogf/gf/v2/frame/g"
@@ -84,7 +83,7 @@ func (c *Client) readPump(ctx context.Context) {
 				_ = sendJSON(c.Conn, map[string]any{"type": "auth_ok"})
 			}
 		default:
-			log.Printf("[WS] Unknown message type: %s", msg.Type)
+			g.Log().Infof(ctx, "[WS] Unknown message type: %s", msg.Type)
 		}
 	}
 }

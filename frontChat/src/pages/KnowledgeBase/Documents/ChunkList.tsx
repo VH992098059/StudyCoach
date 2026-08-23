@@ -21,7 +21,7 @@ import ChunkEditModal from './ChunkEditModal';
 const { confirm } = Modal;
 
 interface ChunkListProps {
-  documentId: number;
+  documentId: string;
   documentName?: string;
   knowledgeBaseName?: string;
 }

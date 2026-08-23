@@ -10,7 +10,7 @@ import (
 
 // Files is the golang structure for table files.
 type Files struct {
-	Id             int64       `json:"id"             orm:"id"              description:""` //
+	Id             string      `json:"id"             orm:"id"              description:""` //
 	Filename       string      `json:"filename"       orm:"filename"        description:""` //
 	Size           float64     `json:"size"           orm:"size"            description:""` //
 	ConversationId string      `json:"conversationId" orm:"conversation_id" description:""` //

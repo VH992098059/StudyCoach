@@ -143,13 +143,14 @@ export const useChatSessions = (): UseChatSessionsReturn => {
 
   // 创建新会话
   const createNewSession = useCallback(async () => {
-    const newSessionId = Date.now().toString();
+    // 会话主键为 UUID（后端 chat_sessions.id 为 uuid 列），必须使用合法 UUID
+    const newSessionId = crypto.randomUUID();
     const newSession: ChatSession = {
       id: newSessionId,
       title: '新对话',
       messages: [
         {
-          id: 1,
+          id: crypto.randomUUID(),
           msg_id: generateMsgId(),
           content: '你好！我是AI助手，有什么可以帮助你的吗？',
           isUser: false,

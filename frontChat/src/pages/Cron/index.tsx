@@ -46,7 +46,7 @@ const CronPage: React.FC = () => {
   } = useCronState();
 
   const handleCronComplete = useCallback(
-    (payload: { cron_id: number; cron_name: string; success: boolean }) => {
+    (payload: { cron_id: string; cron_name: string; success: boolean }) => {
       applyCronRunFinished(payload.cron_id, payload.success);
       void refreshTasks();
       if (payload.success) {

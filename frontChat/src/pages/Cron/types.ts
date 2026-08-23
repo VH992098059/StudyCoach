@@ -17,7 +17,7 @@ export interface CronConfig {
 }
 
 export interface LogEntry {
-  id: number;
+  id: string;
   time: number;
   status: 'success' | 'failed' | 'running';
   detail?: string;

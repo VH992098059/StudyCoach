@@ -8,10 +8,9 @@ import (
 	"backend/utility/consts"
 	"context"
 	"fmt"
-	"log"
-	"strconv"
-	"strings"
 	"time"
+
+	"github.com/gogf/gf/v2/frame/g"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gcode"
@@ -21,16 +20,16 @@ import (
 	"github.com/google/uuid"
 )
 
-func Login(ctx context.Context, username, password string) (id uint64, uuid, token string, err error) {
+func Login(ctx context.Context, username, password string) (id string, uuid, token string, err error) {
 	var user entity.Users
 	err = dao.Users.Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 		/*用户查询*/
-		err = tx.Model(entity.Users{}).Fields("id", "uuid", "username", "password").Where("username", username).WhereOr("email", username).Scan(&user)
+		err = tx.Model(entity.Users{}).Fields("id", "username", "password").Where("username", username).WhereOr("email", username).Scan(&user)
 		if err != nil {
 			return gerror.NewCode(gcode.New(401, "用户名不存在或查询失败", ""))
 		}
 		// 检查是否查到了数据
-		if user.Id == 0 {
+		if user.Id == "" {
 			return gerror.NewCode(gcode.New(401, "用户名不存在", ""))
 		}
 		/*密码验证*/
@@ -47,13 +46,12 @@ func Login(ctx context.Context, username, password string) (id uint64, uuid, tok
 		return err
 	})
 	if err != nil {
-		return 0, "", "", err
+		return "", "", "", err
 	}
 
 	/*JWT生成*/
 	us := &utility.JwtClaims{
-		Id:       uint64(user.Id),
-		Uuid:     user.Uuid,
+		Id:       user.Id,
 		Username: user.Username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
@@ -61,51 +59,51 @@ func Login(ctx context.Context, username, password string) (id uint64, uuid, tok
 	}
 	signedString, err := jwt.NewWithClaims(jwt.SigningMethodHS512, us).SignedString([]byte(consts.JwtKey))
 	if err != nil {
-		log.Println(err)
-		return 0, "", "", err
+		g.Log().Info(ctx, err)
+		return "", "", "", err
 	}
 
 	/*JWT存储Redis*/
 	err = utility.SetJWT(ctx, user.Username, signedString, 24*time.Hour)
 	if err != nil {
-		log.Println("redis出错！")
-		return 0, "", "", gerror.New("缓存存储失败！")
+		g.Log().Info(ctx, "redis出错！")
+		return "", "", "", gerror.New("缓存存储失败！")
 	}
-	return uint64(user.Id), user.Uuid, signedString, nil
+	return user.Id, user.Id, signedString, nil
 }
-func RegisterUser(ctx context.Context, in *entity.Users) (id int64, err error) {
+func RegisterUser(ctx context.Context, in *entity.Users) (id string, err error) {
 	/*查询用户是否注册*/
 	isExistUser, err := dao.Users.Ctx(ctx).Where("username", in.Username).Count()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	if isExistUser > 0 {
-		return 0, gerror.New("用户已存在")
+		return "", gerror.New("用户已存在")
 	}
 
 	isExistEmail, err := dao.Users.Ctx(ctx).Where("email", in.Email).Count()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	if isExistEmail > 0 {
-		return 0, gerror.NewCode(gcode.New(409, "邮箱已存在", ""))
+		return "", gerror.NewCode(gcode.New(409, "邮箱已存在", ""))
 	}
 
 	/*用户注册*/
 	encryptPassword, _ := utility.Encrypt(in.Password)
-	uuidUser := strings.ReplaceAll(uuid.New().String(), "-", "")
-	getId, err := dao.Users.Ctx(ctx).Data(entity.Users{
+	uuidUser := uuid.New().String()
+	_, err = dao.Users.Ctx(ctx).Data(entity.Users{
+		Id:        uuidUser,
 		Username:  in.Username,
 		Password:  encryptPassword,
-		Uuid:      uuidUser,
 		Email:     in.Email,
 		Status:    "inactive",   //默认未激活
 		AvatarUrl: "avatar.png", //默认头像
-	}).InsertAndGetId()
+	}).Insert()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	return getId, nil
+	return uuidUser, nil
 }
 
 func UpdatePassword(ctx context.Context, username, oldPassword, newPassword string) (err error) {
@@ -115,7 +113,7 @@ func UpdatePassword(ctx context.Context, username, oldPassword, newPassword stri
 	if err != nil {
 		return err
 	}
-	if user.Id == 0 {
+	if user.Id == "" {
 		return gerror.New("用户不存在")
 	}
 
@@ -146,25 +144,15 @@ func LogoutUser(ctx context.Context) (msg string, err error) {
 	if !ok || username == "" {
 		return "", gerror.NewCode(gcode.New(500, "token有误，退出失败", ""))
 	}
-	var userID int64
-	switch v := jwtMap["Id"].(type) {
-	case float64:
-		userID = int64(v)
-	case int64:
+	userID := ""
+	if v, ok := jwtMap["Id"].(string); ok {
 		userID = v
-	case int:
-		userID = int64(v)
-	case string:
-		parsed, parseErr := strconv.ParseInt(v, 10, 64)
-		if parseErr != nil {
-			return "", gerror.NewCode(gcode.New(500, "token有误，退出失败", ""))
-		}
-		userID = parsed
-	default:
+	}
+	if userID == "" {
 		return "", gerror.NewCode(gcode.New(500, "token有误，退出失败", ""))
 	}
-	log.Println("jwt的ID：", userID)
-	log.Println("jwt的Username：", username)
+	g.Log().Info(ctx, "jwt的UUID：", userID)
+	g.Log().Info(ctx, "jwt的Username：", username)
 	_, err = dao.Users.Ctx(ctx).Fields("logout_at").Where("id", userID).Data(do.Users{LogoutAt: gtime.Now()}).Update()
 	if err != nil {
 		return "", gerror.NewCode(gcode.New(500, "退出失败", ""))

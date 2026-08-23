@@ -10,7 +10,7 @@ import (
 
 // KnowledgeBase is the golang structure for table knowledge_base.
 type KnowledgeBase struct {
-	Id          int64       `json:"id"          orm:"id"          description:""` //
+	Id          string      `json:"id"          orm:"id"          description:""` //
 	UserUuid    string      `json:"userUuid"    orm:"user_uuid"   description:""` //
 	Name        string      `json:"name"        orm:"name"        description:""` //
 	Description string      `json:"description" orm:"description" description:""` //

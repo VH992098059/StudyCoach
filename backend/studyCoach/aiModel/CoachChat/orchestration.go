@@ -23,64 +23,121 @@ func BuildstudyCoachFor(ctx context.Context, conf *common.Config) (r compose.Run
 		PlanModifyModel                 = "PlanModifyModel"
 	)
 	g := compose.NewGraph[map[string]any, *schema.Message]()
-	analysisChatTemplateKeyOfChatTemplate, err := newChatTemplate(ctx)
+
+	analysisChatTemplateKeyOfChatTemplate, err := buildIntentAnalysisTemplate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddChatTemplateNode(AnalysisChatTemplate, analysisChatTemplateKeyOfChatTemplate)
-	analysisChatModelKeyOfChatModel, err := newChatModel(ctx, conf)
+	if err := g.AddChatTemplateNode(AnalysisChatTemplate, analysisChatTemplateKeyOfChatTemplate); err != nil {
+		return nil, err
+	}
+
+	analysisChatModelKeyOfChatModel, err := buildIntentAnalysisModel(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddChatModelNode(AnalysisChatModel, analysisChatModelKeyOfChatModel)
-	_ = g.AddLambdaNode(EmotionAndCompanionShipLambda, compose.InvokableLambda(newLambda))
-	_ = g.AddLambdaNode(TaskStudyLambda, compose.InvokableLambda(newLambda1))
-	_ = g.AddLambdaNode(PlanModifyLambda, compose.InvokableLambda(newLambda2))
-	emotionAndCompanionChatModelKeyOfChatModel, err := newChatModel1(ctx, conf)
+	if err := g.AddChatModelNode(AnalysisChatModel, analysisChatModelKeyOfChatModel); err != nil {
+		return nil, err
+	}
+
+	if err := g.AddLambdaNode(EmotionAndCompanionShipLambda, compose.InvokableLambda(buildEmotionCompanionLambda)); err != nil {
+		return nil, err
+	}
+	if err := g.AddLambdaNode(TaskStudyLambda, compose.InvokableLambda(buildTaskStudyLambda)); err != nil {
+		return nil, err
+	}
+	if err := g.AddLambdaNode(PlanModifyLambda, compose.InvokableLambda(buildPlanModifyLambda)); err != nil {
+		return nil, err
+	}
+
+	emotionAndCompanionChatModelKeyOfChatModel, err := buildEmotionCompanionModel(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddChatModelNode(EmotionAndCompanionChatModel, emotionAndCompanionChatModelKeyOfChatModel)
-	taskChatTemplateKeyOfChatTemplate, err := newChatTemplate1(ctx)
+	if err := g.AddChatModelNode(EmotionAndCompanionChatModel, emotionAndCompanionChatModelKeyOfChatModel); err != nil {
+		return nil, err
+	}
+
+	taskChatTemplateKeyOfChatTemplate, err := buildTaskStudyTemplate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddChatTemplateNode(TaskChatTemplate, taskChatTemplateKeyOfChatTemplate)
-	reActLambdaKeyOfLambda, err := newLambda3(ctx, conf)
+	if err := g.AddChatTemplateNode(TaskChatTemplate, taskChatTemplateKeyOfChatTemplate); err != nil {
+		return nil, err
+	}
+
+	reActLambdaKeyOfLambda, err := buildReActAgent(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddLambdaNode(ReActLambda, reActLambdaKeyOfLambda)
-	planModifyTemplateKeyOfChatTemplate, err := newChatTemplate2(ctx)
+	if err := g.AddLambdaNode(ReActLambda, reActLambdaKeyOfLambda); err != nil {
+		return nil, err
+	}
+
+	planModifyTemplateKeyOfChatTemplate, err := buildPlanModifyTemplate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddChatTemplateNode(PlanModifyTemplate, planModifyTemplateKeyOfChatTemplate)
-	emotionAndCompanionShipTemplateKeyOfChatTemplate, err := newChatTemplate3(ctx)
+	if err := g.AddChatTemplateNode(PlanModifyTemplate, planModifyTemplateKeyOfChatTemplate); err != nil {
+		return nil, err
+	}
+
+	emotionAndCompanionShipTemplateKeyOfChatTemplate, err := buildEmotionCompanionTemplate(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddChatTemplateNode(EmotionAndCompanionShipTemplate, emotionAndCompanionShipTemplateKeyOfChatTemplate)
-	planModifyModelKeyOfLambda, err := newLambda4(ctx, conf)
+	if err := g.AddChatTemplateNode(EmotionAndCompanionShipTemplate, emotionAndCompanionShipTemplateKeyOfChatTemplate); err != nil {
+		return nil, err
+	}
+
+	planModifyModelKeyOfLambda, err := buildPlanModifyModel(ctx, conf)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddLambdaNode(PlanModifyModel, planModifyModelKeyOfLambda)
-	_ = g.AddEdge(compose.START, AnalysisChatTemplate)
-	_ = g.AddEdge(EmotionAndCompanionChatModel, compose.END)
-	_ = g.AddEdge(ReActLambda, compose.END)
-	_ = g.AddEdge(PlanModifyModel, compose.END)
-	_ = g.AddEdge(AnalysisChatTemplate, AnalysisChatModel)
-	_ = g.AddEdge(EmotionAndCompanionShipLambda, EmotionAndCompanionShipTemplate)
-	_ = g.AddEdge(TaskStudyLambda, TaskChatTemplate)
-	_ = g.AddEdge(PlanModifyLambda, PlanModifyTemplate)
-	_ = g.AddEdge(EmotionAndCompanionShipTemplate, EmotionAndCompanionChatModel)
-	_ = g.AddEdge(TaskChatTemplate, ReActLambda)
-	_ = g.AddEdge(PlanModifyTemplate, PlanModifyModel)
-	_ = g.AddBranch(AnalysisChatModel, compose.NewGraphBranch(newBranch, map[string]bool{EmotionAndCompanionShipLambda: true, TaskStudyLambda: true, PlanModifyLambda: true}))
+	if err := g.AddLambdaNode(PlanModifyModel, planModifyModelKeyOfLambda); err != nil {
+		return nil, err
+	}
+
+	if err := g.AddEdge(compose.START, AnalysisChatTemplate); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(EmotionAndCompanionChatModel, compose.END); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(ReActLambda, compose.END); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(PlanModifyModel, compose.END); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(AnalysisChatTemplate, AnalysisChatModel); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(EmotionAndCompanionShipLambda, EmotionAndCompanionShipTemplate); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(TaskStudyLambda, TaskChatTemplate); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(PlanModifyLambda, PlanModifyTemplate); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(EmotionAndCompanionShipTemplate, EmotionAndCompanionChatModel); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(TaskChatTemplate, ReActLambda); err != nil {
+		return nil, err
+	}
+	if err := g.AddEdge(PlanModifyTemplate, PlanModifyModel); err != nil {
+		return nil, err
+	}
+	if err := g.AddBranch(AnalysisChatModel, compose.NewGraphBranch(newBranch, map[string]bool{EmotionAndCompanionShipLambda: true, TaskStudyLambda: true, PlanModifyLambda: true})); err != nil {
+		return nil, err
+	}
+
 	r, err = g.Compile(ctx, compose.WithGraphName("StudyCoachFor"))
 	if err != nil {
 		return nil, err
 	}
-	return r, err
+	return r, nil
 }

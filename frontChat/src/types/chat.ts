@@ -17,7 +17,7 @@ export interface MessagePart {
  * 消息接口 - 与后端API交互的消息格式
  */
 export interface Message {
-  id: number;
+  id: string;
   msg_id: string;
   content: string;
   multi_content?: MessagePart[];

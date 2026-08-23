@@ -6,14 +6,14 @@ import (
 	"backend/internal/model/entity"
 	"context"
 	"fmt"
-	"log"
+	"github.com/gogf/gf/v2/frame/g"
 	"time"
 )
 
 // PauseTaskPomodoro 暂停任务番茄钟 - 改为 5 分钟后提醒
 func (c *ControllerV1) PauseTaskPomodoro(ctx context.Context, req *v1.PauseTaskPomodoroReq) (res *v1.PauseTaskPomodoroRes, err error) {
 	cronID := req.CronId
-	if cronID <= 0 {
+	if cronID == "" {
 		return nil, fmt.Errorf("cronId 无效")
 	}
 
@@ -27,27 +27,27 @@ func (c *ControllerV1) PauseTaskPomodoro(ctx context.Context, req *v1.PauseTaskP
 		CronExpression: newCronExpr,
 		Status:         1,
 	}); err != nil {
-		log.Printf("[task] 暂停番茄钟失败 cronId=%d: %v", cronID, err)
+		g.Log().Infof(ctx, "[task] 暂停番茄钟失败 cronId=%s: %v", cronID, err)
 		return nil, err
 	}
 
-	log.Printf("[task] 已暂停番茄钟 cronId=%d，5 分钟后提醒", cronID)
+	g.Log().Infof(ctx, "[task] 已暂停番茄钟 cronId=%s，5 分钟后提醒", cronID)
 	return &v1.PauseTaskPomodoroRes{Success: true}, nil
 }
 
 // StopTaskPomodoro 停止任务番茄钟 - 删除定时任务
 func (c *ControllerV1) StopTaskPomodoro(ctx context.Context, req *v1.StopTaskPomodoroReq) (res *v1.StopTaskPomodoroRes, err error) {
 	cronID := req.CronId
-	if cronID <= 0 {
+	if cronID == "" {
 		return nil, fmt.Errorf("cronId 无效")
 	}
 
 	// 删除定时任务
 	if _, err := cron.RuCronDelete(ctx, cronID); err != nil {
-		log.Printf("[task] 停止番茄钟失败 cronId=%d: %v", cronID, err)
+		g.Log().Infof(ctx, "[task] 停止番茄钟失败 cronId=%s: %v", cronID, err)
 		return nil, err
 	}
 
-	log.Printf("[task] 已停止番茄钟 cronId=%d", cronID)
+	g.Log().Infof(ctx, "[task] 已停止番茄钟 cronId=%s", cronID)
 	return &v1.StopTaskPomodoroRes{Success: true}, nil
 }

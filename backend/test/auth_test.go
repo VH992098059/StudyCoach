@@ -31,7 +31,7 @@ func TestIntegration_UserAuth_RegisterLoginCheckJWTUpdatePasswordLogout(t *testi
 	base := requireServer(t)
 	client := &http.Client{Timeout: 30 * time.Second}
 
-	ts := time.Now().UnixNano()
+	ts := time.Now().UnixMilli()
 	username := fmt.Sprintf("it_%d", ts)
 	password := "TestPass123!"
 	email := fmt.Sprintf("it_%d@example.com", ts)
@@ -161,7 +161,7 @@ func TestIntegration_UserAuth_RegisterInvalid_ShortPassword(t *testing.T) {
 	base := requireServer(t)
 	client := &http.Client{Timeout: 30 * time.Second}
 
-	ts := time.Now().UnixNano()
+	ts := time.Now().UnixMilli()
 	st, raw := postJSON(t, client, base+"/gateway/users/register", map[string]string{
 		"username": fmt.Sprintf("u_%d", ts),
 		"password": "12345",
@@ -182,7 +182,7 @@ func TestIntegration_UserAuth_RegisterInvalid_BadEmailFormat(t *testing.T) {
 	base := requireServer(t)
 	client := &http.Client{Timeout: 30 * time.Second}
 
-	ts := time.Now().UnixNano()
+	ts := time.Now().UnixMilli()
 	st, raw := postJSON(t, client, base+"/gateway/users/register", map[string]string{
 		"username": fmt.Sprintf("u2_%d", ts),
 		"password": "TestPass123!",
@@ -222,7 +222,7 @@ func TestIntegration_UserAuth_LoginInvalid_ShortPassword(t *testing.T) {
 	base := requireServer(t)
 	client := &http.Client{Timeout: 30 * time.Second}
 
-	ts := time.Now().UnixNano()
+	ts := time.Now().UnixMilli()
 	username := fmt.Sprintf("it_invalid_%d", ts)
 	password := "TestPass123!"
 	email := fmt.Sprintf("it_invalid_%d@example.com", ts)

@@ -3,7 +3,7 @@ package configTool
 import (
 	"backend/studyCoach/common"
 	"context"
-	"log"
+	"github.com/gogf/gf/v2/frame/g"
 
 	"github.com/cloudwego/eino-ext/components/tool/duckduckgo/ddgsearch"
 	"github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2"
@@ -22,6 +22,6 @@ func DdgNewTool(ctx context.Context) (bt tool.InvokableTool, err error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Println("使用ddg_search")
+	g.Log().Info(ctx, "使用ddg_search")
 	return bt, nil
 }

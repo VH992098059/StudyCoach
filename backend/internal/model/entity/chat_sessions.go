@@ -10,8 +10,7 @@ import (
 
 // ChatSessions is the golang structure for table chat_sessions.
 type ChatSessions struct {
-	Id        int64       `json:"id"        orm:"id"         description:""` //
-	Uuid      string      `json:"uuid"      orm:"uuid"       description:""` //
+	Id        string      `json:"id"        orm:"id"         description:""` //
 	UserId    string      `json:"userId"    orm:"user_id"    description:""` //
 	Title     string      `json:"title"     orm:"title"      description:""` //
 	CreatedAt *gtime.Time `json:"createdAt" orm:"created_at" description:""` //

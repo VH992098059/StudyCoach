@@ -1,11 +1,14 @@
+# 配置模板：由 main.go 启动时根据 .env 渲染生成 manifest/config/config.yaml。
+# 占位符语法：${变量名} 必填（缺失时启动日志会警告）；${变量名:-默认值} 缺省时用默认值。
+# 本文件可安全提交 git：不要在这里填写任何真实密钥。
 server:
   # 基本配置
-  address:             ":8000"                      # 本地监听地址。默认":80"，多个地址以","号分隔。例如："192.168.2.3:8000,10.0.3.10:8001"
+  address:             ":18000"                      # 本地监听地址。默认":80"，多个地址以","号分隔。例如："192.168.2.3:8000,10.0.3.10:8001"
   # httpsAddr:           ":443"                           # TLS/HTTPS配置，同时需要配置证书和密钥。默认关闭。配置格式同上。
   # httpsCertPath:       ""                           # TLS/HTTPS证书文件本地路径，建议使用绝对路径。默认关闭
   # httpsKeyPath:        ""                           # TLS/HTTPS密钥文件本地路径，建议使用绝对路径。默认关闭
   # readTimeout:         "60s"                        # 请求读取超时时间，一般不需要配置。默认为60秒
-  # writeTimeout:        "0"                          # 数据返回写入超时时间，一般不需要配置。默认不超时（0）
+  # writeTimeout:        "0"                          # 数据返回写入超时时间，一般不需要超时（0）
   # idleTimeout:         "60s"                        # 仅当Keep-Alive开启时有效，请求闲置时间。默认为60秒
   # maxHeaderBytes:      "10240"                      # 请求Header大小限制（Byte）。默认为10KB
   # keepAlive:           true                         # 是否开启Keep-Alive功能。默认true
@@ -34,11 +37,11 @@ server:
 #     sessionPath:         "/tmp/gsessions"   # Session存储的文件目录路径。默认为当前系统临时目录下的gsessions目录
 
 #     # 日志基本配置
-  #     # 此配置类似nginx，主要对请求日志的记录
+#     # 此配置类似nginx，主要对请求日志的记录
   logPath:             "log"                 # 日志文件存储目录路径，建议使用绝对路径。默认为空，表示关闭
   logStdout:           true               # 日志是否输出到终端。默认为true
-#     errorStack:          true               # 当Server捕获到异常时是否记录堆栈信息到日志中。默认为true
-#     errorLogEnabled:     true               # 是否记录异常日志信息到日志中。默认为true
+#     errorStack:          true                         # 当Server捕获到异常时是否记录堆栈信息到日志中。默认为true
+#     errorLogEnabled:     true                         # 是否记录异常日志信息到日志中。默认为true
 #     errorLogPattern:     "error-{Ymd}.log"  # 异常错误日志文件格式。默认为"error-{Ymd}.log"
 #     accessLogEnabled:    false              # 是否记录访问日志。默认为false
 #     accessLogPattern:    "access-{Ymd}.log" # 访问日志文件格式。默认为"access-{Ymd}.log"
@@ -51,10 +54,10 @@ server:
 #       prefix:                ""            # 日志内容输出前缀。默认为空
 #       level:                 "all"         # 日志输出级别
 #       stdout:                true          # 日志是否同时输出到终端。默认true
-#       rotateSize:            0             # 按照日志文件大小对文件进行滚动切分。默认为0，表示关闭滚动切分特性
-#       rotateExpire:          0             # 按照日志文件时间间隔对文件滚动切分。默认为0，表示关闭滚动切分特性
+#       rotateSize:            0             # 按照日志文件大小对日志文件进行滚动切分。默认为0，表示关闭滚动切分特性
+#       rotateExpire:          0             # 按照日志文件时间间隔对日志文件进行滚动切分。默认为0，表示关闭滚动切分特性
 #       rotateBackupLimit:     0             # 按照切分的文件数量清理切分文件，当滚动切分特性开启时有效。默认为0，表示不备份，切分则删除
-#       rotateBackupExpire:    0             # 按照切分的文件有效期清理切分文件，当滚动切分特性开启时有效。默认为0，表示不备份，切分则删除
+#       rotateBackupExpire:    0             # 按照切分文件的有效期清理切分文件，当滚动切分特性开启时有效。默认为0，表示切分则删除
 #       rotateBackupCompress:  0             # 滚动切分文件的压缩比（0-9）。默认为0，表示不压缩
 #       rotateCheckInterval:   "1h"          # 滚动切分的时间检测间隔，一般不需要设置。默认为1小时
 
@@ -64,7 +67,7 @@ server:
 
 #     # 其他配置
 #     clientMaxBodySize:   810241024          # 客户端最大Body上传限制大小，影响文件上传大小(Byte)。默认为8*1024*1024=8MB
-#     formParsingMemory:   1048576            # 解析表单时的缓冲区大小(Byte)，一般不需要配置。默认为1024*1024=1MB
+#     formParsingMemory:   1048576            # 解析表单时的缓冲区大小(Byte)。一般不需要配置。默认为1024*1024=1MB
 #     nameToUriType:       0                  # 路由注册中使用对象注册时的路由生成规则。默认为0
 #     routeOverWrite:      false              # 当遇到重复路由注册时是否强制覆盖。默认为false，重复路由存在时将会在启动时报错退出
 #     dumpRouterMap:       true               # 是否在Server启动时打印所有的路由列表。默认为true
@@ -75,26 +78,25 @@ logger:
   path:                  "log"                 # 日志文件路径。默认为空，表示关闭，仅输出到终端
   file:                  "{Y-m-d}.log"         # 日志文件格式。默认为"{Y-m-d}.log"
   # prefix:                ""                    # 日志内容输出前缀。默认为空
-  level:                 "all"                 # 日志输出级别
+  level:                 "all"         # 日志输出级别
   timeFormat:            "2006-01-02T15:04:05" # 自定义日志输出的时间格式，使用Golang标准的时间格式配置
   # ctxKeys:               []                    # 自定义Context上下文变量名称，自动打印Context的变量到日志中。默认为空
   # header:                true                  # 是否打印日志的头信息。默认true
-  stdout:                true                  # 日志是否同时输出到终端。默认true
-  # rotateSize:            0                     # 按照日志文件大小对文件进行滚动切分。默认为0，表示关闭滚动切分特性
-  # rotateExpire:          0                     # 按照日志文件时间间隔对文件滚动切分。默认为0，表示关闭滚动切分特性
+  stdout:                true          # 日志是否同时输出到终端。默认true
+  # rotateSize:            0                     # 按照日志文件大小对日志文件进行滚动切分。默认为0，表示关闭滚动切分特性
+  # rotateExpire:          0                     # 按照日志文件时间间隔对日志文件进行滚动切分。默认为0，表示关闭滚动切分特性
   # rotateBackupLimit:     0                     # 按照切分的文件数量清理切分文件，当滚动切分特性开启时有效。默认为0，表示不备份，切分则删除
-  # rotateBackupExpire:    0                     # 按照切分的文件有效期清理切分文件，当滚动切分特性开启时有效。默认为0，表示不备份，切分则删除
+  # rotateBackupExpire:    0                     # 按照切分文件的有效期清理切分文件，当滚动切分特性开启时有效。默认为0，表示切分则删除
   # rotateBackupCompress:  0                     # 滚动切分文件的压缩比（0-9）。默认为0，表示不压缩
-  # rotateCheckInterval:   "1h"                  # 滚动切分的时间检测间隔，一般不需要设置。默认为1小时
+  # rotateCheckInterval:   "1h"          # 滚动切分的时间检测间隔，一般不需要设置。默认为1小时
   stdoutColorDisabled:   false                 # 关闭终端的颜色打印。默认开启
-  writerColorEnable:     true                 # 日志文件是否带上颜色。默认false，表示不带颜色
+  writerColorEnable:     true                  # 日志文件是否带上颜色。默认false，表示不带
 
 # 配置数据库
 database:
   default:
-    #  - link: "pgsql:postgres:root@tcp(localhost:5432)/postgres"
     #  - link: "pgsql:postgres:root@tcp(studycoach-postgres:5432)/postgres"
-    - link: "mysql:root:root@tcp(mysql:3306)/studyCoach?loc=Local&parseTime=true&charset=utf8mb4"
+    - link: "${DATABASE_LINK}"
       debug: true
 # database:
 #   分组名称:
@@ -128,87 +130,86 @@ database:
 #     timeMaintainDisabled:  "(可选)是否完全关闭时间更新特性，true时CreatedAt/UpdatedAt/DeletedAt都将失效"
 redis:
   default:
-    address: "redis:6379"
-    #    address: "studycoach-redis:6379"
-    pass: "123456"
+    address: "${REDIS_ADDRESS:-localhost:6379}"
+    pass: "${REDIS_PASS}"
     db: 1
     idleTimeout: "60s"
 
 db:
-  mysql: "root:root@tcp(mysql:3306)/studyCoach?loc=Local&parseTime=true&charset=utf8mb4"
-#  history: "host=localhost user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-#  history: "host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+  pgsql: "${DB_PGSQL}"
+#  pgsql: "host=studycoach-postgres user=postgres password=root dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
 
 voice:
-  apiKey: ""
-  model: "FunAudioLLM/CosyVoice2-0.5B"
-  voiceName: "FunAudioLLM/CosyVoice2-0.5B:alex"
-  speed: 1.0
-  format: "mp3"
+  apiKey: "${VOICE_API_KEY:-}"
+  model: "${VOICE_MODEL:-FunAudioLLM/CosyVoice2-0.5B}"
+  voiceName: "${VOICE_NAME:-FunAudioLLM/CosyVoice2-0.5B:alex}"
+  speed: "${VOICE_SPEED:-1.0}"
+  format: "${VOICE_FORMAT:-mp3}"
 
 asr:
-  url: "http://localhost:50000"
+  url: "${ASR_URL:-http://localhost:50000}"
 
 Branch:
-  apiKey: "*"
-  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-seed-2-0-lite-260215"
+  apiKey: "${BRANCH_API_KEY}"
+  baseURL: "${BRANCH_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}"
+  model: "${BRANCH_MODEL:-doubao-seed-2-0-lite-260215}"
 
 Analysis:
-  apiKey: "*"
-  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-seed-2-0-lite-260215"
+  apiKey: "${ANALYSIS_API_KEY}"
+  baseURL: "${ANALYSIS_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}"
+  model: "${ANALYSIS_MODEL:-doubao-seed-2-0-lite-260215}"
 
 embedding:
-  apiKey: "*"
-  baseURL: "https://api.siliconflow.cn/v1"
-  model: "Qwen/Qwen3-Embedding-8B"
+  apiKey: "${EMBEDDING_API_KEY}"
+  baseURL: "${EMBEDDING_BASE_URL:-https://api.siliconflow.cn/v1}"
+  model: "${EMBEDDING_MODEL:-Qwen/Qwen3-Embedding-8B}"
 
 embeddingArk:
-  apiKey: "*"
-  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-embedding-vision-251215"
+  apiKey: "${EMBEDDING_ARK_API_KEY}"
+  baseURL: "${EMBEDDING_ARK_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}"
+  model: "${EMBEDDING_ARK_MODEL:-doubao-embedding-vision-251215}"
+  dim: 2048
 
 rewrite:
-  apiKey: "*"
-  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-1-5-pro-32k-character-250715"
+  apiKey: "${REWRITE_API_KEY}"
+  baseURL: "${REWRITE_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}"
+  model: "${REWRITE_MODEL:-doubao-1-5-pro-32k-character-250715}"
 
 qa:
-  apiKey: "*"
-  baseURL: "https://api.siliconflow.cn/v1"
-  model: "zai-org/GLM-4.6V"
+  apiKey: "${QA_API_KEY}"
+  baseURL: "${QA_BASE_URL:-https://api.siliconflow.cn/v1}"
+  model: "${QA_MODEL:-zai-org/GLM-4.6V}"
 
 rerank:
-  apiKey: "*"
-  baseURL: "https://api.siliconflow.cn/v1"
-  model: "Qwen/Qwen3-Reranker-8B"
+  apiKey: "${RERANK_API_KEY}"
+  baseURL: "${RERANK_BASE_URL:-https://api.siliconflow.cn/v1}"
+  model: "${RERANK_MODEL:-Qwen/Qwen3-Reranker-8B}"
 
 ark:
-  apiKey: "*"
-  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-seed-2-0-pro-260215"
+  apiKey: "${ARK_API_KEY}"
+  baseURL: "${ARK_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}"
+  model: "${ARK_MODEL:-doubao-seed-2-0-pro-260215}"
 
 siliconflow:
-  apiKey: "*"
-  baseURL: "https://api.siliconflow.cn/v1"
-  model: "deepseek-ai/DeepSeek-V3.2"
+  apiKey: "${SILICONFLOW_API_KEY}"
+  baseURL: "${SILICONFLOW_BASE_URL:-https://api.siliconflow.cn/v1}"
+  model: "${SILICONFLOW_MODEL:-deepseek-ai/DeepSeek-V3.2}"
 
 cron:
-  apiKey: ""
-  baseURL: "https://ark.cn-beijing.volces.com/api/v3"
-  model: "doubao-seed-2-0-lite-260215"
+  apiKey: "${CRON_API_KEY}"
+  baseURL: "${CRON_BASE_URL:-https://ark.cn-beijing.volces.com/api/v3}"
+  model: "${CRON_MODEL:-doubao-seed-2-0-lite-260215}"
 
 seaweedfs:
-  filer: "http://seaweedfs-filer:8888"
+  filer: "${SEAWEEDFS_FILER:-http://10.0.0.153:8888}"
 
 # 向量引擎: es(默认) | qdrant | milvus
-vectorEngine: "es"
+vectorEngine: "${VECTOR_ENGINE:-milvus}"
 
 es:
   #  address: "http://studycoach-elasticsearch:9200"
-  address: "http://elasticsearch:9200"
-  indexName: "study"
+  address: "${ES_ADDRESS:-http://localhost:19200}"
+  indexName: "${ES_INDEX_NAME:-study}"
 #  username: "elastic"
 #  password: "123456"
 
@@ -218,11 +219,11 @@ es:
 #   collection: "study"
 
 # milvus 配置（vectorEngine 为 milvus 时生效）
-# milvus:
-#   address: "localhost:19530"
-#   username: ""
-#   password: ""
-#   collection: "study"
+milvus:
+  address: "${MILVUS_ADDRESS:-10.0.0.153:19530}"
+  username: "${MILVUS_USERNAME:-}"
+  password: "${MILVUS_PASSWORD:-}"
+  collection: "${MILVUS_COLLECTION:-study}"
 
 # Skill 目录（SKILL.md 所在根目录，每个子目录一个 skill）
 skills:
@@ -237,9 +238,9 @@ files:
 # MinerU：PDF 索引前转为 Markdown（精准解析，默认开 OCR），结果写入 <files.root>/mineru/doc_{id}/extracted.md
 # 文档：https://github.com/opendatalab/MinerU-Ecosystem/blob/main/sdk/go/README.zh-CN.md
 mineru:
-  enabled: true
-  token: "" # 精准解析必填；也可设置环境变量 MINERU_TOKEN
-  pollTimeout: "15m" # Extract 轮询总超时
+  enabled: "${MINERU_ENABLED:-true}"
+  token: "${MINERU_TOKEN:-}" # 精准解析必填；也可设置环境变量 MINERU_TOKEN
+  pollTimeout: "${MINERU_POLL_TIMEOUT:-15m}" # Extract 轮询总超时
   # cacheDir: "files/mineru" # 可选；默认 <files.root>/mineru
 
 # PlanTask 任务存储目录（TaskCreate/TaskGet/TaskUpdate/TaskList 的 JSON 文件）
@@ -249,6 +250,3 @@ plantask:
 # 学习计划（save_plan/read_plan）与 filesystem workdir 的根目录，SeaweedFS 不可用时使用
 studyplan:
   localDir: "files/study_plans"
-
-
-

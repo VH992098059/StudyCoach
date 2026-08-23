@@ -1,5 +1,5 @@
 # 构建阶段
-FROM golang:1.24-alpine AS builder
+FROM golang:tip-alpine3.23 AS builder
 
 ENV GOPROXY=https://goproxy.cn,direct
 ENV CGO_ENABLED=0
@@ -10,8 +10,7 @@ ENV GOARCH=amd64
 WORKDIR /build
 
 # 安装必要的工具
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
-    apk add --no-cache git ca-certificates tzdata
+RUN apk add --no-cache git ca-certificates tzdata
 
 # 复制go mod文件
 COPY go.mod go.sum ./
@@ -29,11 +28,10 @@ RUN go build \
     -o main main.go
 
 # 运行阶段
-FROM alpine:latest
+FROM alpine:3.23.3
 
 # 安装必要的运行时依赖
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
-    apk --no-cache add ca-certificates tzdata curl
+RUN apk --no-cache add ca-certificates tzdata curl
 
 # 设置时区
 ENV TZ=Asia/Shanghai

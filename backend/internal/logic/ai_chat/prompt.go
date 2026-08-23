@@ -33,21 +33,3 @@ func newChatTemplate(template prompt.ChatTemplate, data map[string]any) ([]*sche
 	}
 	return msg, nil
 }
-func (c *ChatBase) docsMessage(ctx context.Context, id string, que string) (messages []*schema.Message, err error) {
-	history, err := c.eh.GetHistory(id, 30)
-	if err != nil {
-		return nil, err
-	}
-	template := createTemplate()
-	data := map[string]any{
-		"role":         "你是一个专业的AI助手，能够根据提供的参考信息准确回答用户问题。",
-		"question":     que,
-		"chat_history": history,
-	}
-
-	messages, err = newChatTemplate(template, data)
-	if err != nil {
-		return nil, err
-	}
-	return
-}

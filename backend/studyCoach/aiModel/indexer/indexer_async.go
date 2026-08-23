@@ -18,12 +18,16 @@ func newAsyncIndexer(ctx context.Context, conf *common.Config) (idr indexer.Inde
 	if err != nil {
 		return nil, err
 	}
+	dim := conf.VectorDim
+	if dim <= 0 {
+		dim = 2048
+	}
 	if conf.UseMilvus() {
 		idr, err = milvus.NewIndexer(ctx, &milvus.Config{
 			Client:       conf.MilvusClient,
 			ClientConfig: conf.MilvusConfig,
 			Collection:   conf.IndexName,
-			VectorDim:    1024,
+			VectorDim:    dim,
 			Embedding:    embeddingIns11,
 			BatchSize:    10,
 		})
@@ -49,8 +53,8 @@ func newAsyncIndexer(ctx context.Context, conf *common.Config) (idr indexer.Inde
 		idr, err = qdrant.NewIndexer(ctx, &qdrant.Config{
 			Client:     conf.QdrantClient,
 			Collection: conf.IndexName,
-			VectorDim:  1024, // 根据你的 embedding 模型调整
-			Distance:   0,    // 使用默认 Cosine
+			VectorDim:  dim,
+			Distance:   0, // 使用默认 Cosine
 			Embedding:  embeddingIns11,
 			BatchSize:  10,
 			IsAsync:    true,

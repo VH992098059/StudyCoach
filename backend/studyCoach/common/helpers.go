@@ -3,8 +3,10 @@ package common
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bytedance/sonic"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/cloudwego/eino/schema"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
 	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/create"
@@ -15,6 +17,16 @@ import (
 	"github.com/milvus-io/milvus/client/v2/milvusclient"
 	"github.com/qdrant/go-client/qdrant"
 )
+
+// retryWithBackoff 对向量存储操作施加 ctx 感知的指数退避重试。
+// 永久性错误（如配置缺失）应用 backoff.Permanent 标记，避免无谓重试。
+func retryWithBackoff(ctx context.Context, op func() error) error {
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = 5 * time.Second
+	b.MaxInterval = 500 * time.Millisecond
+	b.RandomizationFactor = 0.5
+	return backoff.Retry(op, backoff.WithContext(b, ctx))
+}
 
 // RefreshIndex 强制刷新 ES 索引，使刚写入的文档立即可被搜索。仅 ES 有效。
 func (c *Config) RefreshIndex(ctx context.Context) error {
@@ -42,6 +54,10 @@ func (c *Config) IndexExists(ctx context.Context) (bool, error) {
 // CreateIndex 创建索引/集合（Milvus 由首次写入自动创建）。
 func (c *Config) CreateIndex(ctx context.Context) error {
 	if c.UseES() {
+		dim := c.VectorDim
+		if dim <= 0 {
+			dim = 2048
+		}
 		// ES
 		_, err := create.NewCreateFunc(c.Client)(c.IndexName).Request(&create.Request{
 			Mappings: &types.TypeMapping{
@@ -50,12 +66,12 @@ func (c *Config) CreateIndex(ctx context.Context) error {
 					FieldExtra:    types.NewTextProperty(),
 					KnowledgeName: types.NewKeywordProperty(),
 					FieldContentVector: &types.DenseVectorProperty{
-						Dims:       TypeOf(1024),
+						Dims:       TypeOf(dim),
 						Index:      TypeOf(true),
 						Similarity: TypeOf(densevectorsimilarity.Cosine),
 					},
 					FieldQAContentVector: &types.DenseVectorProperty{
-						Dims:       TypeOf(1024),
+						Dims:       TypeOf(dim),
 						Index:      TypeOf(true),
 						Similarity: TypeOf(densevectorsimilarity.Cosine),
 					},
@@ -66,13 +82,17 @@ func (c *Config) CreateIndex(ctx context.Context) error {
 	}
 	if c.UseQdrant() {
 		// Qdrant - 创建集合，支持命名向量
+		dim := c.VectorDim
+		if dim <= 0 {
+			dim = 2048
+		}
 		vectorsMap := map[string]*qdrant.VectorParams{
 			FieldContentVector: {
-				Size:     1024,
+				Size:     uint64(dim),
 				Distance: qdrant.Distance_Cosine,
 			},
 			FieldQAContentVector: {
-				Size:     1024,
+				Size:     uint64(dim),
 				Distance: qdrant.Distance_Cosine,
 			},
 		}
@@ -103,50 +123,54 @@ func (c *Config) CreateIndex(ctx context.Context) error {
 	return fmt.Errorf("no valid client configuration")
 }
 
-// DeleteDocument 按文档 ID 删除单条文档（支持 ES、Qdrant、Milvus）。
+// DeleteDocument 按文档 ID 删除单条文档（支持 ES、Qdrant、Milvus），带指数退避重试。
+// 配置缺失等永久错误立即返回（backoff.Permanent），网络抖动等临时错误重试。
 func (c *Config) DeleteDocument(ctx context.Context, documentID string) error {
-	if c.UseES() {
-		// ES
-		res, err := c.Client.Delete(c.IndexName, documentID)
-		if err != nil {
-			return fmt.Errorf("delete document failed: %w", err)
-		}
-		defer res.Body.Close()
+	op := func() error {
+		if c.UseES() {
+			// ES
+			res, err := c.Client.Delete(c.IndexName, documentID)
+			if err != nil {
+				return fmt.Errorf("delete document failed: %w", err)
+			}
+			defer res.Body.Close()
 
-		if res.IsError() {
-			return fmt.Errorf("delete document failed: %s", res.String())
+			if res.IsError() {
+				return fmt.Errorf("delete document failed: %s", res.String())
+			}
+			return nil
 		}
-		return nil
-	}
-	if c.UseQdrant() {
-		_, err := c.QdrantClient.Delete(ctx, &qdrant.DeletePoints{
-			CollectionName: c.IndexName,
-			Points: &qdrant.PointsSelector{
-				PointsSelectorOneOf: &qdrant.PointsSelector_Points{
-					Points: &qdrant.PointsIdsList{
-						Ids: []*qdrant.PointId{
-							{PointIdOptions: &qdrant.PointId_Uuid{Uuid: documentID}},
+		if c.UseQdrant() {
+			_, err := c.QdrantClient.Delete(ctx, &qdrant.DeletePoints{
+				CollectionName: c.IndexName,
+				Points: &qdrant.PointsSelector{
+					PointsSelectorOneOf: &qdrant.PointsSelector_Points{
+						Points: &qdrant.PointsIdsList{
+							Ids: []*qdrant.PointId{
+								{PointIdOptions: &qdrant.PointId_Uuid{Uuid: documentID}},
+							},
 						},
 					},
 				},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to delete document: %w", err)
+			})
+			if err != nil {
+				return fmt.Errorf("failed to delete document: %w", err)
+			}
+			return nil
 		}
-		return nil
+		if c.UseMilvus() {
+			if c.MilvusClient == nil {
+				return backoff.Permanent(fmt.Errorf("milvus client not configured"))
+			}
+			_, err := c.MilvusClient.Delete(ctx, milvusclient.NewDeleteOption(c.IndexName).WithExpr(fmt.Sprintf("id == \"%s\"", documentID)))
+			if err != nil {
+				return fmt.Errorf("failed to delete document from milvus: %w", err)
+			}
+			return nil
+		}
+		return backoff.Permanent(fmt.Errorf("no valid client configuration"))
 	}
-	if c.UseMilvus() {
-		if c.MilvusClient == nil {
-			return fmt.Errorf("milvus client not configured")
-		}
-		_, err := c.MilvusClient.Delete(ctx, milvusclient.NewDeleteOption(c.IndexName).WithExpr(fmt.Sprintf("id == \"%s\"", documentID)))
-		if err != nil {
-			return fmt.Errorf("failed to delete document from milvus: %w", err)
-		}
-		return nil
-	}
-	return fmt.Errorf("no valid client configuration")
+	return retryWithBackoff(ctx, op)
 }
 
 // GetKnowledgeBaseList 获取所有知识库名称列表（ES 未实现；Qdrant 支持）。

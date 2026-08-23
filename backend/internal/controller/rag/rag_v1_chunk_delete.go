@@ -3,7 +3,7 @@ package rag
 import (
 	"context"
 
-	"backend/api/rag/v1"
+	v1 "backend/api/rag/v1"
 	"backend/internal/logic/knowledge"
 	"backend/utility"
 
@@ -20,7 +20,7 @@ func (c *ControllerV1) ChunkDelete(ctx context.Context, req *v1.ChunkDeleteReq) 
 	if err != nil {
 		return nil, err
 	}
-	if chunk.Id == 0 {
+	if chunk.Id == "" {
 		return nil, gerror.NewCode(gcode.CodeNotFound, "切片不存在")
 	}
 	if err = knowledge.EnsureDocumentBelongsToUser(ctx, userUUID, chunk.KnowledgeDocId); err != nil {

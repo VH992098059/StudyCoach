@@ -9,7 +9,7 @@ import React, { Suspense } from 'react';
 import { Layout as AntLayout, Spin, Alert, ConfigProvider, theme } from 'antd';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
-import { ErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import Header from '../Header';
 import { useTranslation } from 'react-i18next';
 import type { MenuProps } from 'antd';
@@ -105,16 +105,17 @@ interface LayoutProps {
  * @param {Error} props.error - 错误对象
  * @param {Function} props.resetErrorBoundary - 重置错误边界的函数
  */
-const ErrorFallback: React.FC<{ error: Error; resetErrorBoundary: () => void }> = ({
+const ErrorFallback: React.FC<FallbackProps> = ({
   error,
   resetErrorBoundary,
 }) => {
   const { t } = useTranslation();
+  const message = error instanceof Error ? error.message : String(error ?? '');
   return (
     <div className="error-boundary">
       <Alert
         title={t('common.pageError')}
-        description={error.message}
+        description={message}
         type="error"
         showIcon
         action={

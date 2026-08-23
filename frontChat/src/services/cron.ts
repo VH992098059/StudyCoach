@@ -10,11 +10,11 @@ export interface CronCreateReq {
 }
 
 export interface CronCreateRes {
-    id: number;
+    id: string; // UUID
 }
 
 export interface CronDeleteReq {
-    id: number;
+    id: string; // UUID
 }
 
 export interface CronDeleteRes {
@@ -27,7 +27,7 @@ export interface CronListReq {
 }
 
 export interface KnowledgeBaseCronSchedule {
-    id: number;
+    id: string; // UUID
     cron_name: string;
     cronName?: string; // Compatible with camelCase
     knowledge_base_name: string;
@@ -52,7 +52,7 @@ export interface CronListRes {
 }
 
 export interface CronGetOneReq {
-    id: number;
+    id: string;
 }
 
 export interface CronGetOneRes {
@@ -60,7 +60,7 @@ export interface CronGetOneRes {
 }
 
 export interface CronUpdateOneReq {
-    id: number;
+    id: string; // UUID
     cron_name?: string;
     knowledge_base_name?: string;
     scheduling_method?: string;
@@ -74,7 +74,7 @@ export interface CronUpdateOneRes {
 }
 
 export interface CronUpdateOneStatusReq {
-    id: number;
+    id: string;
     status: number;
 }
 
@@ -83,7 +83,7 @@ export interface CronUpdateOneStatusRes {
 }
 
 export interface CronRunReq {
-    id: number;
+    id: string;
 }
 
 export interface CronRunRes {
@@ -97,9 +97,9 @@ export interface CronExecuteListReq {
 }
 
 export interface CronExecute {
-    id: number;
-    cron_id: number;
-    cronId?: number; // Compatible with camelCase
+    id: string;
+    cron_id: string;
+    cronId?: string; // Compatible with camelCase
     cron_name_fk: string;
     cronNameFk?: string; // Compatible with camelCase
     execute_time: string;
@@ -117,11 +117,11 @@ export interface CronExecute {
 }
 
 export interface CronLog {
-    id: number;
-    execute_id: number;
-    executeId?: number; // Compatible with camelCase
-    cron_id: number;
-    cronId?: number; // Compatible with camelCase
+    id: string;
+    execute_id: string;
+    executeId?: string; // Compatible with camelCase
+    cron_id: string;
+    cronId?: string; // Compatible with camelCase
     cron_name_fk: string;
     cronNameFk?: string; // Compatible with camelCase
     content: string;
@@ -131,7 +131,7 @@ export interface CronLog {
 }
 
 export interface CronExecuteListByCronIdReq {
-    cronId: number;
+    cronId: string; // UUID
     page: number;
     size: number;
 }
@@ -142,13 +142,13 @@ export interface CronExecuteListByCronIdRes {
 }
 
 export interface CronExecuteDetailReq {
-    id: number;
+    id: string;
 }
 
 export interface CronExecuteDetailRes extends CronExecute {}
 
 export interface CronExecuteLogReq {
-    executeId: number;
+    executeId: string;
     page: number;
     size: number;
 }

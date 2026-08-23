@@ -18,6 +18,10 @@ func newIndexer(ctx context.Context, conf *common.Config) (idr indexer.Indexer, 
 	if err != nil {
 		return nil, err
 	}
+	dim := conf.VectorDim
+	if dim <= 0 {
+		dim = 2048
+	}
 
 	// 根据向量引擎创建 indexer：milvus > qdrant > es(默认)
 	if conf.UseMilvus() {
@@ -25,7 +29,7 @@ func newIndexer(ctx context.Context, conf *common.Config) (idr indexer.Indexer, 
 			Client:       conf.MilvusClient,
 			ClientConfig: conf.MilvusConfig,
 			Collection:   conf.IndexName,
-			VectorDim:    1024,
+			VectorDim:    dim,
 			Embedding:    embeddingIns11,
 			BatchSize:    10,
 		})
@@ -51,8 +55,8 @@ func newIndexer(ctx context.Context, conf *common.Config) (idr indexer.Indexer, 
 		idr, err = qdrant.NewIndexer(ctx, &qdrant.Config{
 			Client:     conf.QdrantClient,
 			Collection: conf.IndexName,
-			VectorDim:  1024, // 根据你的 embedding 模型调整
-			Distance:   0,    // 使用默认 Cosine
+			VectorDim:  dim,
+			Distance:   0, // 使用默认 Cosine
 			Embedding:  embeddingIns11,
 			BatchSize:  10,
 			IsAsync:    false,
@@ -63,4 +67,10 @@ func newIndexer(ctx context.Context, conf *common.Config) (idr indexer.Indexer, 
 		return idr, nil
 	}
 	return nil, fmt.Errorf("no valid client configuration found")
+}
+
+// New 对外暴露的索引器工厂入口，按 conf 选择向量引擎（milvus > es > qdrant）。
+// 供 vectorstore 等上层统一装配使用。
+func New(ctx context.Context, conf *common.Config) (indexer.Indexer, error) {
+	return newIndexer(ctx, conf)
 }

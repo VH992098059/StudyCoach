@@ -4,18 +4,19 @@ import (
 	"backend/internal/dao"
 	"backend/internal/model/entity"
 	"context"
+
+	"github.com/google/uuid"
 )
 
-func CronExecuteLogicCreate(ctx context.Context, in *entity.CronExecute) (id int64, err error) {
-	save, err := dao.CronExecute.Ctx(ctx).Data(in).Save()
+func CronExecuteLogicCreate(ctx context.Context, in *entity.CronExecute) (id string, err error) {
+	// UUID 主键无自增序列：Go 侧预生成 ID，Save 后直接返回
+	id = uuid.NewString()
+	in.Id = id
+	_, err = dao.CronExecute.Ctx(ctx).Data(in).Save()
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	insertId, err := save.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-	return insertId, nil
+	return id, nil
 }
 
 func RuCronExecuteList(ctx context.Context, cronNameFk string, page, pageSize int) (list []entity.CronExecute, total int, err error) {
@@ -42,7 +43,7 @@ func RuCronExecuteList(ctx context.Context, cronNameFk string, page, pageSize in
 }
 
 // RuCronExecuteListByCronId 按任务ID查询执行历史
-func RuCronExecuteListByCronId(ctx context.Context, cronId int64, page, pageSize int) (list []entity.CronExecute, total int, err error) {
+func RuCronExecuteListByCronId(ctx context.Context, cronId string, page, pageSize int) (list []entity.CronExecute, total int, err error) {
 	if page < 1 {
 		page = 1
 	}
@@ -66,13 +67,13 @@ func RuCronExecuteListByCronId(ctx context.Context, cronId int64, page, pageSize
 }
 
 // RuCronExecuteDetail 查询执行详情
-func RuCronExecuteDetail(ctx context.Context, id int64) (detail *entity.CronExecute, err error) {
+func RuCronExecuteDetail(ctx context.Context, id string) (detail *entity.CronExecute, err error) {
 	err = dao.CronExecute.Ctx(ctx).Where("id", id).Scan(&detail)
 	return detail, err
 }
 
 // RuCronExecuteLog 查询执行日志
-func RuCronExecuteLog(ctx context.Context, executeId int64, page, pageSize int) (list []entity.CronLog, total int, err error) {
+func RuCronExecuteLog(ctx context.Context, executeId string, page, pageSize int) (list []entity.CronLog, total int, err error) {
 	if page < 1 {
 		page = 1
 	}

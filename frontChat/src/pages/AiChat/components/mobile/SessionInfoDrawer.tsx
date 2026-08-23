@@ -112,10 +112,10 @@ const SessionInfoDrawer: React.FC<SessionInfoDrawerProps> = (props: SessionInfoD
                       />
                     </Tooltip>
                   </div>
-                  <div style={{ fontSize: 10, color: '#333', lineHeight: '1.4' }}>
+                  <div style={{ fontSize: 10, lineHeight: '1.4', color: 'var(--ant-color-text)' }}>
                     <MDEditor.Markdown
                       source={doc.content.length > 60 ? doc.content.substring(0, 60) + '...' : doc.content}
-                      style={{ backgroundColor: 'transparent', fontSize: 10 }}
+                      style={{ backgroundColor: 'transparent', fontSize: 10, color: 'var(--ant-color-text)' }}
                     />
                   </div>
                 </Card>

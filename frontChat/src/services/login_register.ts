@@ -2,7 +2,7 @@ import { ApiClient } from '@/utils/axios';
 
 /** 未登录时的会话消息 */
 export interface AnonymousMessage {
-  id?: number;
+  id?: string;
   msg_id: string;
   content: string;
   isUser: boolean;
@@ -23,7 +23,7 @@ export interface LoginReq {
   anonymousSessions?: AnonymousSession[];
 }
 export interface LoginRes {
-    id:number
+    id:string
 	uuid:string
     token: string;
 }
@@ -35,7 +35,7 @@ export interface RegisterReq {
 }
 
 export interface RegisterRes{
-    id:number;
+    id:string;
 }
 
 export interface LogoutRes {

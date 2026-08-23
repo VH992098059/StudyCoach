@@ -4,7 +4,6 @@ import (
 	"backend/studyCoach/common"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +27,7 @@ type ChatTemplateConfig struct {
 
 // 分析用户问题模版
 // newChatTemplate component initialization function of node 'AnalysisChatTemplate' in graph 'studyCoachFor'
-func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+func buildIntentAnalysisTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	config := &ChatTemplateConfig{
 		Role:       schema.User,
 		System:     schema.System,
@@ -53,7 +52,7 @@ func (impl *ChatTemplateImpl) Format(ctx context.Context, vs map[string]any, opt
 	if len(format) == 0 {
 		return nil, fmt.Errorf("消息格式化结果为空")
 	}
-	log.Println("意图分析初始化模版输出")
+	g.Log().Info(ctx, "意图分析初始化模版输出")
 	return format, nil
 }
 
@@ -70,7 +69,7 @@ type ChatTemplate1Config struct {
 
 // 任务模版
 // newChatTemplate1 component initialization function of node 'TaskChatTemplate' in graph 'studyCoachFor'
-func newChatTemplate1(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+func buildTaskStudyTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 
 	config := &ChatTemplate1Config{
 		Role:       schema.User,
@@ -96,7 +95,7 @@ func (impl *ChatTemplate1Impl) Format(ctx context.Context, vs map[string]any, op
 	if len(format) == 0 {
 		return nil, fmt.Errorf("TaskChatTemplate消息格式化结果为空")
 	}
-	log.Println("TaskChatTemplate初始化模版输出")
+	g.Log().Info(ctx, "TaskChatTemplate初始化模版输出")
 
 	return format, nil
 }
@@ -136,7 +135,7 @@ func (impl *BranchChatTemplateImpl) Format(ctx context.Context, vs map[string]an
 	if len(format) == 0 {
 		return nil, fmt.Errorf("branch消息格式化结果为空")
 	}
-	log.Println("Branch分支初始化模版输出")
+	g.Log().Info(ctx, "Branch分支初始化模版输出")
 	return format, nil
 }
 
@@ -152,7 +151,7 @@ type ChatTemplate2Config struct {
 }
 
 // newChatTemplate2 PlanModifyTemplate：修改、增加、删除现有计划
-func newChatTemplate2(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+func buildPlanModifyTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	config := &ChatTemplate2Config{
 		Role:       schema.User,
 		System:     schema.System,
@@ -176,7 +175,7 @@ func (impl *ChatTemplate2Impl) Format(ctx context.Context, vs map[string]any, op
 	if len(format) == 0 {
 		return nil, fmt.Errorf("PlanModifyTemplate消息格式化结果为空")
 	}
-	log.Println("PlanModifyTemplate初始化模版输出")
+	g.Log().Info(ctx, "PlanModifyTemplate初始化模版输出")
 	return format, nil
 }
 
@@ -203,19 +202,19 @@ func loadEmotionCompanionSkill(ctx context.Context) string {
 	}
 	data, err := os.ReadFile(skillPath)
 	if err != nil {
-		log.Printf("[EmotionAndCompanionShip] 未加载 emotion-companion Skill，使用内置模板: %v", err)
+		g.Log().Infof(ctx, "[EmotionAndCompanionShip] 未加载 emotion-companion Skill，使用内置模板: %v", err)
 		return common.EmotionAndCompanionShipTemplate
 	}
 	content := strings.TrimSpace(string(data))
 	if content == "" {
 		return common.EmotionAndCompanionShipTemplate
 	}
-	log.Printf("[EmotionAndCompanionShip] 已加载 emotion-companion Skill")
+	g.Log().Infof(ctx, "[EmotionAndCompanionShip] 已加载 emotion-companion Skill")
 	return content + "\n\n现在，请基于上述设定，以**温暖、包容且富有洞察力**的形象，回应用户的下一句话。"
 }
 
 // newChatTemplate3 component initialization function of node 'EmotionAndCompanionShipTemplate' in graph 'studyCoachFor'
-func newChatTemplate3(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+func buildEmotionCompanionTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
 	systemContent := loadEmotionCompanionSkill(ctx)
 	config := &ChatTemplate3Config{
 		Role:       schema.User,
@@ -240,7 +239,7 @@ func (impl *ChatTemplate3Impl) Format(ctx context.Context, vs map[string]any, op
 	if len(format) == 0 {
 		return nil, fmt.Errorf("EmotionAndCompanionShipTemplate消息格式化结果为空")
 	}
-	log.Println("EmotionAndCompanionShipTemplate初始化模版输出")
+	g.Log().Info(ctx, "EmotionAndCompanionShipTemplate初始化模版输出")
 	return format, nil
 }
 

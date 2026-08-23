@@ -4,7 +4,7 @@ import (
 	"backend/studyCoach/common"
 	"bufio"
 	"context"
-	"log"
+	"github.com/gogf/gf/v2/frame/g"
 	"os"
 	"path/filepath"
 
@@ -49,7 +49,7 @@ func CreateMarkDownPlan(ctx context.Context, message *schema.Message) (bt tool.I
 	// 创建 file 文件夹（如果不存在）
 	err = os.MkdirAll(targetDir, 0755)
 	if err != nil {
-		log.Printf("创建目录 %s 失败: %v", targetDir, err)
+		g.Log().Infof(ctx, "创建目录 %s 失败: %v", targetDir, err)
 		return nil, err
 
 	}
@@ -63,16 +63,16 @@ func CreateMarkDownPlan(ctx context.Context, message *schema.Message) (bt tool.I
 	writer := bufio.NewWriter(file)
 	_, err = writer.WriteString(message.Content)
 	if err != nil {
-		log.Printf("写入缓冲区失败: %v", err)
+		g.Log().Infof(ctx, "写入缓冲区失败: %v", err)
 		return nil, err
 
 	}
 	err = writer.Flush()
 	if err != nil {
-		log.Printf("刷新缓冲区到文件失败: %v", err)
+		g.Log().Infof(ctx, "刷新缓冲区到文件失败: %v", err)
 		return nil, err
 
 	}
-	log.Println("成功创建并写入 Study_Plan.md")
+	g.Log().Info(ctx, "成功创建并写入 Study_Plan.md")
 	return bt, nil
 }

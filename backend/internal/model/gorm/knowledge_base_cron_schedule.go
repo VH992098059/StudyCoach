@@ -8,7 +8,7 @@ import (
 
 // KnowledgeBaseCronSchedule 知识库定时任务调度表
 type KnowledgeBaseCronSchedule struct {
-	ID                int64          `gorm:"primaryKey;column:id"`                                                                       // 主键
+	ID                string         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`                                             // 主键（UUID）
 	CronName          string         `gorm:"type:varchar(20);column:cron_name"`                                                          // 定时任务名称，用于标识该调度
 	KnowledgeBaseName string         `gorm:"type:varchar(255);column:knowledge_base_name;index:idx_kb_cron_knowledge"`                   // 关联的知识库名称（对应 KnowledgeBase.Name）
 	CronExpression    string         `gorm:"type:varchar(100);column:cron_expression"`                                                   // Cron 表达式，定义执行周期（如 "0 0 * * *" 表示每天零点）

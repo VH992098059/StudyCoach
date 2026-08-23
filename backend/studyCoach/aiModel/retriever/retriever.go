@@ -75,6 +75,12 @@ func newRetriever(ctx context.Context, conf *common.Config) (rtr retriever.Retri
 	return nil, fmt.Errorf("no valid client configuration found")
 }
 
+// New 对外暴露的检索器工厂入口，按 conf 选择向量引擎（milvus > es > qdrant）。
+// 供 vectorstore 等上层统一装配使用。
+func New(ctx context.Context, conf *common.Config) (retriever.Retriever, error) {
+	return newRetriever(ctx, conf)
+}
+
 func EsHit2Document(ctx context.Context, hit types.Hit) (doc *schema.Document, err error) {
 	doc = &schema.Document{
 		ID:       *hit.Id_,
@@ -140,20 +146,20 @@ func (w *esRetrieverWrapper) Retrieve(ctx context.Context, query string, opts ..
 	}
 
 	// 过滤结果
-	kbIdMap := make(map[int64]bool)
+	kbIdMap := make(map[string]bool)
 	for _, id := range enabledKBIds {
 		kbIdMap[id] = true
 	}
 
 	filtered := make([]*schema.Document, 0, len(docs))
 	for _, doc := range docs {
-		if kbId, ok := doc.MetaData[common.KnowledgeBaseId].(int64); ok && kbIdMap[kbId] {
+		if kbPassesEnabledFilter(doc.MetaData, kbIdMap) {
 			filtered = append(filtered, doc)
 		}
 	}
 	return filtered, nil
 }
 
-func getEnabledKBIds(ctx context.Context) ([]int64, error) {
+func getEnabledKBIds(ctx context.Context) ([]string, error) {
 	return knowledge.GetEnabledKnowledgeBaseIds(ctx)
 }

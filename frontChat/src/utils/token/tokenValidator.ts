@@ -4,7 +4,7 @@
  */
 
 export interface TokenPayload {
-  Id: number;
+  Id: string;
   Uuid: string;
   Username: string;
   exp: number; // 过期时间戳（秒）
@@ -96,14 +96,14 @@ export const checkAndHandleTokenExpiry = (): boolean => {
  */
 export const getTokenUser = (
   token: string | null
-): { id: number; username: string; uuid: string } | null => {
+): { id: string; username: string; uuid: string } | null => {
   if (!token) return null;
 
   const payload = decodeToken(token);
   if (!payload) return null;
 
   return {
-    id: payload.Id || 0,
+    id: payload.Id || '',
     username: payload.Username || '',
     uuid: payload.Uuid || '',
   };

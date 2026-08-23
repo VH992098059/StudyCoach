@@ -21,7 +21,7 @@ export enum DocumentStatus {
  * 文档数据接口 - 对应后端 entity.KnowledgeDocuments
  */
 export interface DocumentData {
-  id: number;
+  id: string;
   knowledgeBaseName: string;
   fileName: string;
   status: DocumentStatus;
@@ -52,7 +52,7 @@ export interface DocumentsListRes {
  * 文档删除请求参数
  */
 export interface DocumentDeleteReq {
-  document_id: number;
+  document_id: string;
 }
 
 const BASE_PATH = '/gateway/v1';

@@ -38,6 +38,14 @@ interface ChatParams {
   uploaded_files?: string[];
 }
 
+/** 阶段进度步骤（后端 event: stage 事件解析结果），供前端渲染纵向步骤条 */
+export interface StageStep {
+  stage: string;
+  label: string;
+  status: 'start' | 'end' | 'error';
+  elapsedMs: number;
+}
+
 /** 最大重连次数，供外部（index.tsx）消费以保持一致 */
 export const MAX_RECONNECT_ATTEMPTS = 3;
 
@@ -77,6 +85,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   const [currentToolStatus, setCurrentToolStatus] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [documentsCount, setDocumentsCount] = useState(0);
+  const [stages, setStages] = useState<StageStep[]>([]);
 
   // 同步 ref，保持最新值供闭包使用
   useEffect(() => {
@@ -88,6 +97,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     setCurrentAiMessage('');
     setCurrentReasoningContent('');
     setCurrentToolStatus('');
+    setStages([]);
     accumulatedMessageRef.current = '';
     accumulatedReasoningRef.current = '';
   }, []);
@@ -139,6 +149,32 @@ const useSSEChat = (params: UseSSEChatParams) => {
     }
   }, [t]);
 
+  // 阶段进度事件（event: stage）：按节点名维护步骤条状态
+  const handleStageEvent = useCallback((chunk: any) => {
+    try {
+      const data = typeof chunk?.data === 'string' ? JSON.parse(chunk.data) : chunk?.data;
+      if (!data || typeof data.stage !== 'string') return;
+      const ev = data as { stage: string; label: string; status: 'start' | 'end' | 'error'; elapsed_ms?: number };
+      const step: StageStep = {
+        stage: ev.stage,
+        label: ev.label || ev.stage,
+        status: ev.status,
+        elapsedMs: ev.elapsed_ms ?? 0,
+      };
+      setStages((prev) => {
+        const idx = prev.findIndex((s) => s.stage === step.stage);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = step;
+          return next;
+        }
+        return [...prev, step];
+      });
+    } catch {
+      /* 忽略无法解析的 stage 事件 */
+    }
+  }, []);
+
   const handleDonePayload = useCallback(() => {
     const finalMsg = accumulatedMessageRef.current.trim();
     if (finalMsg) {
@@ -153,6 +189,10 @@ const useSSEChat = (params: UseSSEChatParams) => {
   }, [generateMsgId, setMessages, resetStreamState]);
 
   const handleContentPayload = useCallback((payload: string) => {
+    // 过滤心跳 ping 事件的 {} 数据和空内容
+    if (!payload || payload.trim() === '' || payload.trim() === '{}') {
+      return;
+    }
     let contentSegment = payload;
     let reasoningSegment = '';
     try {
@@ -178,6 +218,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     }
 
     accumulatedMessageRef.current += contentSegment;
+    console.log('[SSE] accumulated:', JSON.stringify(accumulatedMessageRef.current.substring(accumulatedMessageRef.current.length - 50)));
     setCurrentAiMessage(accumulatedMessageRef.current);
     if (reasoningSegment) {
       accumulatedReasoningRef.current += reasoningSegment;
@@ -201,11 +242,13 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
     try {
       let isFirstChunk = true;
+      const token = localStorage.getItem('access_token') || '';
       const request = XRequest<ChatParams, any>(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'text/event-stream',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         params: {
           id: sessionId,
@@ -227,6 +270,11 @@ const useSSEChat = (params: UseSSEChatParams) => {
               return;
             }
 
+            // 心跳 ping 事件，忽略不处理
+            if (chunk?.event === 'ping') {
+              return;
+            }
+
             if (isFirstChunk) {
               setConnectionState(SSEConnectionState.CONNECTED);
               setReconnectAttempts(0);
@@ -235,6 +283,11 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
             if (chunk?.event === 'tool_status') {
               handleToolStatusEvent(chunk);
+              return;
+            }
+
+            if (chunk?.event === 'stage') {
+              handleStageEvent(chunk);
               return;
             }
 
@@ -326,7 +379,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     }
   // connectionState 从依赖数组移除，改用 connectionStateRef.current
   }, [selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, isDeepThinking, generateMsgId, setMessages, t,
-      resetStreamState, handleErrorEvent, handleToolStatusEvent, handleDonePayload, handleContentPayload]);
+      resetStreamState, handleErrorEvent, handleToolStatusEvent, handleStageEvent, handleDonePayload, handleContentPayload]);
 
   // --- 导出方法 ---
 
@@ -364,6 +417,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     currentToolStatus,
     loading,
     documentsCount,
+    stages,
     send,
     stop,
   };

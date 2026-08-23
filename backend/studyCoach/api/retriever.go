@@ -15,24 +15,26 @@ import (
 )
 
 type RetrieveReq struct {
-	Query         string   // 检索关键词
-	TopK          int      // 检索结果数量
-	Score         float64  // 分数阈值：范围 0-2，通常取 1.5+（1=不相关，2=完全相同）
-	KnowledgeName string   // 知识库名字
-	optQuery      string   // 优化后的检索关键词
-	excludeIDs    []string // 要排除的 _id 列表
-	rankScore     float64  // 重排分数：score 转换至 0-1 范围
+	Query          string                 // 检索关键词
+	TopK           int                    // 检索结果数量
+	Score          float64                // 分数阈值：范围 0-2，通常取 1.5+（1=不相关，2=完全相同）
+	KnowledgeName  string                 // 知识库名字
+	MetadataFilter map[string]interface{} // 元数据过滤条件，如 {"update_type": 2}
+	optQuery       string                 // 优化后的检索关键词
+	excludeIDs     []string               // 要排除的 _id 列表
+	rankScore      float64                // 重排分数：score 转换至 0-1 范围
 }
 
 func (x *RetrieveReq) copy() *RetrieveReq {
 	return &RetrieveReq{
-		Query:         x.Query,
-		TopK:          x.TopK,
-		Score:         x.Score,
-		KnowledgeName: x.KnowledgeName,
-		optQuery:      x.optQuery,
-		excludeIDs:    x.excludeIDs,
-		rankScore:     x.rankScore,
+		Query:          x.Query,
+		TopK:           x.TopK,
+		Score:          x.Score,
+		KnowledgeName:  x.KnowledgeName,
+		MetadataFilter: x.MetadataFilter,
+		optQuery:       x.optQuery,
+		excludeIDs:     x.excludeIDs,
+		rankScore:      x.rankScore,
 	}
 }
 
@@ -172,7 +174,7 @@ func (x *Rag) retrieveDoOnce(ctx context.Context, req *RetrieveReq) (relatedDocs
 	return
 }
 func (x *Rag) retrieve(ctx context.Context, req *RetrieveReq, qa bool) (msg []*schema.Document, err error) {
-	filterOpts, err := buildRetrieverFilterOptions(x.conf, req.KnowledgeName, req.excludeIDs, esTopK)
+	filterOpts, err := buildRetrieverFilterOptions(x.conf, req.KnowledgeName, req.excludeIDs, esTopK, req.MetadataFilter)
 	if err != nil {
 		return nil, err
 	}
@@ -197,4 +199,15 @@ func (x *Rag) retrieve(ctx context.Context, req *RetrieveReq, qa bool) (msg []*s
 		}
 	}
 	return msg, nil
+}
+
+// Retrieve 实现 knowledge.Retriever 接口，供知识库搜索工具调用
+func (x *Rag) Retrieve(ctx context.Context, query string, topK int, score float64, knowledgeName string, metadataFilter map[string]interface{}) ([]*schema.Document, error) {
+	return x.Retriever(ctx, &RetrieveReq{
+		Query:          query,
+		TopK:           topK,
+		Score:          score,
+		KnowledgeName:  knowledgeName,
+		MetadataFilter: metadataFilter,
+	})
 }

@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gogf/gf/v2/frame/g"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -44,7 +44,7 @@ func NewFilerClient(endpoint string) *FilerClient {
 // SeaweedFSUpload 上传文件
 func (c *FilerClient) SeaweedFSUpload(ctx context.Context, remotePath string, fileReader io.Reader) error {
 
-	log.Println("上传文件：", remotePath)
+	g.Log().Info(ctx, "上传文件：", remotePath)
 
 	// 构造完整的上传 URL
 	// 格式: http://localhost:8888/user/avatars/1001.jpg

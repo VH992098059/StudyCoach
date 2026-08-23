@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	v1 "backend/api/ai_chat/v1"
 	"backend/internal/dao"
@@ -13,15 +14,17 @@ import (
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
+	"github.com/google/uuid"
 )
 
 // SaveSession 保存会话
 func (c *ChatBase) SaveSession(ctx context.Context, userId string, req *v1.SaveSessionReq) (string, error) {
-	// Use req.Id as session UUID
-	sessionUuid := req.Id
-	if sessionUuid == "" {
-		// If frontend doesn't provide ID, generate one
-		sessionUuid = fmt.Sprintf("%d", gtime.TimestampMilli())
+	// Use req.Id as session ID (UUID primary key)
+	sessionUuid := strings.TrimSpace(req.Id)
+	// 前端传入的 ID 必须是合法 UUID（chat_sessions.id 为 uuid 列）；
+	// 空值或旧版时间戳 ID（如 "1787487853091"）一律重新生成，并返回真实 ID 让前端同步
+	if _, err := uuid.Parse(sessionUuid); err != nil {
+		sessionUuid = uuid.New().String()
 	}
 
 	err := dao.ChatSessions.Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
@@ -33,7 +36,8 @@ func (c *ChatBase) SaveSession(ctx context.Context, userId string, req *v1.SaveS
 				dao.ChatSessions.Columns().Title:     req.Title,
 				dao.ChatSessions.Columns().UpdatedAt: now,
 			}).
-			Where(dao.ChatSessions.Columns().Uuid, sessionUuid).
+			Where(dao.ChatSessions.Columns().Id, sessionUuid).
+			Where(dao.ChatSessions.Columns().UserId, userId).
 			Update()
 
 		if err != nil {
@@ -45,25 +49,28 @@ func (c *ChatBase) SaveSession(ctx context.Context, userId string, req *v1.SaveS
 		if rowsAffected == 0 {
 			// 2. If Update failed (not found), Try Insert
 			sessionData := entity.ChatSessions{
-				Uuid:      sessionUuid,
+				Id:        sessionUuid,
 				UserId:    userId,
 				Title:     req.Title,
 				CreatedAt: now,
 				UpdatedAt: now,
 			}
-			// Note: Id is auto-increment, not set here.
+			// Note: Id is UUID, set from frontend or generated above.
 
-			_, err = dao.ChatSessions.Ctx(ctx).TX(tx).Data(sessionData).Insert()
+			_, err = dao.ChatSessions.Ctx(ctx).TX(tx).Data(sessionData).OmitEmpty().Insert()
 			if err != nil {
 				// Check if it is a duplicate entry error (Race condition: inserted by another thread)
-				if strings.Contains(err.Error(), "Duplicate entry") {
+				// MySQL: "Duplicate entry"; PostgreSQL: "duplicate key value violates unique constraint"
+				if strings.Contains(err.Error(), "Duplicate entry") ||
+					strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 					// 3. If Insert failed (duplicate), Try Update again
 					_, updateErr := dao.ChatSessions.Ctx(ctx).TX(tx).
 						Data(g.Map{
 							dao.ChatSessions.Columns().Title:     req.Title,
 							dao.ChatSessions.Columns().UpdatedAt: now,
 						}).
-						Where(dao.ChatSessions.Columns().Uuid, sessionUuid).
+						Where(dao.ChatSessions.Columns().Id, sessionUuid).
+						Where(dao.ChatSessions.Columns().UserId, userId).
 						Update()
 					if updateErr != nil {
 						return updateErr
@@ -87,7 +94,7 @@ func (c *ChatBase) SaveSession(ctx context.Context, userId string, req *v1.SaveS
 				return err
 			}
 
-			msgIdMap := make(map[string]int64)
+			msgIdMap := make(map[string]string)
 			for _, m := range existingMsgs {
 				msgIdMap[m.MsgId] = m.Id
 			}
@@ -157,7 +164,7 @@ func (c *ChatBase) GetHistory(ctx context.Context, userId string, page, pageSize
 	res := make([]v1.ChatSession, 0, len(sessions))
 	for _, s := range sessions {
 		res = append(res, v1.ChatSession{
-			Id:        s.Uuid, // Return UUID as ID to frontend
+			Id:        s.Id, // Return UUID as ID to frontend
 			Title:     s.Title,
 			CreatedAt: s.CreatedAt,
 			UpdatedAt: s.UpdatedAt,
@@ -167,17 +174,17 @@ func (c *ChatBase) GetHistory(ctx context.Context, userId string, page, pageSize
 }
 
 // GetSession 获取单个会话详情（支持滚动加载）
-func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId string, beforeMsgId int64, limit int) (*v1.GetSessionRes, error) {
+func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId string, beforeTimestamp int64, limit int) (*v1.GetSessionRes, error) {
 	var session entity.ChatSessions
-	// Query by UUID
+	// Query by ID (UUID)
 	err := dao.ChatSessions.Ctx(ctx).
-		Where(dao.ChatSessions.Columns().Uuid, sessionId).
+		Where(dao.ChatSessions.Columns().Id, sessionId).
 		Where(dao.ChatSessions.Columns().UserId, userId).
 		Scan(&session)
 	if err != nil {
 		return nil, err
 	}
-	if session.Id == 0 { // Check if found (Id should be > 0)
+	if session.Id == "" { // Check if found
 		return nil, fmt.Errorf("session not found")
 	}
 
@@ -185,14 +192,14 @@ func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId stri
 	query := dao.ChatMessages.Ctx(ctx).
 		Where(dao.ChatMessages.Columns().SessionUuid, sessionId)
 
-	// 滚动加载条件：返回早于beforeMsgId的消息
-	if beforeMsgId > 0 {
-		query = query.WhereLT(dao.ChatMessages.Columns().Id, beforeMsgId)
+	// 滚动加载条件：返回早于 beforeTimestamp 的消息（UUID 无序，改用时间戳）
+	if beforeTimestamp > 0 {
+		query = query.WhereLT(dao.ChatMessages.Columns().Timestamp, gtime.NewFromTime(time.UnixMilli(beforeTimestamp)))
 	}
 
-	// 按ID倒序取最新的limit条，再反转成正序，保持时间升序排列
+	// 按时间戳倒序取最新的 limit 条，再反转成正序，保持时间升序排列
 	err = query.
-		OrderDesc(dao.ChatMessages.Columns().Id).
+		OrderDesc(dao.ChatMessages.Columns().Timestamp).
 		Limit(limit).
 		Scan(&messages)
 	if err != nil {
@@ -205,7 +212,7 @@ func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId stri
 	}
 
 	res := &v1.GetSessionRes{
-		Id:        session.Uuid, // Return UUID
+		Id:        session.Id, // Return UUID
 		Title:     session.Title,
 		CreatedAt: session.CreatedAt,
 		UpdatedAt: session.UpdatedAt,
@@ -242,9 +249,9 @@ func (c *ChatBase) GetSession(ctx context.Context, userId string, sessionId stri
 
 // DeleteSession 删除会话
 func (c *ChatBase) DeleteSession(ctx context.Context, userId string, sessionId string) error {
-	// Delete by UUID
+	// Delete by ID (UUID)
 	_, err := dao.ChatSessions.Ctx(ctx).
-		Where(dao.ChatSessions.Columns().Uuid, sessionId).
+		Where(dao.ChatSessions.Columns().Id, sessionId).
 		Where(dao.ChatSessions.Columns().UserId, userId).
 		Delete()
 	return err

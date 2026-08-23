@@ -6,6 +6,8 @@ import (
 	"backend/internal/model/entity"
 	api "backend/studyCoach/api"
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -13,17 +15,20 @@ const (
 	maxPageSize     = 100
 )
 
-func RuCronCreate(ctx context.Context, schedule *entity.KnowledgeBaseCronSchedule) (id int64, err error) {
-	id, err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Data(do.KnowledgeBaseCronSchedule{
+func RuCronCreate(ctx context.Context, schedule *entity.KnowledgeBaseCronSchedule) (id string, err error) {
+	// UUID 主键无自增序列：Go 侧预生成 ID，Insert 后直接返回
+	id = uuid.NewString()
+	_, err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Data(do.KnowledgeBaseCronSchedule{
+		Id:                id,
 		KnowledgeBaseName: schedule.KnowledgeBaseName,
 		CronExpression:    schedule.CronExpression,
 		CronName:          schedule.CronName,
 		Status:            schedule.Status,
 		ContentType:       schedule.ContentType,
 		SchedulingMethod:  schedule.SchedulingMethod,
-	}).InsertAndGetId()
+	}).Insert()
 	if err != nil {
-		return -1, err
+		return "", err
 	}
 
 	// 如果状态为启用，添加到调度器
@@ -31,16 +36,26 @@ func RuCronCreate(ctx context.Context, schedule *entity.KnowledgeBaseCronSchedul
 		schedule.Id = id
 		if err := AddJob(ctx, schedule); err != nil {
 			// 仅记录日志，不影响创建成功
-			// log.Printf("[Cron] Failed to schedule job after create: %v", err)
+			// g.Log().Infof(ctx, "[Cron] Failed to schedule job after create: %v", err)
 		}
 	}
 
 	return id, nil
 }
 
-func RuCronDelete(ctx context.Context, id int64) (isOk string, err error) {
+func RuCronDelete(ctx context.Context, id string) (isOk string, err error) {
 	// 先移除调度任务
 	RemoveJob(id)
+
+	// 查询 cron_name 用于清理 cron_execute
+	var cronName string
+	_ = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Where("id", id).Fields("cron_name").Scan(&cronName)
+
+	// 清理关联的执行日志和执行记录
+	_, _ = dao.CronLog.Ctx(ctx).Where("cron_id", id).Delete()
+	if cronName != "" {
+		_, _ = dao.CronExecute.Ctx(ctx).Where("cron_name_fk", cronName).Delete()
+	}
 
 	_, err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Where("id", id).Unscoped().Delete()
 	if err != nil {
@@ -113,7 +128,7 @@ func RuCronUpdate(ctx context.Context, schedule *entity.KnowledgeBaseCronSchedul
 	return "success", nil
 }
 
-func RuCronUpdateStatus(ctx context.Context, id int64, status int64) (success string, err error) {
+func RuCronUpdateStatus(ctx context.Context, id string, status int64) (success string, err error) {
 	_, err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Where("id", id).Data(do.KnowledgeBaseCronSchedule{Status: status}).Update()
 	if err != nil {
 		return "", err
@@ -134,7 +149,7 @@ func RuCronUpdateStatus(ctx context.Context, id int64, status int64) (success st
 }
 
 // RuCronRun 立即执行一次任务
-func RuCronRun(ctx context.Context, id int64) (success string, err error) {
+func RuCronRun(ctx context.Context, id string) (success string, err error) {
 	// 查询任务详情
 	var schedule entity.KnowledgeBaseCronSchedule
 	err = dao.KnowledgeBaseCronSchedule.Ctx(ctx).Where("id", id).Scan(&schedule)

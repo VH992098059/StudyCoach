@@ -10,8 +10,8 @@ import (
 
 // UserSettings is the golang structure for table user_settings.
 type UserSettings struct {
-	Id                  int64       `json:"id"                  orm:"id"                   description:""` //
-	UserId              int64       `json:"userId"              orm:"user_id"              description:""` //
+	Id                  string      `json:"id"                  orm:"id"                   description:""` //
+	UserId              string      `json:"userId"              orm:"user_id"              description:""` //
 	Theme               string      `json:"theme"               orm:"theme"                description:""` //
 	Language            string      `json:"language"            orm:"language"             description:""` //
 	NotificationEnabled int         `json:"notificationEnabled" orm:"notification_enabled" description:""` //

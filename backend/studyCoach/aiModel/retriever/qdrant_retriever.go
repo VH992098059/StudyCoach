@@ -222,8 +222,8 @@ func (r *QdrantRetriever) GetType() string {
 	return "qdrant_retriever"
 }
 
-// buildKnowledgeBaseFilter 构建知识库 ID 过滤条件
-func buildKnowledgeBaseFilter(kbIds []int64) *qdrant.Filter {
+// buildKnowledgeBaseFilter 构建知识库 ID 过滤条件（UUID 字符串）
+func buildKnowledgeBaseFilter(kbIds []string) *qdrant.Filter {
 	conditions := make([]*qdrant.Condition, 0, len(kbIds))
 	for _, id := range kbIds {
 		conditions = append(conditions, &qdrant.Condition{
@@ -231,8 +231,8 @@ func buildKnowledgeBaseFilter(kbIds []int64) *qdrant.Filter {
 				Field: &qdrant.FieldCondition{
 					Key: common.KnowledgeBaseId,
 					Match: &qdrant.Match{
-						MatchValue: &qdrant.Match_Integer{
-							Integer: id,
+						MatchValue: &qdrant.Match_Keyword{
+							Keyword: id,
 						},
 					},
 				},

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -39,6 +38,14 @@ func getSessionID(ctx context.Context) string {
 		}
 	}
 	return ""
+}
+
+// scopedBase 返回带用户前缀的基路径：study_plans/{users.uuid}；无法解析用户时回退 study_plans（兼容非 HTTP 调用）。
+func scopedBase(ctx context.Context) string {
+	if p := utility.WorkspacePrefix(ctx); p != "" {
+		return basePath + "/" + p
+	}
+	return basePath
 }
 
 // planStorage 混合存储：SeaweedFS 优先，本地回退，支持启动后同步与去重
@@ -129,7 +136,7 @@ func (s *planStorage) save(ctx context.Context, remotePath string, content []byt
 	if s.client != nil {
 		reader := bytes.NewReader(content)
 		if err := s.client.SeaweedFSUpload(ctx, remotePath, reader); err != nil {
-			log.Printf("[save_plan] SeaweedFS 上传失败，回退本地: %v", err)
+			g.Log().Infof(ctx, "[save_plan] SeaweedFS 上传失败，回退本地: %v", err)
 		} else {
 			return "seaweedfs", nil
 		}
@@ -206,16 +213,16 @@ func (s *planStorage) syncPendingToSeaweedFS(ctx context.Context) {
 		}
 		data, err := os.ReadFile(e.LocalPath)
 		if err != nil {
-			log.Printf("[save_plan] 同步时读取本地失败 %s: %v", e.LocalPath, err)
+			g.Log().Infof(ctx, "[save_plan] 同步时读取本地失败 %s: %v", e.LocalPath, err)
 			continue
 		}
 		reader := bytes.NewReader(data)
 		if err := s.client.SeaweedFSUpload(ctx, e.RemotePath, reader); err != nil {
-			log.Printf("[save_plan] 同步上传失败 %s: %v", e.RemotePath, err)
+			g.Log().Infof(ctx, "[save_plan] 同步上传失败 %s: %v", e.RemotePath, err)
 			continue
 		}
 		_ = s.removePending(e.RemotePath)
-		log.Printf("[save_plan] 已同步到 SeaweedFS: %s", e.RemotePath)
+		g.Log().Infof(ctx, "[save_plan] 已同步到 SeaweedFS: %s", e.RemotePath)
 	}
 }
 
@@ -266,19 +273,19 @@ func (t *SavePlanTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 
 	timestamp := time.Now().Format("20060102_150405")
 	safeTitle := sanitizePath(args.PlanTitle)
-	remotePath := fmt.Sprintf("%s/%s/%s/%s/%s", basePath, sessionID, safeTitle, timestamp, planFileName)
+	remotePath := fmt.Sprintf("%s/%s/%s/%s/%s", scopedBase(ctx), sessionID, safeTitle, timestamp, planFileName)
 
 	storageType, err := t.storage.save(ctx, remotePath, []byte(args.Content))
 	if err != nil {
-		log.Printf("[save_plan] 保存失败: plan_title=%s, err=%v", args.PlanTitle, err)
+		g.Log().Infof(ctx, "[save_plan] 保存失败: plan_title=%s, err=%v", args.PlanTitle, err)
 		return "", fmt.Errorf("保存计划失败: %v", err)
 	}
 
 	if storageType == "seaweedfs" {
-		log.Printf("[save_plan] 保存成功(SeaweedFS): plan_title=%s, path=%s", args.PlanTitle, remotePath)
+		g.Log().Infof(ctx, "[save_plan] 保存成功(SeaweedFS): plan_title=%s, path=%s", args.PlanTitle, remotePath)
 		return fmt.Sprintf("学习计划已保存成功（已上传云端）。路径：%s，创建时间：%s", remotePath, timestamp), nil
 	}
-	log.Printf("[save_plan] 保存成功(本地回退): plan_title=%s, path=%s，待 SeaweedFS 启动后自动同步", args.PlanTitle, remotePath)
+	g.Log().Infof(ctx, "[save_plan] 保存成功(本地回退): plan_title=%s, path=%s，待 SeaweedFS 启动后自动同步", args.PlanTitle, remotePath)
 	return fmt.Sprintf("学习计划已保存成功（暂存本地，待云端可用后自动同步）。路径：%s，创建时间：%s", remotePath, timestamp), nil
 }
 
@@ -320,7 +327,7 @@ func (t *ReadPlanTool) InvokableRun(ctx context.Context, argumentsInJSON string,
 	// 每次读取时尝试同步本地待上传到 SeaweedFS
 	t.storage.syncPendingToSeaweedFS(ctx)
 
-	sessionPath := fmt.Sprintf("%s/%s", basePath, sessionID)
+	sessionPath := fmt.Sprintf("%s/%s", scopedBase(ctx), sessionID)
 
 	if args.PlanTitle == "" {
 		plans, err := t.storage.list(ctx, sessionPath)
@@ -404,7 +411,7 @@ func (t *DeletePlanTool) InvokableRun(ctx context.Context, argumentsInJSON strin
 	}
 
 	safeTitle := sanitizePath(args.PlanTitle)
-	planPath := fmt.Sprintf("%s/%s/%s", basePath, sessionID, safeTitle)
+	planPath := fmt.Sprintf("%s/%s/%s", scopedBase(ctx), sessionID, safeTitle)
 
 	// 本地删除
 	localPath := filepath.Join(t.storage.localBaseDir, planPath)
@@ -418,7 +425,7 @@ func (t *DeletePlanTool) InvokableRun(ctx context.Context, argumentsInJSON strin
 		_ = t.storage.client.SeaweedFSDelete(remotePath, true)
 	}
 
-	log.Printf("[delete_plan] 已删除计划: %s", args.PlanTitle)
+	g.Log().Infof(ctx, "[delete_plan] 已删除计划: %s", args.PlanTitle)
 	return fmt.Sprintf("已删除学习计划「%s」。", args.PlanTitle), nil
 }
 
@@ -450,6 +457,6 @@ func NewTools(ctx context.Context) ([]tool.BaseTool, error) {
 	saveTool := &SavePlanTool{storage: storage}
 	readTool := &ReadPlanTool{storage: storage}
 	deleteTool := &DeletePlanTool{storage: storage}
-	log.Printf("[studyplan] 已加载 save_plan/read_plan/delete_plan，本地回退目录: %s", absDir)
+	g.Log().Infof(ctx, "[studyplan] 已加载 save_plan/read_plan/delete_plan，本地回退目录: %s", absDir)
 	return []tool.BaseTool{saveTool, readTool, deleteTool}, nil
 }

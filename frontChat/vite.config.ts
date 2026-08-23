@@ -66,20 +66,20 @@ export default defineConfig({
     proxy: {
       // 仅代理 WebSocket，不再代理所有顶级路径，避免静态模块被错误代理到后端
       '/ws': {
-        target: 'ws://localhost:8000', // 需要跨域代理的本地路径
+        target: 'ws://localhost:18000', // 需要跨域代理的本地路径
         ws: true,
         rewrite: (path) => path.replace(/^\/*/, ''),
       },
       // 开发环境代理后端HTTP接口组（含 WebSocket /gateway/ws）
       '/gateway': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:18000',
         changeOrigin: true,
         ws: true,
       },
       // 生产部署通常通过Nginx使用 /api 作为前缀进行SSE代理
       // 这里保留可选映射，便于本地模拟
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:18000',
         changeOrigin: true,
       },
       // 如需代理后端 HTTP 接口，请在此按需添加精确前缀，例如：

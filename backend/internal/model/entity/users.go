@@ -10,8 +10,7 @@ import (
 
 // Users is the golang structure for table users.
 type Users struct {
-	Id          int64       `json:"id"          orm:"id"            description:""` //
-	Uuid        string      `json:"uuid"        orm:"uuid"          description:""` //
+	Id          string      `json:"id"          orm:"id"            description:""` //
 	Username    string      `json:"username"    orm:"username"      description:""` //
 	Email       string      `json:"email"       orm:"email"         description:""` //
 	Password    string      `json:"password"    orm:"password"      description:""` //

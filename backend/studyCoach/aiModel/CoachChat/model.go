@@ -4,7 +4,6 @@ import (
 	"backend/studyCoach/common"
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/aws/smithy-go/ptr"
@@ -21,7 +20,7 @@ func isOpenAICompatible(baseURL string) bool {
 }
 
 // newChatModel component initialization function of node 'AnalysisChatModel' in graph 'StudyCoachFor'
-func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
+func buildIntentAnalysisModel(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
 	cfg := g.Cfg()
 	modelName, err := cfg.Get(ctx, "Analysis.model")
 	if err != nil || modelName.String() == "" {
@@ -44,7 +43,7 @@ func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallin
 		},
 	}
 	cm, err = ark.NewChatModel(ctx, config)
-	log.Println("意图分析模型")
+	g.Log().Info(ctx, "意图分析模型")
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +51,7 @@ func newChatModel(ctx context.Context, conf *common.Config) (cm model.ToolCallin
 }
 
 // NewChatModel1 component initialization function of node 'EmotionAndCompanionChatModel' in graph 'studyCoachFor'
-func newChatModel1(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
+func buildEmotionCompanionModel(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
 	if isOpenAICompatible(conf.BaseURL) {
 		config := &openai.ChatModelConfig{
 			Model:            conf.ChatModel,
@@ -82,7 +81,7 @@ func newChatModel1(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 	return cm, nil
 }
 
-func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
+func buildReActModel(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
 	if isOpenAICompatible(conf.BaseURL) {
 		// Siliconflow 等 OpenAI 兼容接口：使用 openai 客户端，避免 Ark 特有参数导致 400
 		config := &openai.ChatModelConfig{
@@ -110,7 +109,7 @@ func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 		}
 		cm, err = ark.NewChatModel(ctx, config)
 	}
-	log.Println("ReAct模型分析")
+	g.Log().Info(ctx, "ReAct模型分析")
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +117,7 @@ func newChatModel2(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 }
 
 // newChatModel3 component initialization function of node 'ToStudyChatModel' in graph 'studyCoachFor'
-func newChatModel3(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
+func buildToStudyModel(ctx context.Context, conf *common.Config) (cm model.ToolCallingChatModel, err error) {
 	if isOpenAICompatible(conf.BaseURL) {
 		config := &openai.ChatModelConfig{
 			Model:            conf.ChatModel,
@@ -142,7 +141,7 @@ func newChatModel3(ctx context.Context, conf *common.Config) (cm model.ToolCalli
 		}
 		cm, err = ark.NewChatModel(ctx, config)
 	}
-	log.Println("ToStudyChatModel 模型")
+	g.Log().Info(ctx, "ToStudyChatModel 模型")
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +227,7 @@ func BranchNewChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err
 		},
 	}
 	cm, err = ark.NewChatModel(ctx, config)
-	log.Println("分支模型分析")
+	g.Log().Info(ctx, "分支模型分析")
 	if err != nil {
 		return nil, err
 	}

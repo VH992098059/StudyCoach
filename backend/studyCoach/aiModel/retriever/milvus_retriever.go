@@ -41,11 +41,12 @@ func NewMilvusRetriever(ctx context.Context, config *MilvusRetrieverConfig) (ret
 	}
 
 	cfg := &milvus2.RetrieverConfig{
-		Collection:  config.Collection,
-		TopK:        config.TopK,
-		VectorField: config.VectorField,
-		SearchMode:  milvus2search.NewApproximate(milvus2.COSINE),
-		Embedding:   config.Embedding,
+		Collection:   config.Collection,
+		TopK:         config.TopK,
+		VectorField:  config.VectorField,
+		OutputFields: []string{"id", "content", "metadata"}, // 只取必要字段，避免拉回整条向量
+		SearchMode:   milvus2search.NewApproximate(milvus2.COSINE),
+		Embedding:    config.Embedding,
 	}
 	if config.Client != nil {
 		cfg.Client = config.Client
@@ -81,16 +82,34 @@ func (w *milvusRetrieverWrapper) Retrieve(ctx context.Context, query string, opt
 	}
 
 	// 过滤结果
-	kbIdMap := make(map[int64]bool)
+	kbIdMap := make(map[string]bool)
 	for _, id := range enabledKBIds {
 		kbIdMap[id] = true
 	}
 
 	filtered := make([]*schema.Document, 0, len(docs))
 	for _, doc := range docs {
-		if kbId, ok := doc.MetaData[common.KnowledgeBaseId].(int64); ok && kbIdMap[kbId] {
+		if kbPassesEnabledFilter(doc.MetaData, kbIdMap) {
 			filtered = append(filtered, doc)
 		}
 	}
 	return filtered, nil
+}
+
+// kbPassesEnabledFilter 判断文档是否通过「已启用知识库」过滤：
+//   - 无 knowledge_base_id（旧文档）→ 保留（向后兼容，与 ES 路径一致）
+//   - 有 knowledge_base_id 且命中启用列表 → 保留
+//   - 有 knowledge_base_id 但未启用 → 过滤
+//
+// knowledge_base_id 现为知识库 UUID（string）。
+func kbPassesEnabledFilter(meta map[string]any, enabled map[string]bool) bool {
+	raw, exists := meta[common.KnowledgeBaseId]
+	if !exists {
+		return true
+	}
+	id, ok := raw.(string)
+	if !ok {
+		return true // 类型异常，保守保留，避免误删
+	}
+	return enabled[id]
 }

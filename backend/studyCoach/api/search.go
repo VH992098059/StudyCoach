@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/gogf/gf/v2/frame/g"
 	"log"
 	"net/http"
 	"sync"
@@ -67,7 +68,7 @@ func initCaches() {
 			},
 		})
 		if err != nil {
-			log.Printf("创建搜索缓存失败: %v", err)
+			g.Log().Infof(context.Background(), "创建搜索缓存失败: %v", err)
 		}
 		// 配置 HTTP 客户端
 		httpClient = &http.Client{
@@ -133,7 +134,7 @@ func SearchConcurrentlyWithCache(ctx context.Context, input string) []string {
 		return PerformSearch(ctx, input)
 	})
 	if err != nil {
-		log.Printf("%v", err)
+		g.Log().Infof(ctx, "%v", err)
 		return nil
 	}
 	sources, ok := result.([]string)
@@ -181,9 +182,9 @@ func PerformSearch(ctx context.Context, input string) ([]string, error) {
 	if err := json.Unmarshal([]byte(resp), &searchResp); err != nil {
 		return nil, fmt.Errorf("搜索结果解析失败: %w", err)
 	}
-	log.Printf("搜索到 %d 条链接", len(searchResp.Results))
+	g.Log().Infof(ctx, "搜索到 %d 条链接", len(searchResp.Results))
 	for i, r := range searchResp.Results {
-		log.Printf("链接[%d]: %s", i+1, r.URL)
+		g.Log().Infof(ctx, "链接[%d]: %s", i+1, r.URL)
 	}
 
 	// 使用 errgroup 进行并发抓取
@@ -208,7 +209,7 @@ func PerformSearch(ctx context.Context, input string) ([]string, error) {
 
 			content, err := fetchURLContentWithCache(gCtx, result.URL)
 			if err != nil {
-				log.Printf("获取URL内容失败 %s: %v", result.URL, err)
+				g.Log().Infof(ctx, "获取URL内容失败 %s: %v", result.URL, err)
 				return nil // 不中断其他请求
 			}
 

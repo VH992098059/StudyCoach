@@ -3,7 +3,7 @@ package NormalChat
 import (
 	"backend/studyCoach/common"
 	"context"
-	"log"
+	"github.com/gogf/gf/v2/frame/g"
 
 	"github.com/cloudwego/eino-ext/components/tool/duckduckgo/ddgsearch"
 	"github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2"
@@ -20,9 +20,9 @@ func newTool(ctx context.Context) (bt tool.InvokableTool, err error) {
 	}
 	bt, err = duckduckgo.NewTextSearchTool(ctx, config)
 	if err != nil {
-		log.Printf("[NormalChat] DuckDuckGo 搜索工具初始化失败: %v", err)
+		g.Log().Infof(ctx, "[NormalChat] DuckDuckGo 搜索工具初始化失败: %v", err)
 		return nil, err
 	}
-	log.Println("[NormalChat] 已加载 DuckDuckGo 搜索工具 (web_search)")
+	g.Log().Info(ctx, "[NormalChat] 已加载 DuckDuckGo 搜索工具 (web_search)")
 	return bt, nil
 }

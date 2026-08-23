@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -67,7 +66,7 @@ func (t *Tool) InvokableRun(ctx context.Context, argumentsInJSON string, opts ..
 	}
 	s, err := t.backend.Get(ctx, args.Skill)
 	if err != nil {
-		log.Printf("[Skill] Get failed: %v", err)
+		g.Log().Infof(ctx, "[Skill] Get failed: %v", err)
 		return "", err
 	}
 	result := "Base directory: " + s.BaseDirectory + "\n\n"
@@ -90,14 +89,14 @@ func NewTool(ctx context.Context) (tool.InvokableTool, error) {
 		if fallback, fErr := filepath.Abs("backend/skills"); fErr == nil {
 			if _, statErr := os.Stat(fallback); statErr == nil {
 				absDir = fallback
-				log.Printf("[Skill] baseDir 不存在，使用 fallback: %s", absDir)
+				g.Log().Infof(ctx, "[Skill] baseDir 不存在，使用 fallback: %s", absDir)
 			}
 		}
 	}
 
 	fsBackend, err := local.NewBackend(ctx, &local.Config{})
 	if err != nil {
-		log.Printf("[Skill] local.NewBackend failed: %v", err)
+		g.Log().Infof(ctx, "[Skill] local.NewBackend failed: %v", err)
 		return nil, err
 	}
 
@@ -106,11 +105,11 @@ func NewTool(ctx context.Context) (tool.InvokableTool, error) {
 		BaseDir: absDir,
 	})
 	if err != nil {
-		log.Printf("[Skill] NewBackendFromFilesystem failed: %v", err)
+		g.Log().Infof(ctx, "[Skill] NewBackendFromFilesystem failed: %v", err)
 		return nil, err
 	}
 
-	log.Printf("[Skill] 已加载 Skill 工具, baseDir=%s", absDir)
+	g.Log().Infof(ctx, "[Skill] 已加载 Skill 工具, baseDir=%s", absDir)
 	return &Tool{backend: skillBackend}, nil
 }
 
