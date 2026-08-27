@@ -50,14 +50,17 @@ const useChatComposer = (params: UseChatComposerParams) => {
     const t = text.trim();
     if (!t) return t;
     const s = t.replace(/\n{3,}/g, '\n\n').replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n');
-    const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__;
+    const isTauri = typeof window !== 'undefined' && Boolean((window as { __TAURI__?: unknown }).__TAURI__);
     return s.replace(/\n/g, isTauri ? '<br/>' : '  \n');
   }, []);
 
-  const sendQuestionByText = useCallback(async (text: string) => {
+  const sendQuestionByText = useCallback(async (text: string, opts?: { baseMessages?: Message[] }) => {
     const trimmed = text.trim();
     if (!trimmed && currentUploadedFiles.length === 0) return;
     const questionText = trimmed || '请查看我上传的文件';
+
+    // 基准消息：默认当前列表；编辑/重新生成场景传入截断后的剩余消息，避免闭包旧态把已删消息拼回
+    const baseMessages = opts?.baseMessages ?? messages;
 
     // 为图片文件生成预览 URL，为其他文件生成文件信息，用于在消息气泡中展示
     const imageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -69,7 +72,7 @@ const useChatComposer = (params: UseChatComposerParams) => {
     });
 
     const userMessage: Message = {
-      id: Date.now(),
+      id: String(Date.now()),
       msg_id: generateMsgId(),
       content: formatUserInput(questionText),
       isUser: true,
@@ -77,7 +80,7 @@ const useChatComposer = (params: UseChatComposerParams) => {
       ...(attachments.length > 0 ? { attachments } : {}),
     };
 
-    const newMessages = [...messages, userMessage];
+    const newMessages = [...baseMessages, userMessage];
     setMessages(newMessages);
     setInputValue('');
 

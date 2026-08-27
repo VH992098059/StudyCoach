@@ -13,7 +13,8 @@ StudyCoach 是一个深度融合 **RAG（检索增强生成）** 与 **Agentic W
 [![Go](https://img.shields.io/badge/Go-1.24-00ADD8?style=flat-square&logo=go)](https://golang.org/)
 [![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=flat-square&logo=react)](https://reactjs.org/)
 [![Eino](https://img.shields.io/badge/CloudWeGo-Eino-0052D9?style=flat-square)](https://github.com/cloudwego/eino)
-[![Ant Design X](https://img.shields.io/badge/Ant%20Design-X-0170FE?style=flat-square&logo=ant-design)](https://x.ant.design/)
+[![assistant-ui](https://img.shields.io/badge/assistant-ui-React%20AI-000000?style=flat-square)](https://www.assistant-ui.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
 
 </div>
@@ -36,7 +37,8 @@ StudyCoach 是一个深度融合 **RAG（检索增强生成）** 与 **Agentic W
 - **知识库自动更新**：定时任务配合联网搜索 + 知识预检索 + AI 生成（全量/增量模式）
 
 ### 🎨 现代化前端与实时特性
-- **Ant Design X 集成**：专业的 AI 组件库，支持流式气泡交互和思维链展示
+- **assistant-ui 集成**：专业的 React AI 组件库，配合 shadcn/ui（Radix UI）与 Tailwind CSS 4，支持流式气泡交互和思维链展示
+- **全链路真流式**：后端 token 级流式直通（首个有效 chunk 即路由工具调用）+ 20ms 平滑窗口批量下发，前端流式期间跟随滚动不中断
 - **深度思考模式**：支持 `reasoning_content` 流式输出与持久化（NormalChat 模型）
 - **WebSocket 推送**：使用 gorilla/websocket 的 Hub 广播实现定时任务完成的实时通知
 - **多格式渲染**：实时流式渲染 LaTeX 公式、Mermaid 图表、代码高亮和 Markdown 表格
@@ -97,7 +99,7 @@ graph TD
 
 ### 前端
 - **框架**：React 19、TypeScript、Vite 7
-- **UI/UX**：Ant Design 6、**Ant Design X**（AI 组件）、**@ant-design/x-sdk**（流式请求）
+- **UI/UX**：**Tailwind CSS 4**、**shadcn/ui（Radix UI）**、**assistant-ui**（AI 组件）
 - **桌面端**：Tauri（跨平台）
 - **AI 交互**：
   - **VAD**：`@ricky0123/vad-web`（端侧语音检测）
@@ -154,13 +156,21 @@ studyCoach/
 ├── frontChat/                    # React 前端
 │   ├── src/pages/
 │   │   ├── AiChat/               # AI 对话页面
+│   │   │   ├── components/thread/  # 消息流渲染（Markdown/公式/思维链）
+│   │   │   ├── runtime/          # assistant-ui 运行时
+│   │   │   └── context/          # 流式阶段/用户操作 Context
 │   │   ├── KnowledgeBase/        # 知识库管理
 │   │   ├── Cron/                 # 定时任务
 │   │   └── Login/                # 认证
+│   ├── src/components/
+│   │   ├── ui/                   # shadcn/ui 基础组件
+│   │   ├── common/               # 通用业务组件
+│   │   └── layout/               # 应用布局
 │   ├── src/hooks/
-│   │   ├── useSSEChat.ts         # SSE 流式
+│   │   ├── useChatSessions.ts    # 会话管理
 │   │   ├── useWebSocket.ts       # WebSocket 客户端
 │   │   └── useChatSettings.ts    # 聊天设置
+│   ├── src/utils/sse/            # SSE 流式客户端
 │   └── src/services/             # API 服务
 │
 ├── ops/                          # 运维配置
@@ -175,7 +185,7 @@ studyCoach/
 
 ### 前置要求
 - Go 1.24+
-- Node.js 20+ / Bun 1.0+
+- Node.js 20+ / pnpm 9+
 - Docker & Docker Compose
 
 ### 1. 启动基础设施服务
@@ -217,9 +227,9 @@ go build -o studycoach main.go
 ```bash
 cd frontChat
 
-# 使用 Bun（推荐）
-bun install
-bun run dev
+# 使用 pnpm（推荐）
+pnpm install
+pnpm dev
 
 # 或使用 npm
 npm install
@@ -263,6 +273,8 @@ python api.py
 - **文档管理**：上传/删除/更新文档和分块，MySQL 跟踪
 
 ### 🔄 实时特性
+- **全链路真流式**：token 级流式直通，首个有效 chunk 即路由工具调用，20ms 平滑窗口批量下发，消除输出卡顿
+- **工具容错降级**：搜索被限流/反爬拦截时自动降级为文本提示，对话流程不中断
 - **SSE 流式**：双路复制用于客户端展示 + 后台持久化
 - **WebSocket 推送**：定时任务完成的实时通知（gorilla/websocket Hub）
 - **深度思考**：流式 `reasoning_content` 输出与持久化
@@ -283,6 +295,8 @@ python api.py
 - ✅ 向量删除一致性（同步 MySQL chunk 删除与向量库）
 - ✅ Qdrant/Milvus 异步索引的 QA 向量支持
 - ✅ Grader 模块集成用于检索质量评估
+- ✅ 全链路真流式输出管线（token 级直通 + 平滑批量下发）
+- ✅ 工具容错降级与反爬自动降级
 
 ### 🚧 进行中
 

@@ -1,4 +1,4 @@
-import { message } from 'antd';
+import { toast } from 'sonner';
 import ApiClient from '../utils/axios';
 
 /**
@@ -166,7 +166,7 @@ const playAudio = (audioUrl: string, msgId: string): Promise<void> => {
       disposeAudio(audio);
       currentAudio = null;
       if (callbacks) callbacks.onError(event);
-      message.error('音频播放失败');
+      toast.error('音频播放失败');
       reject(new Error('音频播放失败'));
     };
 
@@ -187,7 +187,7 @@ const playAudio = (audioUrl: string, msgId: string): Promise<void> => {
       disposeAudio(audio);
       currentAudio = null;
       if (callbacks) callbacks.onError(playError);
-      message.error('音频播放失败，可能需要用户交互后才能播放');
+      toast.error('音频播放失败，可能需要用户交互后才能播放');
       reject(playError);
     });
   });
@@ -238,7 +238,7 @@ export const voiceService = {
       const textToRead = processTextForReading(content);
 
       if (!textToRead) {
-        message.warning('没有可朗读的内容');
+        toast.warning('没有可朗读的内容');
         return;
       }
 
@@ -279,14 +279,14 @@ export const voiceService = {
       
       if (error instanceof Error) {
         if (error.message.includes('网络') || error.message.includes('HTTP')) {
-          message.error('网络连接失败，请检查网络后重试');
+          toast.error('网络连接失败，请检查网络后重试');
         } else if (error.message.includes('音频')) {
-          message.error('音频处理失败，请稍后重试');
+          toast.error('音频处理失败，请稍后重试');
         } else {
-          message.error('朗读失败，请稍后重试');
+          toast.error('朗读失败，请稍后重试');
         }
       } else {
-        message.error('朗读失败，请稍后重试');
+        toast.error('朗读失败，请稍后重试');
       }
     }
   },

@@ -1,36 +1,34 @@
 /**
  * @fileoverview 麦克风录音按钮
  * @description 集成 VAD 语音端点检测，录制一次说话段并生成 WAV 上传，
- * 支持返回音频播放与将文本转写回调到父组件。
+ * 支持返回音频播放；点击按钮仅打开拨号叠层，录音由叠层内的开始/结束控制。
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Tooltip, message } from 'antd';
-import { AudioOutlined, StopOutlined, LoadingOutlined, PhoneOutlined } from '@ant-design/icons';
+import { toast } from 'sonner';
+import { Mic, Square, Loader2 } from 'lucide-react';
 import { MicVAD } from '@ricky0123/vad-web';
 import ApiClient from '@/utils/axios';
 import { blobToDataURI } from '@/services/asr';
 import VoiceCallOverlay, { type CallStatus } from './VoiceCallOverlay';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MicRecorderButtonProps {
   onTranscript?: (text: string) => void;
   disabled?: boolean;
   language?: string; // e.g., 'auto' | 'zh' | 'en'
-  size?: 'small' | 'middle' | 'large';
   style?: React.CSSProperties;
-  type?: 'primary' | 'ghost' | 'dashed' | 'link' | 'text' | 'default';
 }
 
 /**
- * 麦克风录音按钮：点击显示拨号叠层，叠层中使用 VAD 控制开始/结束录音，并将一次说话段打包为 WAV 上传后端，播放返回音频
+ * 麦克风录音按钮：点击显示拨号叠层，叠层中使用 VAD 控制开始/结束录音，
+ * 并将一次说话段打包为 WAV 上传后端，播放返回音频。
  */
 const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
-  onTranscript,
   disabled,
   language = 'auto',
-  size = 'middle',
   style,
-  type = 'default',
 }) => {
   const [recording, setRecording] = useState(false);
   const [working, setWorking] = useState(false);
@@ -39,9 +37,9 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
   const [hasStarted, setHasStarted] = useState(false);
   const durationTimerRef = useRef<number | null>(null);
   const { t } = useTranslation();
-  const vadRef = useRef<any>(null);
-  // vadInitPromise: 预热期间保存的初始化 Promise，startRecording 时可直接 await
-  const vadInitPromiseRef = useRef<Promise<any> | null>(null);
+  const vadRef = useRef<MicVAD | null>(null);
+  // vadInitPromise: 预热期间保存的初始化 Promise，startRecording 时可直接 await（失败 resolve null）
+  const vadInitPromiseRef = useRef<Promise<MicVAD | null> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlRef = useRef<string | null>(null);
   const stoppedRef = useRef<boolean>(false);
@@ -53,7 +51,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
   /** 单次通话最长连续录音时间（秒），超时自动结束，防止无限占用麦克风与超大上传 */
   const maxDurationTimerRef = useRef<number | null>(null);
   const MAX_RECORD_SEC = 60;
-  
+
   useEffect(() => {
     audioRef.current = new Audio();
     audioRef.current.preload = 'auto';
@@ -68,8 +66,8 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     }
 
     return () => {
-      try { vadRef.current?.pause?.(); } catch {}
-      try { vadRef.current?.destroy?.(); } catch {}
+      try { vadRef.current?.pause(); } catch { /* noop */ }
+      try { vadRef.current?.destroy(); } catch { /* noop */ }
       vadRef.current = null;
       vadInitPromiseRef.current = null;
       audioRef.current?.pause();
@@ -78,7 +76,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
         audioUrlRef.current = null;
       }
       if (mediaStreamRef.current) {
-        try { mediaStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch {} }); } catch {}
+        try { mediaStreamRef.current.getTracks().forEach((track) => { try { track.stop(); } catch { /* noop */ } }); } catch { /* noop */ }
         mediaStreamRef.current = null;
       }
       if (durationTimerRef.current) {
@@ -92,15 +90,15 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     };
   }, []);
 
-  // 叠层打开时预热 VAD 模型（加载 ONNX 模型约 0.5-2s），使用户点击「开始」时无需等待
+  // 叠层打开时预热 VAD 模型（加载 ONNX 模型约 0.5-2s），用户点击「开始」时无需等待
   useEffect(() => {
     if (overlayVisible && !vadRef.current && !vadInitPromiseRef.current) {
-      vadInitPromiseRef.current = buildVAD().catch(() => { vadInitPromiseRef.current = null; });
+      vadInitPromiseRef.current = buildVAD().catch(() => null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overlayVisible]);
 
-  // 将 Float32Array 封装为 WAV Blob（16kHz/单声道/16-bit PCM）
+  // 将 Float32Array 封装为 WAV Blob（16kHz/单声道 16-bit PCM）
   const float32ToWavBlob = (samples: Float32Array, sampleRate: number = 16000): Blob => {
     const bytesPerSample = 2;
     const dataSize = samples.length * bytesPerSample;
@@ -122,7 +120,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     view.setUint32(40, dataSize, true);
     let offset = 44;
     for (let i = 0; i < samples.length; i++) {
-      let s = Math.max(-1, Math.min(1, samples[i]));
+      const s = Math.max(-1, Math.min(1, samples[i]));
       view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
       offset += 2;
     }
@@ -152,7 +150,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
           maxDurationTimerRef.current = null;
         }
         maxDurationTimerRef.current = window.setTimeout(() => {
-          message.warning(t('chat.voice.maxDuration'));
+          toast.warning(t('chat.voice.maxDuration'));
           void stopRecordingRef.current();
         }, MAX_RECORD_SEC * 1000);
       },
@@ -172,7 +170,7 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
           window.clearTimeout(maxDurationTimerRef.current);
           maxDurationTimerRef.current = null;
         }
-        // barge-in 场景下 processingRef 已被重置，此处可以正常处理
+        // barge-in 场景中 processingRef 已被重置，此处可以正常处理
         processingRef.current = true;
         if (!fetchAbortRef.current) fetchAbortRef.current = new AbortController();
         if (durationTimerRef.current) {
@@ -191,13 +189,13 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
           if (!audioRef.current) audioRef.current = new Audio();
           audioRef.current.src = url;
           await audioRef.current.play();
-          message.success(t('chat.voice.played'));
-        } catch (err: any) {
-          if (err?.name === 'AbortError') {
+          toast.success(t('chat.voice.played'));
+        } catch (err) {
+          if (err instanceof Error && err.name === 'AbortError') {
             // 请求被 barge-in 或手动取消，静默处理
           } else {
             console.error(err);
-            message.error(err?.message || t('chat.voice.failed'));
+            toast.error((err instanceof Error && err.message) || t('chat.voice.failed'));
           }
         } finally {
           setWorking(false);
@@ -224,17 +222,18 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
     try {
       let vad = vadRef.current;
       if (!vad) {
-        // 优先等待预热完成的实例，否则临时构建
-        vad = vadInitPromiseRef.current ? await vadInitPromiseRef.current : await buildVAD();
+        // 优先等待预热完成的实例（预热失败为 null），否则临时构建
+        const warmed = vadInitPromiseRef.current ? await vadInitPromiseRef.current : null;
+        vad = warmed ?? (await buildVAD());
         vadInitPromiseRef.current = null;
         vadRef.current = vad;
       }
       await vad.start();
       setOverlayVisible(true);
-      message.info(t('chat.voice.micStarted'));
-    } catch (err: any) {
+      toast.info(t('chat.voice.micStarted'));
+    } catch (err) {
       console.error(err);
-      message.error(t('chat.voice.micError'));
+      toast.error(t('chat.voice.micError'));
     }
   };
 
@@ -244,23 +243,23 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
       window.clearTimeout(maxDurationTimerRef.current);
       maxDurationTimerRef.current = null;
     }
-    if (fetchAbortRef.current) { try { fetchAbortRef.current.abort(); } catch {} fetchAbortRef.current = null; }
-    if (audioRef.current) { try { audioRef.current.pause(); } catch {} try { (audioRef.current as any).src = ''; } catch {} }
-    if (audioUrlRef.current) { try { URL.revokeObjectURL(audioUrlRef.current); } catch {} audioUrlRef.current = null; }
+    if (fetchAbortRef.current) { try { fetchAbortRef.current.abort(); } catch { /* noop */ } fetchAbortRef.current = null; }
+    if (audioRef.current) { try { audioRef.current.pause(); } catch { /* noop */ } audioRef.current.src = ''; }
+    if (audioUrlRef.current) { try { URL.revokeObjectURL(audioUrlRef.current); } catch { /* noop */ } audioUrlRef.current = null; }
     if (mediaStreamRef.current) {
-      try { mediaStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch {} }); } catch {}
+      try { mediaStreamRef.current.getTracks().forEach((track) => { try { track.stop(); } catch { /* noop */ } }); } catch { /* noop */ }
       mediaStreamRef.current = null;
     }
     // pause 而非 destroy，保留 VAD 实例供下次 start() 快速复用
     if (vadRef.current) {
-      try { await vadRef.current.pause?.(); } catch (err) { console.error(err); }
+      try { await vadRef.current.pause(); } catch (err) { console.error(err); }
     }
     setRecording(false);
     setWorking(false);
     processingRef.current = false;
     setOverlayVisible(false);
     if (durationTimerRef.current) { window.clearInterval(durationTimerRef.current); durationTimerRef.current = null; }
-    message.info(t('chat.voice.ended'));
+    toast.info(t('chat.voice.ended'));
   };
 
   // 中断当前处理/播放并重新开始录音（手动打断）
@@ -270,22 +269,22 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
       maxDurationTimerRef.current = null;
     }
     if (audioRef.current) {
-      try { audioRef.current.pause(); } catch {}
+      try { audioRef.current.pause(); } catch { /* noop */ }
       audioRef.current.currentTime = 0;
     }
     if (audioUrlRef.current) {
-      try { URL.revokeObjectURL(audioUrlRef.current); } catch {}
+      try { URL.revokeObjectURL(audioUrlRef.current); } catch { /* noop */ }
       audioUrlRef.current = null;
     }
     if (fetchAbortRef.current) {
-      try { fetchAbortRef.current.abort(); } catch {}
+      try { fetchAbortRef.current.abort(); } catch { /* noop */ }
       fetchAbortRef.current = null;
     }
     processingRef.current = false;
     setWorking(false);
     // VAD 实例保留，直接 pause 后 start 复用
     if (vadRef.current) {
-      try { await vadRef.current.pause?.(); } catch {}
+      try { await vadRef.current.pause(); } catch { /* noop */ }
     }
     stoppedRef.current = false;
     startRecording();
@@ -293,38 +292,30 @@ const MicRecorderButton: React.FC<MicRecorderButtonProps> = ({
 
   stopRecordingRef.current = stopRecording;
 
-  const icon = working ? <LoadingOutlined spin /> : recording ? <StopOutlined /> : <PhoneOutlined />;
-  const color = working ? '#1890ff' : recording ? '#ff4d4f' : '#444';
+  const icon = working ? <Loader2 className="size-4 animate-spin" /> : recording ? <Square className="size-4" /> : <Mic className="size-4" />;
+  const iconColor = working ? 'text-primary' : recording ? 'text-danger' : 'text-text-2';
   const computeStatus = (): CallStatus => { if (!overlayVisible) return 'dialing'; if (working) return 'processing'; if (recording) return 'recording'; return hasStarted ? 'ended' : 'dialing'; };
 
   return (
     <>
-      <Tooltip title={recording ? t('chat.voice.stopRecord') : t('chat.voice.startCall')}>
-        <Button
-          icon={icon}
-          onClick={() => {
-            // 点击按钮仅打开叠层，真正的开始在叠层中触发
-            setOverlayVisible(true);
-          }}
-          disabled={disabled || working}
-          size={size}
-          style={{
-            width: 36,
-            height: 36,
-            minWidth: 36,
-            borderRadius: 8,
-            // Only apply default background/border if type is default to avoid clashing with text buttons
-            background: type === 'default' ? '#f5f5f5' : 'transparent',
-            border: type === 'default' ? '1px solid #e5e6eb' : 'none',
-            color,
-            boxShadow: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
-            ...style,
-          }}
-        />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={iconColor}
+            onClick={() => {
+              // 点击按钮仅打开叠层，真正的开始在叠层中触发
+              setOverlayVisible(true);
+            }}
+            disabled={disabled || working}
+            aria-label={recording ? t('chat.voice.stopRecord') : t('chat.voice.startCall')}
+            style={style}
+          >
+            {icon}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{recording ? t('chat.voice.stopRecord') : t('chat.voice.startCall')}</TooltipContent>
       </Tooltip>
 
       <VoiceCallOverlay

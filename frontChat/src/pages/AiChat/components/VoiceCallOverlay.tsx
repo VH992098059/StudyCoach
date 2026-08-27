@@ -2,10 +2,12 @@
  * @fileoverview 语音通话叠层
  * @description 显示拨号/录音/处理中/结束的状态与对应图标，承载录音流程的 UI。
  */
-import React, { useEffect } from 'react';
-import { Modal, Button } from 'antd';
-import { AudioOutlined, StopOutlined, LoadingOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import React from 'react';
+import { AudioLines, Square, Loader2, CircleCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export type CallStatus = 'dialing' | 'recording' | 'processing' | 'ended';
 
@@ -42,74 +44,52 @@ const VoiceCallOverlay: React.FC<VoiceCallOverlayProps> = ({
     ? t('chat.voice.processing')
     : t('chat.voice.ended');
 
-  useEffect(() => {
-    // 未来可加入铃声/提示音
-  }, [status]);
-
   const icon = isProcessing ? (
-    <LoadingOutlined style={{ fontSize: 24, color: '#1890ff' }} spin />
+    <Loader2 className="size-6 animate-spin text-primary" />
   ) : isRecording ? (
-    <StopOutlined style={{ fontSize: 24, color: '#ff4d4f' }} />
+    <Square className="size-6 fill-current text-danger" />
   ) : isEnded ? (
-    <CheckCircleOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+    <CircleCheck className="size-6 text-success" />
   ) : (
-    <AudioOutlined style={{ fontSize: 24, color: '#666' }} />
+    <AudioLines className="size-6 text-text-3" />
   );
 
   return (
-    <Modal
-      open={visible}
-      title={title}
-      footer={null}
-      onCancel={onCancel}
-      centered
-    >
-      {isRecording && (
-        <style>{`
-          @keyframes vadRecordingPulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.35); transform: scale(1); }
-            50% { box-shadow: 0 0 0 10px rgba(255, 77, 79, 0); transform: scale(1.02); }
-          }
-        `}</style>
-      )}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        <div
-          style={{
-          width: 64,
-          height: 64,
-          borderRadius: 16,
-          background: '#f5f5f5',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.06)',
-          ...(isRecording
-            ? { animation: 'vadRecordingPulse 1.4s ease-in-out infinite' }
-            : {}),
-        }}
-        >
-          {icon}
-        </div>
-        {isRecording && (
-          <div style={{ color: '#999' }}>{Math.floor(durationSec / 60)}:{String(durationSec % 60).padStart(2, '0')}</div>
-        )}
-        <div style={{ display: 'flex', gap: 12 }}>
-          {isDialing && (
-            <Button type="primary" onClick={onStart}>{t('chat.voice.startBtn')}</Button>
-          )}
+    <Dialog open={visible} onOpenChange={(open) => { if (!open) onCancel?.(); }}>
+      <DialogContent className="max-w-xs" showCloseButton={false}>
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 pt-2">
+          <div
+            className={cn(
+              'flex size-16 items-center justify-center rounded-lg border bg-surface',
+              isRecording && 'animate-pulse border-danger/40',
+            )}
+          >
+            {icon}
+          </div>
+          <div className="text-sm font-medium text-text-2">{title}</div>
           {isRecording && (
-            <Button danger onClick={onEnd}>{t('chat.voice.endBtn')}</Button>
+            <div className="font-mono text-sm text-text-3">
+              {Math.floor(durationSec / 60)}:{String(durationSec % 60).padStart(2, '0')}
+            </div>
           )}
-          {isProcessing && (
-             <Button type="primary" onClick={onRestart}>{t('chat.voice.restartBtn')}</Button>
-          )}
-          {isEnded && (
-            <Button type="primary" onClick={onRestart || onStart}>{t('chat.voice.restartBtn')}</Button>
-          )}
-          <Button onClick={onCancel}>{t('chat.voice.closeBtn')}</Button>
+          <div className="flex gap-3">
+            {isDialing && (
+              <Button onClick={onStart}>{t('chat.voice.startBtn')}</Button>
+            )}
+            {isRecording && (
+              <Button variant="destructive" onClick={onEnd}>{t('chat.voice.endBtn')}</Button>
+            )}
+            {(isProcessing || isEnded) && (
+              <Button onClick={onRestart || onStart}>{t('chat.voice.restartBtn')}</Button>
+            )}
+            <Button variant="outline" onClick={onCancel}>{t('chat.voice.closeBtn')}</Button>
+          </div>
         </div>
-      </div>
-    </Modal>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -1,157 +1,75 @@
 /**
- * @fileoverview 认证页面布局组件
- * @description 为登录、注册等认证相关页面提供统一的布局结构
- * @author 开发团队
- * @version 1.0.0
+ * 认证页面布局（设计文档 4.6，shadcn 版）
+ * 居中卡片（360px）：logo 方标 + 标题/副标题 + 表单区
+ * 右上角悬浮主题切换；无顶栏导航
  */
 
-import React, { Suspense } from 'react';
-import { Layout as AntLayout, Spin, Alert, Button } from 'antd';
+import React from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { useTranslation } from 'react-i18next';
-import './index.scss';
 
-const { Content } = AntLayout;
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { Button } from '@/components/ui/button';
 
-/**
- * 认证布局组件属性接口
- * @interface AuthLayoutProps
- */
-interface AuthLayoutProps {
+export interface AuthLayoutProps {
   /** 子组件内容 */
   children: React.ReactNode;
-  /** 是否显示加载状态 */
-  loading?: boolean;
   /** 页面主标题 */
   title?: string;
   /** 页面副标题 */
   subtitle?: string;
-  /** 背景图片URL */
-  backgroundImage?: string;
-  /** 是否显示Logo */
-  showLogo?: boolean;
-  /** Logo图片URL */
-  logoUrl?: string;
-  /** Logo文字内容 */
-  logoText?: string;
 }
 
-/**
- * 错误回退组件
- * @description 当认证页面出现错误时显示的回退界面
- * @param {Object} props - 组件属性
- * @param {Error} props.error - 错误对象
- * @param {Function} props.resetErrorBoundary - 重置错误边界的函数
- */
-const ErrorFallback: React.FC<FallbackProps> = ({
-  error,
-  resetErrorBoundary,
-})=> {
+/** 错误回退：页面异常时展示，可重试 */
+const ErrorFallback: React.FC<FallbackProps> = ({ error, resetErrorBoundary }) => {
   const { t } = useTranslation();
   const message = error instanceof Error ? error.message : String(error ?? '');
   return (
-    <div className="auth-error-boundary">
-      <Alert
-        message={t('common.pageError')}
-        description={message}
-        type="error"
-        showIcon
-        action={
-          <button onClick={resetErrorBoundary} className="auth-error-retry-btn">
-            {t('common.retry')}
-          </button>
-        }
-      />
+    <div className="w-full rounded-md border border-danger/40 bg-surface px-4 py-3.5">
+      <div className="text-[13px] font-medium text-danger">{t('common.pageError')}</div>
+      <div className="mt-1 text-xs leading-relaxed text-text-3">{message}</div>
+      <Button size="sm" variant="outline" className="mt-3" onClick={resetErrorBoundary}>
+        {t('common.retry')}
+      </Button>
     </div>
   );
 };
 
-/**
- * 加载回退组件
- * @description 在认证页面加载过程中显示的loading界面
- */
-const LoadingFallback: React.FC = () => {
+const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) => {
   const { t } = useTranslation();
-  return (
-    <div className="auth-loading-container">
-      <Spin size="large" tip={t('common.loading')} />
-    </div>
-  );
-};
-
-/**
- * 认证页面布局组件
- * @description 为登录、注册、重置密码等认证相关页面提供统一的布局结构
- * @param {AuthLayoutProps} props - 组件属性
- * @example
- * ```tsx
- * <AuthLayout
- *   title="用户登录"
- *   subtitle="请输入您的账号和密码"
- *   showLogo={true}
- *   logoText="我的应用"
- * >
- *   <LoginForm />
- * </AuthLayout>
- * ```
- */
-const AuthLayout: React.FC<AuthLayoutProps> = ({
-  children,
-  loading = false,
-  title,
-  subtitle,
-  backgroundImage,
-  showLogo = true,
-  logoUrl,
-  logoText,
-})=> {
-  const { t } = useTranslation();
-  const finalLogoText = logoText || t('common.appTitle');
-
-  const layoutStyle: React.CSSProperties = {
-    minHeight: '100vh',
-    backgroundImage: backgroundImage ? `url(${backgroundImage})` : undefined,
-  };
+  const appName = t('common.appTitle');
 
   return (
-    <ErrorBoundary
-      FallbackComponent={ErrorFallback}
-      onReset={() => {
-        window.location.reload();
-      }}
-    >
-      <AntLayout className="auth-layout" style={layoutStyle}>
-        
-        <Content className="auth-content">
-          <div className="auth-container">
-            {/* Logo区域 */}
-            {showLogo && (
-              <div className="auth-logo">
-                {logoUrl && <img src={logoUrl} alt="logo" className="auth-logo-image" />}
-                <h1 className="auth-logo-text">{finalLogoText}</h1>
-              </div>
-            )}
+    <ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => window.location.reload()}>
+      <div className="relative flex min-h-screen items-center justify-center bg-background px-4 py-10">
+        {/* 右上角悬浮主题切换 */}
+        <div className="absolute right-4 top-4">
+          <ThemeToggle className="size-8 rounded-md" />
+        </div>
 
-            {/* 标题区域 */}
-            {(title || subtitle) && (
-              <div className="auth-header">
-                {title && <h2 className="auth-title">{title}</h2>}
-                {subtitle && <p className="auth-subtitle">{subtitle}</p>}
-              </div>
-            )}
-
-            {/* 内容区域 */}
-            <div className="auth-form-container">
-              <Suspense fallback={<LoadingFallback />}>
-                {loading ? <LoadingFallback /> : children}
-              </Suspense>
+        <div className="w-full max-w-[360px]">
+          {/* logo 方标 + 应用名 */}
+          <div className="mb-5 flex items-center justify-center gap-2.5">
+            <div className="flex size-8 items-center justify-center rounded-sm bg-primary text-[15px] font-semibold text-primary-foreground">
+              {appName.charAt(0)}
             </div>
+            <span className="text-[15px] font-semibold tracking-wide text-text-1">{appName}</span>
           </div>
-        </Content>
-      </AntLayout>
+
+          {/* 标题区 */}
+          {(title || subtitle) && (
+            <div className="mb-5 text-center">
+              {title && <h1 className="text-lg font-semibold text-text-1">{title}</h1>}
+              {subtitle && <p className="mt-1 text-[12.5px] leading-relaxed text-text-3">{subtitle}</p>}
+            </div>
+          )}
+
+          {/* 卡片内容 */}
+          <div className="rounded-md border border-border bg-surface px-5 py-6 sm:px-6">{children}</div>
+        </div>
+      </div>
     </ErrorBoundary>
   );
 };
 
 export default AuthLayout;
-export type { AuthLayoutProps };

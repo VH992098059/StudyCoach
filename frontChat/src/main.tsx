@@ -1,38 +1,29 @@
-import { StrictMode } from 'react'
 /**
  * @fileoverview 应用程序入口文件
- * @description React应用的主入口点，负责渲染根组件并配置路由和国际化
- * @author 开发团队
- * @version 1.0.0
+ * @description React 应用主入口：渲染根组件，配置全局样式与路由
+ * - globals.css：Tailwind v4 + 地铁线网设计系统双主题 token
+ * - Toaster（sonner）承接全局消息提示
  */
 
 import { createRoot } from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
 
-const theme = {
-  token: {
-    colorPrimary: '#2563eb',
-    borderRadius: 8,
-  },
-};
+import './styles/globals.css';
 import './i18n';
 import router from './router';
 import { initTokenExpiryChecker } from './utils/token/tokenExpiryChecker';
+import { Toaster } from '@/components/ui/sonner';
 
 // 初始化全局 token 过期检查
 initTokenExpiryChecker();
 
-/**
- * 应用程序启动
- * @description 创建React根节点并渲染应用
- * - 使用StrictMode进行开发时的额外检查
- * - 配置Ant Design的中文语言包
- * - 设置React Router路由系统
- */
-createRoot(document.getElementById('root')!).render(
-  <ConfigProvider locale={zhCN} theme={theme}>
-    <RouterProvider router={router} />
-  </ConfigProvider>,
-)
+function App() {
+  return (
+    <>
+      <RouterProvider router={router} />
+      <Toaster />
+    </>
+  );
+}
+
+createRoot(document.getElementById('root')!).render(<App />);

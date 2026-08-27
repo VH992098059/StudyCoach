@@ -1,10 +1,10 @@
 /**
  * SSE 聊天 Hook
- * 基于 @ant-design/x-sdk 实现流式对话
+ * 基于 fetch SSE 客户端（utils/sse/sseClient）实现流式对话
  */
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { SSEConnectionState } from '@/utils/sse/sse';
-import { XRequest } from '@ant-design/x-sdk';
+import { createSSEClient, type SSEClient, type SSEChunk } from '@/utils/sse/sseClient';
 import { API_CONFIG } from '@/utils/axios/config';
 import { clearAuthStorage } from '@/utils/axios/interceptors';
 import type { Message, MessagePart } from '@/types/chat';
@@ -25,19 +25,6 @@ interface UseSSEChatParams {
   isDeepThinking?: boolean;
 }
 
-interface ChatParams {
-  id: string;
-  question?: string;
-  multi_content?: MessagePart[];
-  knowledge_name: string;
-  top_k: number;
-  score: number;
-  is_network: boolean;
-  is_study_mode: boolean;
-  is_deep_thinking?: boolean;
-  uploaded_files?: string[];
-}
-
 /** 阶段进度步骤（后端 event: stage 事件解析结果），供前端渲染纵向步骤条 */
 export interface StageStep {
   stage: string;
@@ -55,7 +42,7 @@ const createAIMessage = (
   msgId: string,
   reasoningContent?: string
 ): Message => ({
-  id: Date.now(),
+  id: String(Date.now()),
   msg_id: msgId,
   content,
   isUser: false,
@@ -68,7 +55,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   const { t } = useTranslation();
 
   // Refs
-  const requestRef = useRef<ReturnType<typeof XRequest> | null>(null);
+  const requestRef = useRef<SSEClient | null>(null);
   const accumulatedMessageRef = useRef<string>('');
   const accumulatedReasoningRef = useRef<string>('');
   const isUserStoppedRef = useRef<boolean>(false);
@@ -105,7 +92,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   // 清理请求、定时器、缓存
   const cleanup = useCallback(() => {
     if (requestRef.current) {
-      (requestRef.current as any).abort?.();
+      requestRef.current.abort();
       requestRef.current = null;
     }
     if (retryTimerRef.current) {
@@ -117,8 +104,8 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
   // --- SSE 事件处理器（拆分自巨大的 onUpdate） ---
 
-  const handleErrorEvent = useCallback((chunk: any) => {
-    const errorMsg = chunk?.data || t('chat.sse.unknownError');
+  const handleErrorEvent = useCallback((chunk: SSEChunk) => {
+    const errorMsg = String(chunk?.data ?? '').trim() || t('chat.sse.unknownError');
     console.error('SSE Error Event:', errorMsg);
     const msgLower = String(errorMsg).toLowerCase();
     if (
@@ -139,7 +126,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
     resetStreamState();
   }, [t, generateMsgId, setMessages, resetStreamState]);
 
-  const handleToolStatusEvent = useCallback((chunk: any) => {
+  const handleToolStatusEvent = useCallback((chunk: SSEChunk) => {
     try {
       const data = typeof chunk?.data === 'string' ? JSON.parse(chunk.data) : chunk?.data;
       const name = data?.name || data?.tool || '';
@@ -150,7 +137,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
   }, [t]);
 
   // 阶段进度事件（event: stage）：按节点名维护步骤条状态
-  const handleStageEvent = useCallback((chunk: any) => {
+  const handleStageEvent = useCallback((chunk: SSEChunk) => {
     try {
       const data = typeof chunk?.data === 'string' ? JSON.parse(chunk.data) : chunk?.data;
       if (!data || typeof data.stage !== 'string') return;
@@ -243,10 +230,8 @@ const useSSEChat = (params: UseSSEChatParams) => {
     try {
       let isFirstChunk = true;
       const token = localStorage.getItem('access_token') || '';
-      const request = XRequest<ChatParams, any>(endpoint, {
-        method: 'POST',
+      const request = createSSEClient<SSEChunk>(endpoint, {
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'text/event-stream',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
@@ -262,7 +247,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
           ...(uploadedFiles.length > 0 ? { uploaded_files: uploadedFiles } : {}),
         },
         callbacks: {
-          onUpdate: (chunk: any) => {
+          onUpdate: (chunk: SSEChunk) => {
             if (isUserStoppedRef.current) return;
 
             if (chunk?.event === 'error') {
@@ -305,8 +290,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
               } catch { /* ignore */ }
             }
 
-            let data = chunk?.data ?? '';
-            if (typeof chunk === 'string') data = chunk;
+            const data = chunk?.data ?? '';
             const payload = typeof data === 'string' ? data.trim() : '';
 
             // 兜底：处理无 event 字段的 tool_status
@@ -370,15 +354,15 @@ const useSSEChat = (params: UseSSEChatParams) => {
         },
       });
 
-      requestRef.current = request as any;
-      (request as any).run();
-    } catch (error: any) {
+      requestRef.current = request;
+      request.run();
+    } catch (error) {
       console.error('Request creation error:', error);
       setLoading(false);
       setConnectionState(SSEConnectionState.ERROR);
     }
   // connectionState 从依赖数组移除，改用 connectionStateRef.current
-  }, [selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, isDeepThinking, generateMsgId, setMessages, t,
+  }, [selectedKnowledge, advancedSettings, isNetworkEnabled, isStudyMode, isDeepThinking, t,
       resetStreamState, handleErrorEvent, handleToolStatusEvent, handleStageEvent, handleDonePayload, handleContentPayload]);
 
   // --- 导出方法 ---
@@ -391,7 +375,7 @@ const useSSEChat = (params: UseSSEChatParams) => {
 
   const stop = useCallback(() => {
     isUserStoppedRef.current = true;
-    if (requestRef.current) (requestRef.current as any).abort?.();
+    if (requestRef.current) requestRef.current.abort();
     if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
 
     if (accumulatedMessageRef.current.trim()) {

@@ -22,7 +22,7 @@ func newLambda(ctx context.Context) (lba *compose.Lambda, err error) {
 	g.Log().Infof(ctx, "[ReActLambda] 配置工具 - 网络搜索(联网): %v", isNetwork)
 	config := &react.AgentConfig{
 		MaxStep:               100,
-		StreamToolCallChecker: common.DrainStreamChecker,
+		StreamToolCallChecker: common.FastStreamChecker,
 	}
 	chatModelIns11, err := newChatModel(ctx)
 	if err != nil {
@@ -65,7 +65,9 @@ func newLambda(ctx context.Context) (lba *compose.Lambda, err error) {
 	if err != nil {
 		return nil, err
 	}
-	lba, err = compose.AnyLambda(ins.Generate, common.BuildGenToStream(ins), nil, nil)
+	// eino v0.9.15 的 react.Agent 原生支持流式多轮（StreamGraphBranch + StreamToolCallChecker），
+	// 旧版 0.8.4「Stream 丢失工具调用后内容」的 bug 已不存在，直接使用真流式
+	lba, err = compose.AnyLambda(ins.Generate, ins.Stream, nil, nil)
 	if err != nil {
 		return nil, err
 	}

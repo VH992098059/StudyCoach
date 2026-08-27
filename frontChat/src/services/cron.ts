@@ -145,7 +145,7 @@ export interface CronExecuteDetailReq {
     id: string;
 }
 
-export interface CronExecuteDetailRes extends CronExecute {}
+export type CronExecuteDetailRes = CronExecute;
 
 export interface CronExecuteLogReq {
     executeId: string;

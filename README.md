@@ -13,7 +13,8 @@ Unlike traditional "Q&A" ChatBots, StudyCoach employs a graph-based orchestratio
 [![Go](https://img.shields.io/badge/Go-1.24-00ADD8?style=flat-square&logo=go)](https://golang.org/)
 [![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=flat-square&logo=react)](https://reactjs.org/)
 [![Eino](https://img.shields.io/badge/CloudWeGo-Eino-0052D9?style=flat-square)](https://github.com/cloudwego/eino)
-[![Ant Design X](https://img.shields.io/badge/Ant%20Design-X-0170FE?style=flat-square&logo=ant-design)](https://x.ant.design/)
+[![assistant-ui](https://img.shields.io/badge/assistant-ui-React%20AI-000000?style=flat-square)](https://www.assistant-ui.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
 
 </div>
@@ -36,7 +37,8 @@ Unlike traditional "Q&A" ChatBots, StudyCoach employs a graph-based orchestratio
 - **Auto-Update Knowledge Base**: Scheduled tasks with web search + knowledge pre-retrieval + AI generation (full/incremental modes)
 
 ### 🎨 Modern Frontend & Real-Time Features
-- **Ant Design X Integration**: Professional AI component library with streaming bubble interactions and Chain of Thought display
+- **assistant-ui Integration**: Professional React AI component library with shadcn/ui (Radix UI) and Tailwind CSS 4, supporting streaming bubble interactions and Chain of Thought display
+- **True End-to-End Streaming**: Backend token-level pass-through streaming (tool calls routed on the first valid chunk) + 20ms smooth batching window; frontend auto-scrolls without interruption during streaming
 - **Deep Thinking Mode**: Supports `reasoning_content` streaming output and persistence (NormalChat model)
 - **WebSocket Push**: Real-time notifications for cron task completion using gorilla/websocket with Hub broadcast
 - **Multi-Format Rendering**: LaTeX formulas, Mermaid diagrams, code highlighting, and Markdown tables in real-time streaming
@@ -97,7 +99,7 @@ graph TD
 
 ### Frontend
 - **Framework**: React 19, TypeScript, Vite 7
-- **UI/UX**: Ant Design 6, **Ant Design X** (AI Components), **@ant-design/x-sdk** (streaming)
+- **UI/UX**: **Tailwind CSS 4**, **shadcn/ui (Radix UI)**, **assistant-ui** (AI components)
 - **Desktop**: Tauri (cross-platform)
 - **AI Interaction**:
   - **VAD**: `@ricky0123/vad-web` (client-side voice detection)
@@ -154,13 +156,21 @@ studyCoach/
 ├── frontChat/                    # React Frontend
 │   ├── src/pages/
 │   │   ├── AiChat/               # AI Chat Page
+│   │   │   ├── components/thread/  # Message stream rendering (Markdown/formulas/CoT)
+│   │   │   ├── runtime/          # assistant-ui runtime
+│   │   │   └── context/          # Streaming stage / user actions Context
 │   │   ├── KnowledgeBase/        # Knowledge Base Management
 │   │   ├── Cron/                 # Scheduled Tasks
 │   │   └── Login/                # Authentication
+│   ├── src/components/
+│   │   ├── ui/                   # shadcn/ui base components
+│   │   ├── common/               # Common business components
+│   │   └── layout/               # App layout
 │   ├── src/hooks/
-│   │   ├── useSSEChat.ts         # SSE Streaming
+│   │   ├── useChatSessions.ts    # Session management
 │   │   ├── useWebSocket.ts       # WebSocket Client
 │   │   └── useChatSettings.ts    # Chat Settings
+│   ├── src/utils/sse/            # SSE streaming client
 │   └── src/services/             # API Services
 │
 ├── ops/                          # DevOps Configuration
@@ -175,7 +185,7 @@ studyCoach/
 
 ### Prerequisites
 - Go 1.24+
-- Node.js 20+ / Bun 1.0+
+- Node.js 20+ / pnpm 9+
 - Docker & Docker Compose
 
 ### 1. Start Infrastructure Services
@@ -217,9 +227,9 @@ Backend will start on `http://localhost:8000`
 ```bash
 cd frontChat
 
-# Using Bun (recommended)
-bun install
-bun run dev
+# Using pnpm (recommended)
+pnpm install
+pnpm dev
 
 # Or using npm
 npm install
@@ -263,6 +273,8 @@ Configure the ASR endpoint in `backend/manifest/config/config.yaml`
 - **Document Management**: Upload/delete/update documents and chunks with MySQL tracking
 
 ### 🔄 Real-Time Features
+- **True End-to-End Streaming**: Token-level pass-through, tool calls routed on the first valid chunk, 20ms smooth batching window for stutter-free output
+- **Tool Fault Tolerance**: Automatic fallback to text hints when search is rate-limited or anti-bot blocked, keeping conversations alive
 - **SSE Streaming**: Dual-path copy for client display + background persistence
 - **WebSocket Push**: Real-time notifications for cron completion (gorilla/websocket Hub)
 - **Deep Thinking**: Streaming `reasoning_content` output and persistence
@@ -283,6 +295,8 @@ Configure the ASR endpoint in `backend/manifest/config/config.yaml`
 - ✅ Vector deletion consistency (sync MySQL chunk deletion with vector stores)
 - ✅ QA vector support for Qdrant/Milvus async indexing
 - ✅ Grader module integration for retrieval quality assessment
+- ✅ True end-to-end streaming pipeline (token-level pass-through + smooth batching)
+- ✅ Tool fault tolerance with automatic anti-bot fallback
 
 ### 🚧 In Progress
 

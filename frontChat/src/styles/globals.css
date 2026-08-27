@@ -1,0 +1,268 @@
+/* ============================================================
+   StudyCoach 全局样式 · Tailwind v4（地铁线网风格设计系统）
+   - P1 阶段不引入 Tailwind preflight（避免全局 reset 破坏现存
+     antd/SCSS 页面），仅加载 theme + utilities；
+     P6 移除旧页面后可切换为完整 @import "tailwindcss";
+   - 深浅双主题：html.dark 类切换，所有颜色走 CSS 变量
+   - 品牌主色为单一墨绿（不绑定任何学科/领域）
+   - token 命名对齐 shadcn 约定（--background/--primary/...），
+     并保留项目扩展 token（--text-2/3/4、--primary-bg 等）
+   ============================================================ */
+
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "tw-animate-css";
+
+/* class 策略暗色模式（html.dark） */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* ---------- 项目基础 token（浅色） ---------- */
+  --bg: #FAFAFA;
+  --surface: #FFFFFF;
+  --border: #E4E4E7;
+  --border-strong: #D8D9DC;
+  --row-border: #F0F0EF;
+  --text-1: #111318;
+  --text-2: #5A5D63;
+  --text-3: #8A8D93;
+  --text-4: #B3B5BA;
+  --text-body: #2B2E33;
+  --primary: #0F6E56;
+  --primary-hover: #0C5A46;
+  --primary-bg: #EFF6F3;
+  --primary-fg: #FFFFFF;
+  --success: #1F9D67;
+  --success-bg: #E8F7F0;
+  --danger: #D64545;
+  --danger-bg: #FBEDED;
+  --warning: #B98900;
+  --warning-bg: #FFF6E5;
+  --bubble-user: #EFEFED;
+  --mark-bg: #FFF0BF;
+  --hover: #F0F0EF;
+  --radius: 8px;
+  --radius-lg: 8px;
+  --header-h: 52px;
+  --sc-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  /* ---------- shadcn 约定 token ---------- */
+  --background: var(--bg);
+  --foreground: var(--text-1);
+  --card: var(--surface);
+  --card-foreground: var(--text-1);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-1);
+  --primary-foreground: var(--primary-fg);
+  --secondary: var(--hover);
+  --secondary-foreground: var(--text-1);
+  --muted: var(--hover);
+  --muted-foreground: var(--text-3);
+  --accent: var(--hover);
+  --accent-foreground: var(--text-1);
+  --destructive: var(--danger);
+  --input: var(--border-strong);
+  --ring: var(--primary);
+}
+
+html.dark {
+  /* ---------- 项目基础 token（深色） ---------- */
+  --bg: #101113;
+  --surface: #17181B;
+  --border: #26282C;
+  --border-strong: #3A3C42;
+  --row-border: #222327;
+  --text-1: #ECEDEF;
+  --text-2: #A8ABB2;
+  --text-3: #787B82;
+  --text-4: #54565C;
+  --text-body: #C9CBD1;
+  --primary: #36B492;
+  --primary-hover: #45C2A0;
+  --primary-bg: #16211D;
+  --primary-fg: #07231C;
+  --success: #3ECF8E;
+  --success-bg: #12241D;
+  --danger: #E05B5B;
+  --danger-bg: #2A1A1A;
+  --warning: #D9A82E;
+  --warning-bg: #2A2310;
+  --bubble-user: #242629;
+  --mark-bg: #443A16;
+  --hover: #222327;
+  --sc-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+
+  /* shadcn 约定 token 随基础 token 联动，无需重复定义 */
+}
+
+/* ---------- 将 token 映射为 Tailwind 工具类 ---------- */
+@theme inline {
+  /* shadcn 约定 */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* 项目扩展 */
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-bg: var(--primary-bg);
+  --color-border-strong: var(--border-strong);
+  --color-row-border: var(--row-border);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-danger: var(--danger);
+  --color-danger-bg: var(--danger-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-hover: var(--hover);
+  --color-bubble-user: var(--bubble-user);
+  --color-mark-bg: var(--mark-bg);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-text-4: var(--text-4);
+  --color-text-body: var(--text-body);
+
+  /* 圆角体系：统一 8px（现代扁平，避免过小显得复古） */
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-lg);
+
+  /* 字体 */
+  --font-sans: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  /* 阴影（shadow-card 工具类） */
+  --shadow-card: var(--sc-shadow);
+}
+
+/* ---------- 基础层（替代 preflight 的最小集，位于 @layer 内不覆盖现存样式） ---------- */
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
+
+  /* button 最小 reset（项目未引入完整 preflight，
+     浏览器默认 padding/border/font 会破坏 Switch 等无 padding 声明的按钮） */
+  button {
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    appearance: none;
+    font: inherit;
+    color: inherit;
+  }
+
+  /* link 最小 reset（项目未引入完整 preflight，
+     浏览器默认 underline 导致顶栏导航项、标题链接、菜单链接下方自带横线）
+     覆盖 link/visited/hover/active 全状态，避免伪类被用户代理样式重新加回 */
+  a,
+  a:link,
+  a:visited,
+  a:hover,
+  a:active {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background: var(--primary-bg);
+  }
+
+  /* ============================================================
+     全局滚动条统一（所有 overflow: auto / scroll 的容器）
+     目标：8px 细条、透明 track、低饱和圆角 thumb、hover 变亮
+     适配 WebKit（Chrome/Edge/WebView2） + Firefox（scrollbar-color/width）
+     注意：伪元素不放在 @layer base 里，避免 layer 优先级被后续同层规则覆盖
+     ============================================================ */
+
+  /* ---------- WebKit 系列（Chrome / Edge / Electron / WebView2） ---------- */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--text-4) 65%, transparent);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 160ms ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--text-3) 70%, transparent);
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: color-mix(in srgb, var(--text-2) 65%, transparent);
+    background-clip: padding-box;
+  }
+
+  /* 暗色模式下提升可感知度（整体色板更暗，thumb 略增透明度对比） */
+  html.dark ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--text-4) 85%, transparent);
+  }
+
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--text-3) 85%, transparent);
+  }
+
+  /* 横向 & 纵向边角交汇（一般被内容遮挡，取 track 色保持不可见） */
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* ---------- Firefox ---------- */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text-4) 65%, transparent) transparent;
+  }
+
+  *:hover {
+    scrollbar-color: color-mix(in srgb, var(--text-3) 70%, transparent) transparent;
+  }
+
+  html.dark * {
+    scrollbar-color: color-mix(in srgb, var(--text-4) 85%, transparent) transparent;
+  }
+
+  html.dark *:hover {
+    scrollbar-color: color-mix(in srgb, var(--text-3) 85%, transparent) transparent;
+  }
+}

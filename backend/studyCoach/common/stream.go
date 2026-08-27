@@ -9,8 +9,6 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/cloudwego/eino/compose"
-	"github.com/cloudwego/eino/flow/agent"
-	"github.com/cloudwego/eino/flow/agent/react"
 	"github.com/cloudwego/eino/schema"
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -24,18 +22,13 @@ import (
 var toolCallJSONPattern = regexp.MustCompile(`\{[^{}]*"(?:name|arguments|function|tool|skill|query|file_path|content|command)"[^{}]*\}`)
 var emptyJSONPattern = regexp.MustCompile(`\{\s*\}`)
 
-func cleanReasoning(text string) string {
+// filterToolCallJSON 过滤工具调用相关的 JSON 片段。
+// 注意：不做 TrimSpace！流式增量是按 token 切分的，"\n" 常常独占一个 chunk 或位于 chunk 边界，
+// 一旦对增量做 TrimSpace，Markdown 换行会被逐块剥光，导致前端无法渲染标题/列表/段落。
+func filterToolCallJSON(text string) string {
 	text = toolCallJSONPattern.ReplaceAllString(text, "")
 	text = emptyJSONPattern.ReplaceAllString(text, "")
-	return strings.TrimSpace(text)
-}
-
-// cleanContent 过滤回答内容中工具调用相关的 JSON 片段。
-// 模型在调用工具前后可能在 content 中输出 {} 或 JSON 结构，不应展示给用户。
-func cleanContent(text string) string {
-	text = toolCallJSONPattern.ReplaceAllString(text, "")
-	text = emptyJSONPattern.ReplaceAllString(text, "")
-	return strings.TrimSpace(text)
+	return text
 }
 
 func truncate(s string, maxLen int) string {
@@ -61,13 +54,8 @@ func toolDisplayName(tc schema.ToolCall) string {
 	return SkillToolDisplayName(tc.Function.Name, tc.Function.Arguments)
 }
 
-// 模拟流式输出：按 rune 分段，避免截断中文
-const (
-	reasoningChunkSize       = 4  // 思考内容每段字符数
-	reasoningChunkIntervalMs = 35 // 思考内容段间隔（毫秒）
-	contentChunkSize         = 6  // 回答内容每段字符数
-	contentChunkIntervalMs   = 25 // 回答内容段间隔（毫秒）
-)
+// 模拟流式输出已移除：模型 token 本身就是渐进到达的，人为拆分+sleep 是纯叠加延迟
+// （Windows 下 time.Sleep 精度约 15ms，会成倍放大卡顿），现统一由平滑发送窗口处理。
 
 type StreamData struct {
 	Id               string             `json:"id"`
@@ -152,6 +140,26 @@ func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*sche
 	// 工具调用期间模型输出的 content（如 "{}"）不应发送到前端，等工具执行完毕、
 	// 模型生成最终回复后再开始发送 content。
 	var inToolRound bool
+
+	// ======================================
+	// 平滑发送：合并 smoothInterval 窗口内的增量，批量下发。
+	// token 快速到达时批量合并，平滑抖动并降低前端渲染频率；
+	// token 缓慢到达时每个增量即时转发，零额外延迟。
+	// ======================================
+	const smoothInterval = 20 * time.Millisecond
+	var pendingContent, pendingReasoning string
+	var lastFlush time.Time
+	flushPending := func() {
+		if len(pendingReasoning) > 0 {
+			writeField(httpResp, sd, streamFieldReasoning, pendingReasoning)
+			pendingReasoning = ""
+		}
+		if len(pendingContent) > 0 {
+			writeField(httpResp, sd, streamFieldContent, pendingContent)
+			pendingContent = ""
+		}
+		lastFlush = time.Now()
+	}
 
 	// ======================================
 	// 新增：客户端断开监听 + 心跳保活
@@ -293,27 +301,25 @@ func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*sche
 			}
 		}
 
-		// 思考过程优先发送，让前端先渲染推理区域，再渲染回答内容
+		// 思考过程优先渲染：增量先过滤、入缓冲，窗口到期批量下发
 		if len(reasoningToSend) > 0 {
-			reasoningToSend = cleanReasoning(reasoningToSend)
-			if len(reasoningToSend) > 0 {
-				sendSSEStreamed(httpResp, sd, reasoningToSend, reasoningChunkSize, reasoningChunkIntervalMs, streamFieldReasoning)
-			}
+			pendingReasoning += filterToolCallJSON(reasoningToSend) // 增量不做 TrimSpace，保留换行
 		}
 		if len(contentToSend) > 0 {
-			contentToSend = cleanContent(contentToSend)
-			if len(contentToSend) > 0 {
-				sendSSEStreamed(httpResp, sd, contentToSend, contentChunkSize, contentChunkIntervalMs, streamFieldContent)
-			}
+			pendingContent += filterToolCallJSON(contentToSend) // 增量不做 TrimSpace，保留换行
+		}
+		if (len(pendingReasoning) > 0 || len(pendingContent) > 0) && time.Since(lastFlush) >= smoothInterval {
+			flushPending()
 		}
 	}
+	flushPending() // 流结束兜底：发出未满窗口的剩余增量
 	// 兜底：若最终内容以「正在...」类过渡句结尾，说明模型可能在工具调用后返回空，追加友好提示
 	if fullContent != "" {
 		trimmed := strings.TrimSpace(fullContent)
 		endsWithEllipsis := strings.HasSuffix(trimmed, "...") || strings.HasSuffix(trimmed, "…")
 		hasTransition := strings.Contains(trimmed, "正在检查") || strings.Contains(trimmed, "正在保存") || strings.Contains(trimmed, "让我检查")
 		if endsWithEllipsis && hasTransition {
-			sendSSEStreamed(httpResp, sd, "处理已完成，可继续对话。", contentChunkSize, contentChunkIntervalMs, streamFieldContent)
+			writeField(httpResp, sd, streamFieldContent, "处理已完成，可继续对话。")
 			g.Log().Infof(context.Background(), "[Stream] 检测到工具过渡句后流结束，已追加兜底提示")
 		}
 	}
@@ -322,7 +328,7 @@ func StreamResponse(ctx context.Context, streamReader *schema.StreamReader[*sche
 	return nil
 }
 
-// streamedField 表示本次按 rune 切片写入 StreamData 的字段（正文或思考）。
+// streamedField 表示本次写入 StreamData 的字段（正文或思考）。
 type streamedField int
 
 const (
@@ -330,31 +336,19 @@ const (
 	streamFieldReasoning
 )
 
-// sendSSEStreamed 将一段文本按 rune 切分后逐段写入 SSE，模拟打字机流式效果。
-// 火山 Ark 等可能一次性返回完整 reasoning_content，此处统一按字符拆分发送。
-func sendSSEStreamed(resp *ghttp.Response, sd *StreamData, text string, chunkSize, intervalMs int, field streamedField) {
-	runes := []rune(text)
-	for i := 0; i < len(runes); i += chunkSize {
-		end := i + chunkSize
-		if end > len(runes) {
-			end = len(runes)
-		}
-		chunk := string(runes[i:end])
-		switch field {
-		case streamFieldReasoning:
-			sd.ReasoningContent = chunk
-			sd.Content = ""
-		default: // streamFieldContent
-			sd.Content = chunk
-			sd.ReasoningContent = ""
-		}
-		marshal, _ := sonic.Marshal(sd)
-		writeSSEData(resp, string(marshal))
-		resp.Flush()
-		if intervalMs > 0 {
-			time.Sleep(time.Duration(intervalMs) * time.Millisecond)
-		}
+// writeField 填充 StreamData 对应字段并写入一条 SSE 事件
+func writeField(resp *ghttp.Response, sd *StreamData, field streamedField, chunk string) {
+	switch field {
+	case streamFieldReasoning:
+		sd.ReasoningContent = chunk
+		sd.Content = ""
+	default: // streamFieldContent
+		sd.Content = chunk
+		sd.ReasoningContent = ""
 	}
+	marshal, _ := sonic.Marshal(sd)
+	writeSSEData(resp, string(marshal))
+	resp.Flush()
 }
 
 // writeSSEData 写入SSE事件
@@ -445,63 +439,9 @@ func BuildNotifyMiddleware() compose.ToolMiddleware {
 	}
 }
 
-// BuildGenToStream 解决 Eino 0.8.4 中 ins.Stream 无法传递工具调用后内容的问题。
-// 使用 schema.Pipe + goroutine 实现完整的多轮次流输出，中间件通过 channel 通知 SSE 层。
-// 供 react.Agent 模块使用。
-func BuildGenToStream(ins *react.Agent) func(context.Context, []*schema.Message, ...agent.AgentOption) (*schema.StreamReader[*schema.Message], error) {
-	return func(genCtx context.Context, msgs []*schema.Message, opts ...agent.AgentOption) (*schema.StreamReader[*schema.Message], error) {
-		sr, sw := schema.Pipe[*schema.Message](20)
-
-		// 工具调用通知 channel：工具中间件写入 Name+Args，供 toolDisplayName 展示如 skill(emotion-companion)
-		notifyChan := make(chan toolCallNotify, 10)
-		genCtx = context.WithValue(genCtx, toolCallNotifyKey{}, notifyChan)
-
-		go func() {
-			defer sw.Close()
-
-			// 通知 goroutine：将工具调用转为带 ToolCalls 的 Message 写入流
-			notifyDone := make(chan struct{})
-			go func() {
-				defer close(notifyDone)
-				for n := range notifyChan {
-					msg := &schema.Message{
-						Role: schema.Assistant,
-						ToolCalls: []schema.ToolCall{
-							{Function: schema.FunctionCall{Name: n.Name, Arguments: n.Args}},
-						},
-					}
-					if closed := sw.Send(msg, nil); closed {
-						for range notifyChan {
-						}
-						return
-					}
-				}
-			}()
-
-			// 同步跑完所有工具轮次，获取最终回复
-			finalMsg, genErr := ins.Generate(genCtx, msgs, opts...)
-
-			// 通知通知 goroutine 结束，等待其写完最后的 tool_status
-			close(notifyChan)
-			<-notifyDone
-
-			// 将最终回复写入流
-			if genErr != nil {
-				sw.Send(nil, genErr)
-			} else if finalMsg != nil {
-				g.Log().Infof(context.Background(), "[Stream] 最终回复 - Content长度:%d, Reasoning长度:%d, ToolCalls:%d, Content:%q",
-					len(finalMsg.Content), len(finalMsg.ReasoningContent), len(finalMsg.ToolCalls),
-					truncate(finalMsg.Content, 100))
-				sw.Send(finalMsg, nil)
-			}
-		}()
-
-		return sr, nil
-	}
-}
-
-// DrainStreamChecker 等待完整流再判断工具调用，避免误判"先文字后工具"的模型（如火山方舟）。
-// 供 react.Agent 作为 StreamToolCallChecker 使用。
+// DrainStreamChecker 等待完整流再判断工具调用，避免误判"先文字后工具"的模型（如部分 Claude 版本）。
+// 缺点：分支路由必须等整轮流结束，最终回复轮退化为"整轮生成完才转发"，观感等同假流式。
+// OpenAI 兼容模型（如 doubao）请改用 FastStreamChecker。
 func DrainStreamChecker(_ context.Context, sr *schema.StreamReader[*schema.Message]) (bool, error) {
 	defer sr.Close()
 	hasToolCall := false
@@ -518,4 +458,34 @@ func DrainStreamChecker(_ context.Context, sr *schema.StreamReader[*schema.Messa
 		}
 	}
 	return hasToolCall, nil
+}
+
+// FastStreamChecker 首个有效 chunk 即判断的工具调用检查器：
+//   - 首个带 ToolCalls 的 chunk → 工具调用轮，立即路由执行工具（几乎零等待）
+//   - 首个带 Content 的 chunk  → 最终回复轮，立即放行，后续 token 直通输出（真流式）
+//   - 跳过 role-only/空 delta，避免部分模型首块为空导致误判
+//
+// 依据：OpenAI 兼容流式协议中 tool_calls 与 content 不会在同一 chunk 竞争先行，
+// doubao 的工具调用 chunk 亦为独立到达（日志佐证：ToolCalls chunk 的 Content 恒为空）。
+// 注意：对"先输出一段文字再调用工具"的模型不适用，那类模型请用 DrainStreamChecker。
+func FastStreamChecker(_ context.Context, sr *schema.StreamReader[*schema.Message]) (bool, error) {
+	defer sr.Close()
+	for {
+		msg, err := sr.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return false, nil
+			}
+			return false, err
+		}
+		if msg == nil {
+			continue
+		}
+		if len(msg.ToolCalls) > 0 {
+			return true, nil
+		}
+		if msg.Content != "" || len(msg.MultiContent) > 0 {
+			return false, nil
+		}
+	}
 }

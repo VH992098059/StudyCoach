@@ -1,82 +1,52 @@
 /**
  * @fileoverview 路由配置文件
- * @description 定义应用的路由结构，包括路由守卫、懒加载、布局包装等功能
- * @author 开发团队
- * @version 1.0.0
+ * @description 应用路由结构：AppShell 外壳 + 路由守卫 + 懒加载。
+ * 信息架构调整（见 docs/frontend-redesign-design.md 2.1）：
+ * - /indexer、/retriever 独立路由移除，功能并入知识库页 Tab，旧地址重定向
+ * - /knowledgebase/:id 详情页（文档表 + 分块面板）
  */
 
 import React, { Suspense } from 'react';
 import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
-import { Spin } from 'antd';
-import Layout from '../components/Home/Layout';
-import type { MenuProps } from 'antd';
-import { useTranslation } from 'react-i18next';
-import { LoginRegisterService } from '../services/login_register';
-import { clearAuthStorage } from '../utils/axios/interceptors';
+import AppShell from '../components/layout/AppShell';
 import { checkAndHandleTokenExpiry } from '../utils/token/tokenValidator';
 
 /**
  * 懒加载页面组件
- * @description 使用React.lazy实现代码分割，提高应用性能
  */
 const AiChat = React.lazy(() => import('../pages/AiChat'));
 const KnowledgeBase = React.lazy(() => import('../pages/KnowledgeBase'));
-const Indexer = React.lazy(() => import('../pages/KnowledgeBase/Indexer'));
-const Retriever = React.lazy(() => import('../pages/KnowledgeBase/Retriever'));
+const KbDetail = React.lazy(() => import('../pages/KnowledgeBase/detail'));
 const NotFound = React.lazy(() => import('../pages/NotFound'));
 const Login = React.lazy(() => import('../pages/Login'));
 const Register = React.lazy(() => import('../pages/Register'));
 const ResetPassword = React.lazy(() => import('../pages/Auth/ResetPassword'));
-const CronPage=React.lazy(()=>import('../pages/Cron/index'))
+const CronPage = React.lazy(() => import('../pages/Cron/index'));
 const Profile = React.lazy(() => import('../pages/Profile'));
-/**
- * 加载中组件
- * @description 在懒加载组件加载过程中显示的loading界面
 
+/**
+ * 加载中组件（CSS spinner，不依赖 antd）
  */
 const LoadingComponent: React.FC = () => (
-  <div style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-    overflow: 'hidden',
-  }}>
-    <Spin spinning={true} />
-    <span style={{ whiteSpace: 'nowrap', color: 'inherit' }}>页面加载中...</span>
+  <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background">
+    <span className="size-6 animate-spin rounded-full border-2 border-border-strong border-t-primary" />
+    <span className="text-xs text-text-3">页面加载中...</span>
   </div>
 );
 
 /**
  * 路由守卫组件属性接口
- * @interface RouteGuardProps
  */
 interface RouteGuardProps {
-  /** 子组件 */
   children: React.ReactNode;
-  /** 是否需要身份验证 */
   requireAuth?: boolean;
 }
 
 /**
  * 路由守卫组件
- * @description 用于控制页面访问权限，可以根据用户认证状态决定是否允许访问
- * 同时主动检查 token 过期状态（不依赖后端 401 响应）
- * @param {RouteGuardProps} props - 组件属性
- * @example
- * ```tsx
- * <RouteGuard requireAuth={true}>
- *   <ProtectedPage />
- * </RouteGuard>
- * ```
+ * @description 根据认证状态控制访问，主动检查 token 过期（不依赖后端 401）
  */
-const RouteGuard: React.FC<RouteGuardProps> = ({ children, requireAuth = false })=> {
+const RouteGuard: React.FC<RouteGuardProps> = ({ children, requireAuth = false }) => {
   const location = useLocation();
   const token = localStorage.getItem('access_token');
 
@@ -84,13 +54,10 @@ const RouteGuard: React.FC<RouteGuardProps> = ({ children, requireAuth = false }
     // 主动检查 token 是否过期
     const isExpired = checkAndHandleTokenExpiry();
     if (isExpired) {
-      // token 已过期，跳转到登录页
       return <Navigate to="/login" state={{ from: location, authRequired: true }} replace />;
     }
 
-    // 检查是否存在有效 token
     if (!token) {
-      // 未登录时跳转登录页并传递提示信息
       return <Navigate to="/login" state={{ from: location, authRequired: true }} replace />;
     }
   }
@@ -99,192 +66,17 @@ const RouteGuard: React.FC<RouteGuardProps> = ({ children, requireAuth = false }
 };
 
 /**
- * 布局包装组件属性接口
- * @interface LayoutWrapperProps
- */
-interface LayoutWrapperProps {
-  /** 子组件 */
-  children: React.ReactNode;
-}
-
-/**
- * 带布局的页面包装组件
- * @description 为页面提供统一的布局结构，包括头部导航、底部信息等
- * @param {LayoutWrapperProps} props - 组件属性
- */
-const LayoutWrapper: React.FC<LayoutWrapperProps> = ({ children }) => {
-  const { t } = useTranslation();
-  /**
-   * 导航菜单项配置
-   * @description 定义头部导航菜单的结构和内容
-   */
-  const menuItems: MenuProps['items'] = [
-    {
-      key: 'aichat',
-      label: t('menu.aiChat'),
-    },
-    {
-      key: 'knowledgebase',
-      label: t('menu.knowledgeBase'),
-    },
-    {
-      key:'cronpage',
-      label: t('menu.cron'),
-    },
-    {
-      key: 'indexer',
-      label: t('menu.indexer'),
-    },
-    {
-      key: 'retriever',
-      label: t('menu.retriever'),
-    }
-  ];
-
-  /**
-   * 用户状态
-   * @description 从localStorage或sessionStorage中获取用户登录状态
-   */
-  const [user, setUser] = React.useState<{ name: string; avatar?: string } | undefined>(() => {
-    // token 不存在时，不显示用户信息（避免 token 过期后仍显示账号）
-    if (!localStorage.getItem('access_token')) {
-      return undefined;
-    }
-    // 尝试从localStorage获取用户信息
-    const localUserInfo = localStorage.getItem('userInfo');
-    if (localUserInfo) {
-      try {
-        const userInfo = JSON.parse(localUserInfo);
-        return { name: userInfo.username, avatar: userInfo.avatar };
-      } catch (error) {
-        console.error('解析localStorage用户信息失败:', error);
-      }
-    }
-    // 尝试从sessionStorage获取用户信息
-    const sessionUserInfo = sessionStorage.getItem('userInfo');
-    if (sessionUserInfo) {
-      try {
-        const userInfo = JSON.parse(sessionUserInfo);
-        return { name: userInfo.username, avatar: userInfo.avatar };
-      } catch (error) {
-        console.error('解析sessionStorage用户信息失败:', error);
-      }
-    }
-    return undefined;
-  });
-
-  /**
-   * 处理用户登录
-   * @description 跳转到登录页面
-   */
-  const handleLogin = (): void => {
-    window.location.href = '/login';
-  };
-
-  /**
-   * 处理用户登出
-   * @description 清除用户登录状态和存储的用户信息
-   */
-  const handleLogout = async (): Promise<void> => {
-    try {
-      await LoginRegisterService.logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-    clearAuthStorage();
-    setUser(undefined);
-    // 刷新并留在当前页面（不跳转登录页）
-    window.location.reload();
-  };
-
-  /**
-   * 处理菜单点击事件
-   * @description 处理导航菜单的点击事件，路由跳转在Layout组件内部处理
-   * @param {string} key - 菜单项的key值
-   */
-  const handleMenuClick = (key: string): void => {
-    console.log('Menu clicked:', key);
-  };
-
-  /**
-   * 监听存储变化
-   * @description 当用户在其他标签页登录/登出时同步状态
-   */
-  React.useEffect(() => {
-    const handleAuthLogout = () => setUser(undefined);
-    window.addEventListener('auth:logout', handleAuthLogout);
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'userInfo') {
-        if (e.newValue) {
-          try {
-            const userInfo = JSON.parse(e.newValue);
-            setUser({ name: userInfo.username, avatar: userInfo.avatar });
-          } catch (error) {
-            console.error('解析存储变化的用户信息失败:', error);
-          }
-        } else {
-          setUser(undefined);
-        }
-      }
-      // 其他标签页移除 token 时同步清除用户状态
-      if (e.key === 'access_token' && !e.newValue) {
-        setUser(undefined);
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('auth:logout', handleAuthLogout);
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-
-  return (
-    <Layout
-      headerProps={{
-        title: t('common.appTitle'),
-        menuItems,
-        user,
-        onLogin: handleLogin,
-        onLogout: handleLogout,
-        onMenuClick: handleMenuClick,
-      }}
-      footerProps={{
-        companyName: t('footer.companyName'),
-        contactInfo: {
-          email: 'contact@example.com',
-          phone: '+86 123-4567-8900',
-          address: t('footer.address'),
-        },
-        socialLinks: [
-          {
-            type: 'github',
-            url: 'https://github.com',
-            title: 'GitHub',
-          },
-        ],
-      }}
-    >
-      {children}
-    </Layout>
-  );
-};
-
-/**
  * 应用路由配置
- * @description 使用React Router创建的浏览器路由配置，包含所有页面路由
- * @exports router
  */
 export const router = createBrowserRouter([
   {
     path: '/',
     element: (
-      <LayoutWrapper>
+      <AppShell>
         <Suspense fallback={<LoadingComponent />}>
           <AiChat />
         </Suspense>
-      </LayoutWrapper>
+      </AppShell>
     ),
   },
   {
@@ -294,38 +86,36 @@ export const router = createBrowserRouter([
   {
     path: '/knowledgebase',
     element: (
-      <LayoutWrapper>
+      <AppShell>
         <Suspense fallback={<LoadingComponent />}>
           <RouteGuard requireAuth={true}>
             <KnowledgeBase />
           </RouteGuard>
         </Suspense>
-      </LayoutWrapper>
+      </AppShell>
     ),
   },
+  // 知识库详情页（面包屑 + 文档表 + 分块面板）
   {
-    path: '/indexer',
+    path: '/knowledgebase/:id',
     element: (
-      <LayoutWrapper>
+      <AppShell>
         <Suspense fallback={<LoadingComponent />}>
           <RouteGuard requireAuth={true}>
-            <Indexer />
+            <KbDetail />
           </RouteGuard>
         </Suspense>
-      </LayoutWrapper>
+      </AppShell>
     ),
+  },
+  // 旧路由重定向（索引器/检索器已并入知识库页 Tab）
+  {
+    path: '/indexer',
+    element: <Navigate to="/knowledgebase" replace />,
   },
   {
     path: '/retriever',
-    element: (
-      <LayoutWrapper>
-        <Suspense fallback={<LoadingComponent />}>
-          <RouteGuard requireAuth={true}>
-            <Retriever />
-          </RouteGuard>
-        </Suspense>
-      </LayoutWrapper>
-    ),
+    element: <Navigate to="/knowledgebase" replace />,
   },
   // 认证相关页面（不使用主布局）
   {
@@ -353,39 +143,38 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path:"/cron",
-    element:(
-      <LayoutWrapper>
-        <Suspense fallback={<LoadingComponent/>}>
+    path: '/cron',
+    element: (
+      <AppShell>
+        <Suspense fallback={<LoadingComponent />}>
           <RouteGuard requireAuth={true}>
-            <CronPage/>
+            <CronPage />
           </RouteGuard>
         </Suspense>
-      </LayoutWrapper>
-
-    )
+      </AppShell>
+    ),
   },
   {
     path: '/profile',
     element: (
-      <LayoutWrapper>
+      <AppShell>
         <Suspense fallback={<LoadingComponent />}>
           <RouteGuard requireAuth={true}>
             <Profile />
           </RouteGuard>
         </Suspense>
-      </LayoutWrapper>
+      </AppShell>
     ),
   },
   // 404页面
   {
     path: '/404',
     element: (
-      <LayoutWrapper>
+      <AppShell>
         <Suspense fallback={<LoadingComponent />}>
           <NotFound />
         </Suspense>
-      </LayoutWrapper>
+      </AppShell>
     ),
   },
   // 捕获所有未匹配的路由

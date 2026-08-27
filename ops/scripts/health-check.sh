@@ -6,7 +6,7 @@
 set -uo pipefail
 
 VERBOSE="${1:-}"
-BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:8000}"
+BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:18000}"
 MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
 REDIS_HOST="${REDIS_HOST:-127.0.0.1}"
 ES_HOST="${ES_HOST:-http://127.0.0.1:9200}"
@@ -46,8 +46,8 @@ check_service "SeaweedFS"      "curl -sf http://127.0.0.1:8888/status > /dev/nul
 
 echo ""
 echo "--- 应用服务 ---"
-check_service "Backend Health"  "curl -sf ${BACKEND_URL}/gateway/healthz"
-check_service "Backend Ready"   "curl -sf ${BACKEND_URL}/gateway/readyz"
+check_service "Backend Health"  "curl -sf ${BACKEND_URL}/healthz"
+check_service "Backend Ready"   "curl -sf ${BACKEND_URL}/readyz"
 check_service "OpenAPI Doc"     "curl -sf ${BACKEND_URL}/api.json > /dev/null"
 
 if [ "${VERBOSE}" = "--verbose" ]; then
@@ -55,7 +55,7 @@ if [ "${VERBOSE}" = "--verbose" ]; then
     echo "--- 详细信息 ---"
 
     echo -n "Backend Metrics:  "
-    curl -sf "${BACKEND_URL}/gateway/metrics" | head -5 2>/dev/null || echo "unavailable"
+    curl -sf "${BACKEND_URL}/metrics" | head -5 2>/dev/null || echo "unavailable"
 
     echo -n "ES Cluster:       "
     curl -sf "${ES_HOST}/_cluster/health?pretty" 2>/dev/null | grep -E "status|number_of_nodes" || echo "unavailable"

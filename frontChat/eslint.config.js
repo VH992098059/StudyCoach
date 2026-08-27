@@ -19,5 +19,21 @@ export default tseslint.config([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // 遗留 HTTP/服务层在边界处使用 any（透传后端结构），降为 warn 不阻塞 lint
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
+  {
+    // shadcn 生成组件（导出 cva variants 常量属官方模式）、
+    // 应用入口与路由配置（非可热刷新的组件模块）
+    files: [
+      'src/components/ui/**/*.{ts,tsx}',
+      'src/main.tsx',
+      'src/router/index.tsx',
+    ],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
   },
 ])

@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { message } from 'antd';
+import { toast } from 'sonner';
 import type { ChatSession, Message, UseChatSessionsReturn } from '../types/chat';
 import ChatHistoryService from '@/services/chatHistory';
 
@@ -267,7 +267,7 @@ export const useChatSessions = (): UseChatSessionsReturn => {
         await ChatHistoryService.deleteSession(sessionId);
       } catch (error) {
         console.error('删除云端会话失败:', error);
-        message.warning('云端会话删除失败，请稍后重试');
+        toast.warning('云端会话删除失败，请稍后重试');
       }
     }
   }, [currentSessionId]);

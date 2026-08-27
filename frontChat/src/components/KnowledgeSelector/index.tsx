@@ -1,107 +1,105 @@
 /**
- * @fileoverview 知识库选择组件
- * @description 用于选择知识库的下拉选择器组件
- * @author 开发团队
- * @version 1.0.0
+ * @fileoverview 知识库选择组件（shadcn Select 版）
+ * @description 保持旧版 antd Select 的 props/ref 接口不变，
+ * 供 AI 聊天页与定时任务配置面板共用；未登录时仅「无」选项
  */
 
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
-import { Select, message } from 'antd';
-import { DatabaseOutlined } from '@ant-design/icons';
+import {
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+  useCallback,
+  useRef,
+} from 'react';
 import { useTranslation } from 'react-i18next';
-import { KnowledgeBaseService, type KnowledgeBase, KBStatus } from '@/services/knowledgeBase';
+import { toast } from 'sonner';
+import { Database } from 'lucide-react';
+
+import { cn } from '@/lib/utils';
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  KnowledgeBaseService,
+  type KnowledgeBase,
+  KBStatus,
+} from '@/services/knowledgeBase';
 
 function hasAccessToken(): boolean {
   return !!localStorage.getItem('access_token');
 }
 
-/**
- * 组件属性接口
- */
 interface KnowledgeSelectorProps {
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
   style?: React.CSSProperties;
+  /** 兼容旧 antd 签名保留，shadcn 版不区分尺寸 */
   size?: 'small' | 'middle' | 'large';
   disabled?: boolean;
+  className?: string;
+  /** 透传给 SelectTrigger（如聊天输入行内嵌时去边框） */
+  triggerClassName?: string;
 }
 
-/**
- * 组件引用接口
- */
 export interface KnowledgeSelectorRef {
   getSelectedKnowledgeId: () => string;
   setSelectedKnowledge: (id: string) => void;
 }
 
-/**
- * 知识库选择组件
- */
+interface KbOption {
+  id: string;
+  name: string;
+}
+
 const KnowledgeSelector = forwardRef<KnowledgeSelectorRef, KnowledgeSelectorProps>(
-  ({ value, onChange, placeholder, style, size = 'middle', disabled = false }, ref) => {
+  ({ value, onChange, placeholder, style, disabled = false, className, triggerClassName }, ref) => {
     const { t } = useTranslation();
     const [selectedKnowledge, setSelectedKnowledge] = useState<string>(value || 'none');
-    /** 未登录时仅「无」；登录后再拉列表，避免未授权请求弹错 */
-    const [knowledgeOptions, setKnowledgeOptions] = useState<Array<{ id: string; name: string; description?: string }>>(() => [
-      { id: 'none', name: t('common.none'), description: t('kb.noKbDescription') },
+    const [knowledgeOptions, setKnowledgeOptions] = useState<KbOption[]>([
+      { id: 'none', name: t('common.none') },
     ]);
-    const [loading, setLoading] = useState(false);
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
 
-    // 暴露给父组件的方法
     useImperativeHandle(ref, () => ({
       getSelectedKnowledgeId: () => selectedKnowledge,
       setSelectedKnowledge: (id: string) => {
         setSelectedKnowledge(id);
         onChange?.(id);
-      }
+      },
     }));
 
     const applyDefaultOptions = useCallback(() => {
-      setKnowledgeOptions([
-        { id: 'none', name: t('common.none'), description: t('kb.noKbDescription') },
-      ]);
+      setKnowledgeOptions([{ id: 'none', name: t('common.none') }]);
     }, [t]);
 
-    /**
-     * 获取知识库列表（需已登录；首页未登录时不请求接口）
-     */
     const fetchKnowledgeList = useCallback(async () => {
       if (!hasAccessToken()) {
         applyDefaultOptions();
         return;
       }
-      setLoading(true);
       try {
         const response = await KnowledgeBaseService.getList({ status: KBStatus.OK });
-        const opts = [
-          { id: 'none', name: t('common.none'), description: t('kb.noKbDescription') },
+        setKnowledgeOptions([
+          { id: 'none', name: t('common.none') },
           ...(response.list || []).map((kb: KnowledgeBase) => ({
             id: kb.name,
             name: kb.name,
-            description: kb.description,
           })),
-        ];
-        setKnowledgeOptions(opts);
+        ]);
       } catch (error) {
         console.error('获取知识库列表失败:', error);
-        message.error(t('kb.error.fetch'));
-      } finally {
-        setLoading(false);
+        toast.error(t('kb.error.fetch'));
       }
     }, [t, applyDefaultOptions]);
 
-    /**
-     * 处理知识库选择变化
-     */
-    const handleChange = (value: string) => {
-      setSelectedKnowledge(value);
-      onChange?.(value);
-    };
-
-    // 已登录时拉取知识库；未登录仅保留默认「无」
     useEffect(() => {
       void fetchKnowledgeList();
 
@@ -135,27 +133,39 @@ const KnowledgeSelector = forwardRef<KnowledgeSelectorRef, KnowledgeSelectorProp
       if (value !== undefined && value !== selectedKnowledge) {
         setSelectedKnowledge(value);
       }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 
-    const selectOptions = knowledgeOptions.map(opt => ({ value: opt.id, label: opt.name }));
     return (
-      <Select
-        value={selectedKnowledge}
-        onChange={handleChange}
-        placeholder={placeholder || t('kb.documents.selectKbPlaceholder')}
-        style={{ minWidth: 100, ...style }}
-        size={size}
-        disabled={disabled}
-        loading={loading}
-        suffixIcon={<DatabaseOutlined />}
-        showSearch
-        getPopupContainer={() => document.body}
-        popupMatchSelectWidth
-        optionFilterProp="label"
-        options={selectOptions}
-      />
+      <div className={className} style={style}>
+        <Select
+          value={selectedKnowledge}
+          onValueChange={(v) => {
+            setSelectedKnowledge(v);
+            onChange?.(v);
+          }}
+          disabled={disabled}
+        >
+          <SelectTrigger className={cn('w-full', triggerClassName)} aria-label={t('kb.documents.selectKbPlaceholder')}>
+            <span className="flex min-w-0 items-center gap-2">
+              <Database className="size-3.5 shrink-0 text-text-2" />
+              <SelectValue
+                placeholder={placeholder || t('kb.documents.selectKbPlaceholder')}
+                className="truncate"
+              />
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            {knowledgeOptions.map((opt) => (
+              <SelectItem key={opt.id} value={opt.id}>
+                {opt.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     );
-  }
+  },
 );
 
 KnowledgeSelector.displayName = 'KnowledgeSelector';

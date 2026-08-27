@@ -59,12 +59,12 @@ RUN chown -R appuser:appgroup /app && \
 # 切换到非root用户
 USER appuser
 
-# 暴露端口
-EXPOSE 8000
+# 暴露端口（与 manifest/config 监听地址一致）
+EXPOSE 18000
 
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/healthz || exit 1
+# 健康检查（后端根级路由 /healthz，见 internal/cmd/cmd.go）
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:18000/healthz || exit 1
 
 # 启动应用
 CMD ["./main"]

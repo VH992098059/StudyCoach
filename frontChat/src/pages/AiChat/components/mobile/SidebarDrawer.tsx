@@ -1,8 +1,13 @@
-import React, { useMemo } from 'react';
-import { Drawer, List, Button, Modal } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+/**
+ * 移动端会话抽屉（设计文档 4.1：移动端 off-canvas 抽屉 + 遮罩）
+ * 复用 ChatSidebar 内容，Sheet 左侧滑出
+ */
+
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChatSession } from '@/types/chat';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import ChatSidebar from '../pc/ChatSidebar';
 
 export interface SidebarDrawerProps {
   open: boolean;
@@ -14,94 +19,34 @@ export interface SidebarDrawerProps {
   onDeleteSession: (sessionId: string) => void;
 }
 
-const SidebarDrawer: React.FC<SidebarDrawerProps> = (props: SidebarDrawerProps) => {
+const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
+  open,
+  onClose,
+  chatSessions,
+  currentSessionId,
+  onCreateSession,
+  onLoadSession,
+  onDeleteSession,
+}) => {
   const { t } = useTranslation();
-  const {
-    open,
-    onClose,
-    chatSessions,
-    currentSessionId,
-    onCreateSession,
-    onLoadSession,
-    onDeleteSession,
-  } = props;
-
-  // 按 id 去重，防止重复显示
-  const uniqueSessions = useMemo(
-    () => chatSessions.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i),
-    [chatSessions]
-  );
 
   return (
-    <Drawer
-      title={t('chat.sidebar.title')}
-      placement="left"
-      closable
-      onClose={onClose}
-      open={open}
-      width={280}
-    >
-      <Button
-        type="primary"
-        block
-        icon={<PlusOutlined />}
-        style={{ marginBottom: 12 }}
-        onClick={onCreateSession}
-      >
-        {t('chat.sidebar.newSession')}
-      </Button>
-
-      <List
-        size="small"
-        itemLayout="horizontal"
-        dataSource={uniqueSessions}
-        renderItem={(item) => (
-          <List.Item
-            style={{ cursor: 'pointer' }}
-            className={item.id === currentSessionId ? 'active' : ''}
-            onClick={() => onLoadSession(item.id)}
-          >
-            <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <List.Item.Meta
-                style={{ minWidth: 0 }}
-                title={<div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title || t('chat.sidebar.unnamedSession')}</div>}
-                description={
-                  item.updatedAt ? new Date(item.updatedAt).toLocaleString() : undefined
-                }
-              />
-              <Button
-                type="text"
-                danger
-                size="small"
-                icon={<DeleteOutlined />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  Modal.confirm({
-                    title: t('chat.sidebar.confirmDeleteTitle'),
-                    content: (
-                      <div style={{ color: '#666' }}>
-                        <div>{t('chat.sidebar.sessionTitle')}{item.title || t('chat.sidebar.unnamedSession')}</div>
-                        <div style={{ marginTop: 8 }}>{t('chat.sidebar.deleteWarning')}</div>
-                      </div>
-                    ),
-                    okText: t('chat.sidebar.confirm'),
-                    okButtonProps: { danger: true },
-                    cancelText: t('chat.sidebar.cancel'),
-                    centered: true,
-                    zIndex: 2100,
-                    getContainer: () => document.body,
-                    maskClosable: true,
-                    keyboard: true,
-                    onOk: () => onDeleteSession(item.id),
-                  });
-                }}
-                style={{ flexShrink: 0 }}
-              >{t('chat.sidebar.delete')}</Button>
-            </div>
-          </List.Item>
-        )}
-      />
-    </Drawer>
+    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+      <SheetContent side="left" className="w-[260px] gap-0 p-0">
+        <SheetHeader className="sr-only">
+          <SheetTitle>{t('chat.sidebar.title')}</SheetTitle>
+        </SheetHeader>
+        <ChatSidebar
+          className="w-full border-r-0"
+          chatSessions={chatSessions}
+          currentSessionId={currentSessionId}
+          onCreateSession={onCreateSession}
+          onLoadSession={onLoadSession}
+          onDeleteSession={onDeleteSession}
+          onSessionSelect={onClose}
+        />
+      </SheetContent>
+    </Sheet>
   );
 };
 

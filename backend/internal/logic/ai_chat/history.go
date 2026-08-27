@@ -9,6 +9,7 @@ import (
 
 	v1 "backend/api/ai_chat/v1"
 	"backend/internal/dao"
+	"backend/internal/logic/ai_chat/session"
 	"backend/internal/model/entity"
 
 	"github.com/gogf/gf/v2/database/gdb"
@@ -255,6 +256,50 @@ func (c *ChatBase) DeleteSession(ctx context.Context, userId string, sessionId s
 		Where(dao.ChatSessions.Columns().UserId, userId).
 		Delete()
 	return err
+}
+
+// TruncateMessages 编辑重发 / 重新生成的服务端回滚，两处存储独立清理：
+//  1. 校验会话归属当前用户（sessionId 由前端传入，防越权）
+//  2. DB：删除 chat_messages 中 timestamp >= beforeTimestamp 的行
+//     （beforeTimestamp<=0 时跳过，仅截历史文件）
+//  3. LLM 历史：将 data/chat_history/<sessionId>.jsonl 截断为前 keepCount 条
+//
+// 前端契约：keepCount = 被编辑用户消息在消息数组中的 index+1（含该条）；
+// beforeTimestamp = 该用户消息的 timestamp（毫秒）。两者由同一份前端消息列表派生，天然对齐。
+func (c *ChatBase) TruncateMessages(ctx context.Context, userId string, sessionId string, keepCount int, beforeTimestamp int64) (deletedDb int64, keptLines int, err error) {
+	belong, err := dao.ChatSessions.Ctx(ctx).
+		Where(dao.ChatSessions.Columns().Id, sessionId).
+		Where(dao.ChatSessions.Columns().UserId, userId).
+		Count()
+	if err != nil {
+		return 0, 0, err
+	}
+	if belong == 0 {
+		return 0, 0, fmt.Errorf("session not found")
+	}
+
+	if beforeTimestamp > 0 {
+		res, err := dao.ChatMessages.Ctx(ctx).
+			Where(dao.ChatMessages.Columns().SessionUuid, sessionId).
+			WhereGTE(dao.ChatMessages.Columns().Timestamp, gtime.NewFromTime(time.UnixMilli(beforeTimestamp))).
+			Delete()
+		if err != nil {
+			return 0, 0, err
+		}
+		deletedDb, _ = res.RowsAffected()
+	}
+
+	// 与 studyCoach/api getAppState 使用相同的目录解析规则，保证操作同一份历史文件
+	dir := g.Cfg().MustGet(ctx, "chatHistory.dir").String()
+	if dir == "" {
+		dir = "./data/chat_history"
+	}
+	historyStore := session.NewFileHistory(dir)
+	keptLines, err = historyStore.TruncateKeep(sessionId, keepCount)
+	if err != nil {
+		return deletedDb, 0, err
+	}
+	return deletedDb, keptLines, nil
 }
 
 // MergeSessionInput 合并会话的输入（登录时传入的未登录会话）

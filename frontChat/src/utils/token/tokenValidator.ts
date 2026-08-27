@@ -9,7 +9,7 @@ export interface TokenPayload {
   Username: string;
   exp: number; // 过期时间戳（秒）
   iat: number; // 签发时间戳（秒）
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

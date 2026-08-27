@@ -1,137 +1,136 @@
 /**
- * @fileoverview 用户登录页面
- * @description 用户登录界面，包含表单验证、记住密码等功能
- * @author 开发团队
- * @version 1.0.0
+ * 登录页（设计文档 4.6，RHF + zod 迁移自 antd Form）
+ * 保留：匿名会话合并、记住密码、token 存储、来源跳转逻辑
  */
 
-import React, { useState, useEffect } from 'react';
-import { Form, Input, Button, Checkbox, message, Divider } from 'antd';
-import { UserOutlined, LockOutlined, EyeInvisibleOutlined, EyeTwoTone, ArrowLeftOutlined } from '@ant-design/icons';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { toast } from 'sonner';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import AuthLayout from '../../components/AuthLayout';
-import { LoginRegisterService } from '../../services/login_register';
-import './index.scss';
 
-/**
- * 登录表单数据接口
- * @interface LoginFormData
- */
-interface LoginFormData {
-  /** 用户名 */
-  username: string;
-  /** 密码 */
-  password: string;
-  /** 是否记住登录状态 */
-  remember: boolean;
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, LogIn } from 'lucide-react';
+
+import AuthLayout from '@/components/AuthLayout';
+import { LoginRegisterService } from '@/services/login_register';
+
+const loginSchema = z.object({
+  username: z
+    .string()
+    .min(1, 'auth.validation.usernameRequired')
+    .min(3, 'auth.validation.usernameMin')
+    .max(20, 'auth.validation.usernameMax'),
+  password: z
+    .string()
+    .min(1, 'auth.validation.passwordRequired')
+    .min(6, 'auth.validation.passwordMin'),
+  remember: z.boolean(),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+/** 未登录本地会话（登录后由后端合并到用户历史） */
+interface AnonymousSession {
+  id: string;
+  title: string;
+  messages: {
+    msg_id: string;
+    content: string;
+    isUser: boolean;
+    timestamp: string;
+    reasoningContent?: string;
+  }[];
 }
 
-/**
- * 用户登录组件
- * @description 提供用户登录功能，包含表单验证、记住密码等特性
- * @example
- * ```tsx
- * <Login />
- * ```
- */
-const Login: React.FC = ()=> {
+const Login: React.FC = () => {
   const { t } = useTranslation();
-  /** 表单实例 */
-  const [form] = Form.useForm();
-  /** 登录加载状态 */
-  const [loading, setLoading] = useState(false);
-  /** 是否有上一页可以返回 */
-  const [canGoBack, setCanGoBack] = useState(false);
-  /** 路由导航钩子 */
   const navigate = useNavigate();
-  /** 当前路由位置 */
   const location = useLocation();
+  const [loading, setLoading] = useState(false);
 
-  /**
-   * 检查是否有上一页可以返回
-   * @description 通过检查location.state或document.referrer来判断
-   */
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { username: '', password: '', remember: false },
+  });
+  const { register, handleSubmit, setValue, formState: { errors } } = form;
+
   useEffect(() => {
     // 从需鉴权页面跳转过来时弹出提示
     const state = location.state as { authRequired?: boolean } | null;
     if (state?.authRequired) {
-      message.warning(t('auth.loginRequired'));
+      toast.warning(t('auth.loginRequired'));
     }
 
-    // 检查是否有记住的账号密码
+    // 回填记住的账号密码
     const remembered = localStorage.getItem('remembered_credentials');
     if (remembered) {
       try {
         const { username, password } = JSON.parse(remembered);
-        // 解码密码（如果是base64）
-        const decodedPassword = atob(password);
-        form.setFieldsValue({
-          username,
-          password: decodedPassword,
-          remember: true,
-        });
+        setValue('username', username);
+        setValue('password', atob(password));
+        setValue('remember', true);
       } catch (e) {
         console.error('Failed to parse remembered credentials:', e);
         localStorage.removeItem('remembered_credentials');
       }
     }
+  }, [location, setValue, t]);
 
-    // 方法1: 检查是否通过路由导航进入（有state信息）
-    const hasNavigationState = location.state && location.state.from;
-    
-    // 方法2: 检查document.referrer（上一页的URL）
-    const hasReferrer = document.referrer && 
-                       document.referrer !== window.location.href &&
-                       !document.referrer.includes('/login'); // 避免从登录页跳转到登录页的情况
-    
-    // 方法3: 检查sessionStorage中是否有导航历史
-    const navigationHistory = sessionStorage.getItem('navigationHistory');
-    const hasHistory = navigationHistory && JSON.parse(navigationHistory).length > 1;
-    
-    setCanGoBack(hasNavigationState || hasReferrer || hasHistory);
-  }, [location]);
+  /** 读取未登录时的本地会话，由后端合并到用户历史 */
+  const readAnonymousSessions = (): AnonymousSession[] => {
+    try {
+      const stored = localStorage.getItem('ai_chat_sessions_local');
+      if (!stored) return [];
+      const sessions = JSON.parse(stored);
+      return (Array.isArray(sessions) ? sessions : [])
+        .map((s: {
+          id?: string;
+          title?: string;
+          messages?: {
+            msg_id?: string;
+            id?: string | number;
+            content?: string;
+            isUser?: boolean;
+            timestamp?: string | Date;
+            reasoningContent?: string;
+          }[];
+        }) => ({
+          id: s.id || '',
+          title: s.title || '新对话',
+          messages: (s.messages || []).map((m) => ({
+            msg_id: m.msg_id || String(m.id || Date.now()),
+            content: m.content || '',
+            isUser: !!m.isUser,
+            timestamp:
+              m.timestamp instanceof Date ? m.timestamp.toISOString() : (m.timestamp || new Date().toISOString()),
+            ...(m.reasoningContent ? { reasoningContent: m.reasoningContent } : {}),
+          })),
+        }))
+        .filter((s) => s.id && s.messages.length > 0);
+    } catch {
+      return [];
+    }
+  };
 
-  /**
-   * 处理登录表单提交
-   * @description 验证用户凭据并执行登录逻辑
-   * @param {LoginFormData} values - 表单数据
-   */
-  const handleSubmit = async (values: LoginFormData): Promise<void> => {
+  const onSubmit = handleSubmit(async (values) => {
     setLoading(true);
     try {
-      // 读取未登录时的本地会话，由后端合并到用户历史
-      let anonymousSessions: { id: string; title: string; messages: { msg_id: string; content: string; isUser: boolean; timestamp: string }[] }[] = [];
-      try {
-        const stored = localStorage.getItem('ai_chat_sessions_local');
-        if (stored) {
-          const sessions = JSON.parse(stored);
-          anonymousSessions = (Array.isArray(sessions) ? sessions : []).map((s: any) => ({
-            id: s.id || '',
-            title: s.title || '新对话',
-            messages: (s.messages || []).map((m: any) => ({
-              msg_id: m.msg_id || String(m.id || Date.now()),
-              content: m.content || '',
-              isUser: !!m.isUser,
-              timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : (m.timestamp || new Date().toISOString()),
-              ...(m.reasoningContent ? { reasoningContent: m.reasoningContent } : {}),
-            })),
-          })).filter((s: any) => s.id && s.messages?.length > 0);
-        }
-      } catch {
-        // 解析失败则忽略
-      }
-
+      const anonymousSessions = readAnonymousSessions();
       const result = await LoginRegisterService.login({
         username: values.username,
         password: values.password,
         anonymousSessions: anonymousSessions.length > 0 ? anonymousSessions : undefined,
       });
 
-      console.log(result);
-      
       if (result && result.token) {
-        message.success(t('auth.success.login'));
+        toast.success(t('auth.success.login'));
 
         const userInfo = {
           username: values.username,
@@ -139,8 +138,6 @@ const Login: React.FC = ()=> {
           uuid: result.uuid,
           loginTime: new Date().toISOString(),
         };
-
-        // 存储 token 供拦截器使用
         localStorage.setItem('access_token', result.token);
 
         // 已合并到云端，清除本地未登录会话
@@ -150,150 +147,83 @@ const Login: React.FC = ()=> {
 
         if (values.remember) {
           localStorage.setItem('userInfo', JSON.stringify(userInfo));
-          // 保存账号密码（base64简单加密）
-          const encodedPassword = btoa(values.password);
-          localStorage.setItem('remembered_credentials', JSON.stringify({
-            username: values.username,
-            password: encodedPassword
-          }));
+          localStorage.setItem(
+            'remembered_credentials',
+            JSON.stringify({ username: values.username, password: btoa(values.password) }),
+          );
         } else {
           sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
-          // 清除保存的账号密码
           localStorage.removeItem('remembered_credentials');
         }
 
-        // 跳转逻辑
-        const from = (location.state as any)?.from?.pathname || '/';
-        if (from !== '/' && from !== '/login') {
-            navigate(from, { replace: true });
-        } else {
-            navigate('/', { replace: true });
-        }
+        const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/';
+        navigate(from !== '/' && from !== '/login' ? from : '/', { replace: true });
       } else {
-        message.error(t('auth.error.login'));
+        toast.error(t('auth.error.login'));
       }
     } catch (error) {
       console.error('登录请求失败:', error);
-      // 拦截器通常会显示错误信息，这里可以根据需要补充
     } finally {
       setLoading(false);
     }
-  };
-
-  /**
-   * 处理忘记密码点击事件
-   * @description 跳转到密码重置页面
-   */
-  const handleForgotPassword = (): void => {
-    navigate('/reset-password');
-  };
-
-  /**
-   * 处理返回按钮点击事件
-   * @description 返回上一个页面，如果没有上一页则返回主页
-   */
-  const handleGoBack = (): void => {
-    if (canGoBack) {
-      // 有上一页，返回上一页
-      navigate(-1);
-    } else {
-      // 没有上一页，返回主页
-      navigate('/');
-    }
-  };
+  });
 
   return (
-    <AuthLayout
-      title={t('auth.loginTitle')}
-      subtitle={t('auth.loginSubtitle')}
-      loading={loading}
-    >
-      {/* 返回按钮 */}
-      <div className="auth-back-button">
-        <Button
-          type="text"
-          icon={<ArrowLeftOutlined />}
-          onClick={handleGoBack}
-          className="back-btn"
-        >
-          {t('common.back')}
-        </Button>
-      </div>
-      
-      <Form
-        form={form}
-        name="login"
-        onFinish={handleSubmit}
-        autoComplete="off"
-        size="large"
-        className="login-form"
-      >
-        <Form.Item
-          name="username"
-          rules={[
-            { required: true, message: t('auth.validation.usernameRequired') },
-            { min: 3, message: t('auth.validation.usernameMin') },
-            { max: 20, message: t('auth.validation.usernameMax') }
-          ]}
-        >
+    <AuthLayout title={t('auth.loginTitle')} subtitle={t('auth.loginSubtitle')}>
+      <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="login-username">{t('auth.username')}</Label>
           <Input
-            prefix={<UserOutlined className="site-form-item-icon" />}
+            id="login-username"
+            autoComplete="username"
             placeholder={t('auth.username')}
-            allowClear
+            aria-invalid={!!errors.username}
+            {...register('username')}
           />
-        </Form.Item>
+          {errors.username && <p className="text-xs text-danger">{t(errors.username.message || '')}</p>}
+        </div>
 
-        <Form.Item
-          name="password"
-          rules={[
-            { required: true, message: t('auth.validation.passwordRequired') },
-            { min: 6, message: t('auth.validation.passwordMin') }
-          ]}
-        >
-          <Input.Password
-            prefix={<LockOutlined className="site-form-item-icon" />}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="login-password">{t('auth.password')}</Label>
+          <Input
+            id="login-password"
+            type="password"
+            autoComplete="current-password"
             placeholder={t('auth.password')}
-            iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+            aria-invalid={!!errors.password}
+            {...register('password')}
           />
-        </Form.Item>
+          {errors.password && <p className="text-xs text-danger">{t(errors.password.message || '')}</p>}
+        </div>
 
-        <Form.Item>
-          <div className="login-options">
-            <Form.Item name="remember" valuePropName="checked" noStyle>
-              <Checkbox>{t('auth.rememberMe')}</Checkbox>
-            </Form.Item>
-            <Button
-              type="link"
-              onClick={handleForgotPassword}
-              className="forgot-password-link"
-            >
-              {t('auth.forgotPassword')}
-            </Button>
-          </div>
-        </Form.Item>
+        <div className="flex items-center justify-between">
+          <label htmlFor="login-remember" className="flex cursor-pointer items-center gap-2 text-[13px] text-text-2">
+            <Checkbox id="login-remember" checked={form.watch('remember')} onCheckedChange={(v) => setValue('remember', v === true)} />
+            {t('auth.rememberMe')}
+          </label>
+          <Link to="/reset-password" className="text-[13px] text-primary hover:underline">
+            {t('auth.forgotPassword')}
+          </Link>
+        </div>
 
-        <Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={loading}
-            className="login-submit-btn"
-            block
-          >
-            {loading ? t('auth.loginLoading') : t('auth.loginBtn')}
-          </Button>
-        </Form.Item>
+        <Button type="submit" className="mt-1 h-9 w-full" disabled={loading}>
+          {loading ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />}
+          {loading ? t('auth.loginLoading') : t('auth.loginBtn')}
+        </Button>
 
-        <Divider plain />
-        <Form.Item style={{ marginBottom: 0 }}>
-          <div className="register-link">
-            {t('auth.noAccount')}
-            <Link to="/register" className="register-btn">
-              {t('auth.registerNow')}
-            </Link>
-          </div>
-        </Form.Item>
-      </Form>
+        <div className="my-1 flex items-center gap-3">
+          <Separator className="flex-1" />
+          <span className="text-xs text-text-4">{t('auth.haveAccount')}</span>
+          <Separator className="flex-1" />
+        </div>
+
+        <div className="text-center text-[13px] text-text-3">
+          {t('auth.noAccount')}
+          <Link to="/register" className="ml-1 font-medium text-primary hover:underline">
+            {t('auth.registerNow')}
+          </Link>
+        </div>
+      </form>
     </AuthLayout>
   );
 };

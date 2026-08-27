@@ -24,5 +24,6 @@ func newTool(ctx context.Context) (bt tool.InvokableTool, err error) {
 		return nil, err
 	}
 	g.Log().Info(ctx, "[NormalChat] 已加载 DuckDuckGo 搜索工具 (web_search)")
-	return bt, nil
+	// 搜索被反爬/限流时降级为文本结果，避免工具报错触发全图重试
+	return common.WrapToolFallback(bt, common.ToolSearchFallbackHint), nil
 }

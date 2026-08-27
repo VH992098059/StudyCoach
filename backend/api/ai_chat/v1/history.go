@@ -73,3 +73,16 @@ type DeleteSessionReq struct {
 type DeleteSessionRes struct {
 	Id string `json:"id" description:"被删除的会话ID"`
 }
+
+// TruncateMessagesReq 会话内截断消息（编辑重发 / 重新生成的服务端回滚）
+type TruncateMessagesReq struct {
+	g.Meta          `path:"/chat/messages/truncate" method:"post" tags:"AI Chat" summary:"截断会话消息"`
+	SessionId       string `json:"session_id" v:"required" description:"会话ID"`
+	KeepCount       int    `json:"keep_count" description:"LLM 历史保留前N条消息（0 表示截断到空，用于编辑首条消息）"`
+	BeforeTimestamp int64  `json:"before_timestamp" description:"删除DB中该毫秒时间戳及之后的消息；0表示不删DB仅截历史文件"`
+}
+
+type TruncateMessagesRes struct {
+	DeletedMessages int64 `json:"deleted_messages" description:"DB 实际删除的消息数"`
+	KeptLines       int   `json:"kept_lines" description:"LLM 历史文件实际保留条数"`
+}

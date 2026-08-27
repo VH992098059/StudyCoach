@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import fs from 'fs'
 
@@ -43,7 +44,7 @@ function copyVadAssetsPlugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), copyVadAssetsPlugin()],
+  plugins: [react(), tailwindcss(), copyVadAssetsPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

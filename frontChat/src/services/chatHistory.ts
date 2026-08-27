@@ -39,7 +39,7 @@ export interface GetHistoryRes {
   page_size: number;
 }
 
-export interface GetSessionRes extends ChatSessionDetail {}
+export type GetSessionRes = ChatSessionDetail;
 
 export interface DeleteSessionRes {
   id: string;
@@ -47,6 +47,19 @@ export interface DeleteSessionRes {
 
 export interface UploadChatFileRes {
   file_names: string[];
+}
+
+export interface TruncateMessagesReq {
+  session_id: string;
+  /** LLM 历史保留前 N 条消息（0 表示截到空，用于编辑首条消息） */
+  keep_count: number;
+  /** 删除 DB 中该毫秒时间戳及之后的消息；0 表示不删 DB 仅截历史文件 */
+  before_timestamp?: number;
+}
+
+export interface TruncateMessagesRes {
+  deleted_messages: number;
+  kept_lines: number;
 }
 
 export const ChatHistoryService = {
@@ -92,6 +105,13 @@ export const ChatHistoryService = {
    */
   deleteSession: async (id: string): Promise<DeleteSessionRes> => {
     return ApiClient.delete<DeleteSessionRes>(`${BASE_PATH}/session/${id}`);
+  },
+
+  /**
+   * 截断会话消息（编辑重发 / 重新生成时回滚 DB 与 LLM 历史）
+   */
+  truncateMessages: async (data: TruncateMessagesReq): Promise<TruncateMessagesRes> => {
+    return ApiClient.post<TruncateMessagesRes>(`${BASE_PATH}/messages/truncate`, data);
   },
 };
 

@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.53.0
     container_name: studycoach-prometheus
     restart: unless-stopped
     ports:
@@ -19,7 +17,7 @@ services:
       - studycoach-network
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:11.1.0
     container_name: studycoach-grafana
     restart: unless-stopped
     ports:
@@ -37,7 +35,7 @@ services:
       - studycoach-network
 
   alertmanager:
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:v0.27.0
     container_name: studycoach-alertmanager
     restart: unless-stopped
     ports:
@@ -48,7 +46,7 @@ services:
       - studycoach-network
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.8.1
     container_name: studycoach-node-exporter
     restart: unless-stopped
     ports:
@@ -65,7 +63,8 @@ services:
       - studycoach-network
 
   mysql-exporter:
-    image: prom/mysqld-exporter:latest
+    # v0.14.0 保持 DATA_SOURCE_NAME 配置方式（v0.15+ 已移除该环境变量）
+    image: prom/mysqld-exporter:v0.14.0
     container_name: studycoach-mysql-exporter
     restart: unless-stopped
     ports:
@@ -76,7 +75,7 @@ services:
       - studycoach-network
 
   redis-exporter:
-    image: oliver006/redis_exporter:latest
+    image: oliver006/redis_exporter:v1.63.0
     container_name: studycoach-redis-exporter
     restart: unless-stopped
     ports:
@@ -88,7 +87,7 @@ services:
       - studycoach-network
 
   elasticsearch-exporter:
-    image: quay.io/prometheuscommunity/elasticsearch-exporter:latest
+    image: quay.io/prometheuscommunity/elasticsearch-exporter:v1.15.0
     container_name: studycoach-es-exporter
     restart: unless-stopped
     ports:

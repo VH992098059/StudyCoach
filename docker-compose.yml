@@ -1,14 +1,23 @@
-version: '3.8'
+# ============================================================
+# StudyCoach 基础设施编排（开发/部署共用底座）
+#
+# 用法:
+#   仅起基础设施(开发):      docker compose up -d
+#   完整部署(含应用+入口):   docker compose -f docker-compose.yml -f docker-compose.online.yml up -d --build
+#
+# 密码等敏感项从仓库根目录 .env 读取（模板见 ops/.env.example）:
+#   cp ops/.env.example .env
+# ============================================================
 
 services:
-  # MySQL数据库
+  # MySQL 数据库
   mysql:
-    image: mysql:latest
+    image: mysql:8.0
     container_name: studycoach-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: studyCoach
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-studyCoach}
       TZ: Asia/Shanghai
     ports:
       - "3306:3306"
@@ -17,25 +26,30 @@ services:
     networks:
       - studycoach-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-root}"]
       timeout: 20s
+      interval: 10s
       retries: 10
 
-  # Redis缓存
+  # Redis 缓存
   redis:
-    image: redis:latest
+    image: redis:7-alpine
     container_name: studycoach-redis
     restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-123456}"]
     ports:
       - "6379:6379"
-    command: redis-server --requirepass 123456
     volumes:
       - redis_data:/data
     networks:
       - studycoach-network
-    # command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a '${REDIS_PASSWORD:-123456}' ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Elasticsearch搜索引擎
+  # Elasticsearch 搜索引擎（RAG 检索底座之一）
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
     container_name: studycoach-elasticsearch
@@ -43,7 +57,7 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -51,24 +65,30 @@ services:
       - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
       - studycoach-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
 
-  # SeaweedFS Filer
+  # SeaweedFS 分布式文件存储（单进程 server 模式: master + volume + filer）
   seaweedfs-filer:
     image: chrislusf/seaweedfs
     container_name: studycoach-seaweedfs-filer
     restart: unless-stopped
+    command: "server -dir=/data -filer -master.volumeSizeLimitMB=1024"
     ports:
-      - "8888:8888"
-      - "18888:18888"
-    command: "filer -master=seaweedfs-master:9333"
+      - "8888:8888"   # filer http
+      - "18888:18888" # filer grpc
     volumes:
       - seaweedfs_filer_data:/data
     networks:
       - studycoach-network
 
-  # Qdrant向量数据库
+  # Qdrant 向量数据库
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.12.4
     container_name: studycoach-qdrant
     restart: unless-stopped
     ports:
@@ -86,8 +106,6 @@ volumes:
   elasticsearch_data:
     driver: local
   qdrant_data:
-    driver: local
-  seaweedfs_data:
     driver: local
   seaweedfs_filer_data:
     driver: local

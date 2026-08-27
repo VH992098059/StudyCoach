@@ -87,7 +87,7 @@ const useReferences = () => {
       setShowReferences(false);
       return [];
     }
-  }, [selectedKnowledge, advancedSettings]);
+  }, [selectedKnowledge, advancedSettings, t]);
 
   return {
     selectedKnowledge,

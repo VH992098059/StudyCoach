@@ -1,6 +1,6 @@
 import type { InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { message } from 'antd';
-import type { ApiResponse, ApiError } from './types';
+import { toast } from 'sonner';
+import type { ApiError } from './types';
 import i18n from '../../i18n';
 import { showTokenExpiredNotification } from './tokenExpiredNotification';
 import { isTokenExpired } from '../token/tokenValidator';
@@ -78,7 +78,7 @@ export const responseInterceptor = {
       }
       return data;
     }
-    
+
     // 隐藏 loading
     const showLoading = (config as any).showLoading !== false;
     if (showLoading) {
@@ -115,13 +115,13 @@ export const responseInterceptor = {
           // 登录请求的401是用户名密码错误，直接显示后端返回的错误信息
           const showError = (config as any).showError !== false;
           if (showError) {
-            message.error(error.message);
+            toast.error(error.message);
           }
         }
       } else {
         const showError = (config as any).showError !== false;
         if (showError) {
-          message.error(error.message);
+          toast.error(error.message);
         }
       }
 
@@ -138,7 +138,7 @@ export const responseInterceptor = {
 
       let messageShown = false;
       switch (status) {
-        case 401:
+        case 401: {
           const isLoginRequest = String(config?.url || '').includes('/login') && (config?.method?.toLowerCase() === 'post');
           errorMessage = (data as any)?.message || i18n.t('api.loginExpired');
           if (!isLoginRequest) {
@@ -149,12 +149,13 @@ export const responseInterceptor = {
             // 非登录请求的401已经通过notification显示了错误，不需要再显示普通message
           } else {
             if (showError) {
-              message.error(errorMessage);
+              toast.error(errorMessage);
             }
           }
-          // 无论哪种情况，都不走到下面的通用message.error
+          // 无论哪种情况，都不走到下面的通用toast.error
           messageShown = true;
           break;
+        }
         case 403:
           errorMessage = (data as any)?.message || i18n.t('api.forbidden');
           break;
@@ -169,7 +170,7 @@ export const responseInterceptor = {
       }
 
       if (showError && !messageShown) {
-        message.error(errorMessage);
+        toast.error(errorMessage);
       }
 
       return Promise.reject({
@@ -180,9 +181,9 @@ export const responseInterceptor = {
     } else {
       const errorMessage = i18n.t('api.networkError');
       if (showError) {
-        message.error(errorMessage);
+        toast.error(errorMessage);
       }
-      
+
       return Promise.reject({
         code: 0,
         message: errorMessage,

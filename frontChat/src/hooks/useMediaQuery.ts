@@ -140,7 +140,7 @@ export const useTouchDevice = () => {
       return (
         'ontouchstart' in window ||
         navigator.maxTouchPoints > 0 ||
-        // @ts-ignore
+        // @ts-expect-error 旧版 IE 专有属性，标准类型中不存在
         navigator.msMaxTouchPoints > 0
       );
     };

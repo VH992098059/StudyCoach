@@ -1,26 +1,45 @@
 /**
- * 主聊天页面：包含会话列表、消息展示、输入区、知识库检索、语音交互
+ * 主聊天页（设计文档 4.1：三栏布局）
+ * 会话列表 220px ｜ 消息区 flex（工具栏 + 消息流 + 输入区）｜ 参考文档 250px 可收起
+ * assistant-ui：useChatRuntime 适配现有 useChatSessions + useSSEChat 状态
+ * 业务逻辑层（SSE / 会话 / 引用 / 语音 / 附件）全部沿用
  */
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Button, Alert, message, Empty } from 'antd';
-import { ExclamationCircleOutlined } from '@ant-design/icons';
-import { useTranslation } from 'react-i18next';
-import { useBreakpoints } from '@/hooks/useMediaQuery';
-import { useChatSessions } from '@/hooks/useChatSessions';
-import { type KnowledgeSelectorRef } from '@/components/KnowledgeSelector';
-import type { UploadedFile } from '@/types/chat';
-import type { FileUploadRef } from './components/FileUpload';
-import { SessionInfoPanel, SessionInfoDrawer, ChatTopBar, BubbleMessageList, useReferences, useScrollHandlers, useChatComposer } from './components';
-import ChatSidebar from './components/pc/ChatSidebar';
-import SidebarDrawer from './components/mobile/SidebarDrawer';
-import useSSEChat, { MAX_RECONNECT_ATTEMPTS } from './components/useSSEChat.tsx';
-import useVoiceService from './components/useVoiceService.tsx';
-import InputArea from './components/InputArea';
-import { useChatSettings } from '@/hooks/useChatSettings';
 
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { AssistantRuntimeProvider } from '@assistant-ui/react';
+import { Plus, TriangleAlert, X } from 'lucide-react';
+
+import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useChatSessions } from '@/hooks/useChatSessions';
+import { useChatSettings } from '@/hooks/useChatSettings';
+import type { UploadedFile } from '@/types/chat';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/common/EmptyState';
+import ChatHistoryService from '@/services/chatHistory';
+
+import type { FileUploadRef } from './components/FileUpload';
+import { useReferences, useChatComposer, useSSEChat, useVoiceService, MAX_RECONNECT_ATTEMPTS } from './components';
+import ChatSidebar from './components/pc/ChatSidebar';
+import SessionInfoPanel from './components/pc/SessionInfoPanel';
+import ChatTopBar from './components/mobile/ChatTopBar';
+import SidebarDrawer from './components/mobile/SidebarDrawer';
+import SessionInfoDrawer from './components/mobile/SessionInfoDrawer';
+import ChatThread from './components/thread/ChatThread';
+import ChatComposer from './components/ChatComposer';
+import { UserActionsProvider } from './context/UserActionsContext';
+import { useChatRuntime, buildPipelineNodes } from './runtime/useChatRuntime';
 
 const AIChat: React.FC = () => {
   const { t } = useTranslation();
+
+  /** 手机端（<768px）：会话列表与参考文档均走抽屉 */
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  /** 宽屏（≥1100px）：参考文档为右栏内联面板 */
+  const isWide = useMediaQuery('(min-width: 1100px)');
+
   const {
     currentSessionId,
     chatSessions,
@@ -32,25 +51,21 @@ const AIChat: React.FC = () => {
     generateMsgId,
   } = useChatSessions();
 
-  const { isScrolling, isMessageScrolling, handleScroll, handleMessageScroll } = useScrollHandlers();
-  const [drawerVisible, setDrawerVisible] = useState(false);
-  const [sessionInfoDrawerVisible, setSessionInfoDrawerVisible] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [infoDrawerOpen, setInfoDrawerOpen] = useState(false);
 
   const {
     selectedKnowledge,
     advancedSettings,
     referenceDocuments,
     showReferences,
-    isReferenceScrolling,
     handleKnowledgeChange,
     handleAdvancedSettingsChange,
     handleToggleReferences,
-    handleReferenceScroll,
     fetchReferenceDocuments,
     setReferenceDocuments,
     setShowReferences,
   } = useReferences();
-  const knowledgeSelectorRef = useRef<KnowledgeSelectorRef>(null);
 
   const {
     isNetworkEnabled,
@@ -88,34 +103,13 @@ const AIChat: React.FC = () => {
   const fileUploadRef = useRef<FileUploadRef | null>(null);
 
   useVoiceService();
-  const { isMobile, isTablet } = useBreakpoints();
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
 
   useEffect(() => {
     return () => {
       stop();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // 滚动到底部：用 RAF 代替固定延迟，确保在浏览器绘制后执行
-  const rafRef = useRef<number>(0);
-  const scrollToBottom = useCallback(() => {
-    cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
-      }
-    });
-  }, []);
-
-  // messages 新增 / AI 流式内容更新时滚动；移除 currentReasoningContent 减少不必要触发
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, currentAiMessage, scrollToBottom]);
-
-  const handleStop = () => { stop(); };
 
   const uploadFilesIfNeeded = useCallback(async (sessionId: string) => {
     return fileUploadRef.current?.uploadFiles(sessionId) ?? [];
@@ -126,12 +120,7 @@ const AIChat: React.FC = () => {
     setCurrentUploadedFiles([]);
   }, []);
 
-  const {
-    inputValue,
-    setInputValue,
-    sendQuestionByText,
-    handleSend,
-  } = useChatComposer({
+  const { sendQuestionByText } = useChatComposer({
     messages,
     generateMsgId,
     setMessages,
@@ -146,25 +135,118 @@ const AIChat: React.FC = () => {
     currentUploadedFiles,
     clearUploadedFiles,
   });
-  // 处理文件上传变化
+
+  /** assistant-ui 适配层：发送链路走 useChatComposer（附件上传 + SSE 参数完整保留） */
+  const runtime = useChatRuntime({
+    messages,
+    isRunning: streamingLoading,
+    currentAiMessage,
+    currentReasoningContent,
+    stages,
+    onNewMessage: sendQuestionByText,
+    onStop: stop,
+  });
+
+  /** 最后一条用户消息 ID：仅它显示"重新生成" */
+  const lastUserMsgId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].isUser) return messages[i].msg_id || messages[i].id;
+    }
+    return null;
+  }, [messages]);
+
+  /** 复制到剪贴板（消息操作栏 / 参考文档共用） */
+  const copyToClipboard = useCallback(
+    async (text: string) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        toast.success(t('chat.copySuccess'));
+      } catch (error) {
+        console.error('复制失败:', error);
+        toast.error(t('chat.copyFailed'));
+      }
+    },
+    [t],
+  );
+
+  /**
+   * 用户消息"编辑重发 / 重新生成"统一链路：
+   * 后端截断（DB 删该时间戳及之后 + LLM 历史保留该条之前）→ 本地同步截断 → 重发文本流式生成。
+   * newText 为 null/undefined 时表示重发原文（重新生成）。
+   */
+  const handleTruncateAndSend = useCallback(
+    async (msgId: string, newText?: string | null) => {
+      if (!currentSessionId || streamingLoading) return;
+      const idx = messages.findIndex((m) => (m.msg_id || m.id) === msgId);
+      if (idx === -1 || !messages[idx].isUser) return;
+
+      try {
+        await ChatHistoryService.truncateMessages({
+          session_id: currentSessionId,
+          keep_count: idx,
+          before_timestamp: new Date(messages[idx].timestamp).getTime(),
+        });
+      } catch (error) {
+        console.error('truncate messages failed:', error);
+        toast.error(t('chat.truncateFailed'));
+        return;
+      }
+
+      const remaining = messages.slice(0, idx);
+      setMessages(remaining);
+
+      const text = (newText ?? messages[idx].content).trim();
+      if (!text) return;
+      await sendQuestionByText(text, { baseMessages: remaining });
+    },
+    [currentSessionId, streamingLoading, messages, setMessages, sendQuestionByText, t],
+  );
+
+  /** 用户消息操作栏上下文（复制 / 编辑 / 重新生成） */
+  const userActionsValue = useMemo(
+    () => ({
+      isRunning: streamingLoading,
+      lastUserMsgId,
+      onCopy: copyToClipboard,
+      onTruncateAndSend: handleTruncateAndSend,
+    }),
+    [streamingLoading, lastUserMsgId, copyToClipboard, handleTruncateAndSend],
+  );
+
+  const hasKnowledgeBase = selectedKnowledge !== 'none' && !!selectedKnowledge;
+  const pipelineNodes = useMemo(
+    () =>
+      buildPipelineNodes(
+        {
+          stages,
+          connectionState,
+          documentsCount,
+          hasKnowledgeBase,
+          hasContent: !!(currentAiMessage || currentReasoningContent),
+        },
+        t,
+      ),
+    [stages, connectionState, documentsCount, hasKnowledgeBase, currentAiMessage, currentReasoningContent, t],
+  );
+
   const handleFilesChange = useCallback((files: UploadedFile[]) => {
     setCurrentUploadedFiles(files);
   }, []);
 
-  // 处理文件上传完成
   const handleUploadComplete = useCallback((files: UploadedFile[]) => {
     setCurrentUploadedFiles(files);
   }, []);
 
-  // 切换联网/学习模式/深度思考：由 useChatSettings 提供，已持久化到 localStorage
+  /** 参考文档开关：宽屏切换右栏面板；窄屏打开浮层 */
+  const handleToggleReferencesPanel = useCallback(() => {
+    if (isWide) {
+      handleToggleReferences();
+    } else {
+      setInfoDrawerOpen(true);
+    }
+  }, [isWide, handleToggleReferences]);
 
-  const handleCloseDrawer = useCallback(() => setDrawerVisible(false), []);
-  const handleOpenSidebar = useCallback(() => setDrawerVisible(true), []);
-  const handleCloseSessionInfoDrawer = useCallback(() => setSessionInfoDrawerVisible(false), []);
-  const handleOpenInfo = useCallback(() => setSessionInfoDrawerVisible(true), []);
-
-  /** 检测上一条 AI 消息是否为学习计划（含番茄钟、项目启动计划等关键词） */
-  /** 保存成功提示：当 AI 回复包含「已保存」时显示 Toast */
+  /** AI 回复包含「已保存」时提示（沿用旧逻辑，antd message → sonner） */
   const lastToastMsgIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (messages.length === 0) return;
@@ -174,193 +256,146 @@ const AIChat: React.FC = () => {
     const msgKey = (last.msg_id || last.id) + '';
     if (content.includes('已保存') && lastToastMsgIdRef.current !== msgKey) {
       lastToastMsgIdRef.current = msgKey;
-      message.success(t('chat.planSavedSuccess'));
+      toast.success(t('chat.planSavedSuccess'));
     }
   }, [messages, t]);
 
-  /**
-   * 复制文档内容到剪贴板
-   */
-  const copyToClipboard = useCallback(async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      message.success(t('chat.copySuccess'));
-    } catch (error) {
-      console.error('复制失败:', error);
-      message.error(t('chat.copyFailed'));
-    }
-  }, [t]);
+  const sessionTitle = useMemo(
+    () => chatSessions.find((s) => s.id === currentSessionId)?.title,
+    [chatSessions, currentSessionId],
+  );
+
+  const hasSession = chatSessions.length > 0 && !!currentSessionId;
 
   return (
-    <div style={{
-      display: 'flex'
-    }}>
-
-
-      {/* 左侧聊天记录面板 - 桌面端 */}
+    <div className="flex h-[calc(100vh-var(--header-h))] w-full overflow-hidden">
+      {/* 左栏：会话列表（≥768px 常驻） */}
       {!isMobile && (
-        <div>
-          <ChatSidebar
-            isTablet={isTablet}
-            chatSessions={chatSessions}
-            currentSessionId={currentSessionId}
-            isScrolling={isScrolling}
-            onScroll={handleScroll}
-            onCreateSession={createNewSession}
-            onLoadSession={loadSession}
-            onDeleteSession={deleteSession}
-          />
-        </div>
+        <ChatSidebar
+          chatSessions={chatSessions}
+          currentSessionId={currentSessionId}
+          onCreateSession={createNewSession}
+          onLoadSession={loadSession}
+          onDeleteSession={deleteSession}
+        />
       )}
 
-      <SidebarDrawer
-        open={drawerVisible}
-        onClose={handleCloseDrawer}
-        chatSessions={chatSessions}
-        currentSessionId={currentSessionId}
-        onCreateSession={createNewSession}
-        onLoadSession={loadSession}
-        onDeleteSession={deleteSession}
-      />
+      {/* 移动端会话抽屉 */}
+      {isMobile && (
+        <SidebarDrawer
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          chatSessions={chatSessions}
+          currentSessionId={currentSessionId}
+          onCreateSession={createNewSession}
+          onLoadSession={loadSession}
+          onDeleteSession={deleteSession}
+        />
+      )}
 
-      {/* 主内容区域 */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        gap: '16px',
-        padding: isMobile ? '12px' : isTablet ? '16px' : '20px'
-      }}>
-        {/* 聊天区域 */}
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          height: '88vh',
-          flexDirection: 'column'
-        }}>
-          <ChatTopBar isMobile={isMobile} onOpenSidebar={handleOpenSidebar} onOpenInfo={handleOpenInfo} />
-          {/* 连接错误提示 */}
-          {connectionError && (
-            <Alert
-              title={connectionError}
-              type={reconnectAttempts >= MAX_RECONNECT_ATTEMPTS ? 'error' : 'warning'}
-              icon={<ExclamationCircleOutlined />}
-              style={{ marginBottom: '16px' }}
-              showIcon
-              closable={{ onClose: () => setConnectionError(null) }}
-            />
-          )}
+      {/* 中栏：消息区 */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <ChatTopBar
+          isMobile={isMobile}
+          sessionTitle={sessionTitle}
+          messagesCount={messages.length}
+          referenceCount={referenceDocuments.length}
+          showReferences={showReferences && isWide}
+          onToggleReferences={handleToggleReferencesPanel}
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
 
-          {chatSessions.length > 0 && currentSessionId ? (
-            <>
-              <BubbleMessageList
-                messages={messages}
-                isMobile={isMobile}
-                isMessageScrolling={isMessageScrolling}
-                onScroll={handleMessageScroll}
-                loading={streamingLoading}
-                connectionState={connectionState}
-                currentAiMessage={currentAiMessage}
-                currentReasoningContent={currentReasoningContent}
-                messagesEndRef={messagesEndRef}
-                documentsCount={documentsCount}
-                currentToolStatus={currentToolStatus}
-                stages={stages}
-                hasKnowledgeBase={selectedKnowledge !== 'none' && !!selectedKnowledge}
-              />
-
-              {/* 输入区域 */}
-              <InputArea
-                inputValue={inputValue}
-                loading={streamingLoading}
-                isNetworkEnabled={isNetworkEnabled}
-                isStudyMode={isStudyMode}
-                isDeepThinking={isDeepThinking}
-                currentUploadedFiles={currentUploadedFiles}
-                sessionId={currentSessionId}
-                fileUploadRef={fileUploadRef}
-                onVoiceTranscript={(text) => sendQuestionByText(text)}
-                onInputChange={setInputValue}
-                onSend={handleSend}
-                onStop={handleStop}
-                onToggleNetwork={toggleNetwork}
-                onToggleStudyMode={toggleStudyMode}
-                onToggleDeepThinking={toggleDeepThinking}
-                onFilesChange={handleFilesChange}
-                onUploadComplete={handleUploadComplete}
-              />
-            </>
-          ) : (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 8,
-              border: '1px solid #f0f0f0',
-              height: '85vh'
-            }}>
-              <Empty description={t('chat.noSession')} image={Empty.PRESENTED_IMAGE_SIMPLE}>
-                <Button type="primary" onClick={createNewSession}>{t('chat.newSession')}</Button>
-              </Empty>
-            </div>
-          )}
-
-        </div>
-
-        {/* 右侧会话信息面板 - 桌面端和平板端 */}
-        {!isMobile && chatSessions.length > 0 && currentSessionId && (
+        {/* 连接错误内联提示条 */}
+        {connectionError && (
           <div
-            style={{
-              width: isTablet ? '240px' : '280px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              marginTop: isTablet ? 16 : 24,
-            }}
+            className={cn(
+              'mx-4 mt-2 flex items-start gap-2 rounded-md border px-3 py-2 text-xs',
+              reconnectAttempts >= MAX_RECONNECT_ATTEMPTS
+                ? 'border-danger/40 bg-danger-bg text-danger'
+                : 'border-warning/40 bg-warning-bg text-warning',
+            )}
+            role="alert"
           >
-            <SessionInfoPanel
-              isTablet={isTablet}
-              currentSessionId={currentSessionId}
-              messagesCount={messages.length}
+            <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+            <span className="min-w-0 flex-1 break-all">{connectionError}</span>
+            <button
+              type="button"
+              className="shrink-0 cursor-pointer opacity-60 hover:opacity-100"
+              onClick={() => setConnectionError(null)}
+              aria-label={t('common.close')}
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
+
+        {hasSession ? (
+          <AssistantRuntimeProvider runtime={runtime}>
+            {/* 消息流：滚动视口 + 消息列表 + （普通模式的独立流水线） */}
+            <UserActionsProvider value={userActionsValue}>
+              <ChatThread
+                isRunning={streamingLoading}
+                pipelineNodes={pipelineNodes}
+                toolStatus={currentToolStatus}
+                stages={stages}
+              />
+            </UserActionsProvider>
+
+            {/* 输入区：附件 + 知识库 chip + 输入框 + 语音 + 开关行 */}
+            <ChatComposer
+              isRunning={streamingLoading}
+              sessionId={currentSessionId}
               selectedKnowledge={selectedKnowledge}
-              knowledgeSelectorRef={knowledgeSelectorRef}
               onKnowledgeChange={handleKnowledgeChange}
               isNetworkEnabled={isNetworkEnabled}
-              advancedSettings={advancedSettings}
-              onAdvancedSettingsChange={handleAdvancedSettingsChange}
-              referenceDocuments={referenceDocuments}
-              showReferences={showReferences}
-              onToggleReferences={handleToggleReferences}
-              isReferenceScrolling={isReferenceScrolling}
-              onReferenceScroll={handleReferenceScroll}
-              onCopyDocumentContent={copyToClipboard}
+              isStudyMode={isStudyMode}
+              isDeepThinking={isDeepThinking}
+              onToggleNetwork={toggleNetwork}
+              onToggleStudyMode={toggleStudyMode}
+              onToggleDeepThinking={toggleDeepThinking}
+              fileUploadRef={fileUploadRef}
+              currentUploadedFiles={currentUploadedFiles}
+              onFilesChange={handleFilesChange}
+              onUploadComplete={handleUploadComplete}
+              onVoiceTranscript={(text) => sendQuestionByText(text)}
+            />
+          </AssistantRuntimeProvider>
+        ) : (
+          <div className="flex flex-1 items-center justify-center">
+            <EmptyState
+              title={t('chat.noSession')}
+              action={
+                <Button onClick={createNewSession} className="gap-1">
+                  <Plus className="size-4" />
+                  {t('chat.newSession')}
+                </Button>
+              }
             />
           </div>
         )}
       </div>
 
-      {/* 移动端会话信息抽屉 */}
-      {chatSessions.length > 0 && currentSessionId && (
-        <SessionInfoDrawer
-          open={sessionInfoDrawerVisible}
-          onClose={handleCloseSessionInfoDrawer}
-          showReferences={showReferences}
-          onToggleReferences={() => setShowReferences(!showReferences)}
-          currentSessionId={currentSessionId}
-          messagesCount={messages.length}
-          selectedKnowledge={selectedKnowledge}
-          knowledgeSelectorRef={knowledgeSelectorRef}
-          onKnowledgeChange={handleKnowledgeChange}
-          isNetworkEnabled={isNetworkEnabled}
+      {/* 右栏：参考文档面板（≥1100px 且开启时内联展示） */}
+      {isWide && showReferences && hasSession && (
+        <SessionInfoPanel
+          referenceDocuments={referenceDocuments}
           advancedSettings={advancedSettings}
           onAdvancedSettingsChange={handleAdvancedSettingsChange}
-          referenceDocuments={referenceDocuments}
-          isReferenceScrolling={isReferenceScrolling}
-          onReferenceScroll={handleReferenceScroll}
           onCopyDocumentContent={copyToClipboard}
         />
       )}
 
-
+      {/* 窄屏参考文档浮层 */}
+      {(!isWide || isMobile) && (
+        <SessionInfoDrawer
+          open={infoDrawerOpen}
+          onClose={() => setInfoDrawerOpen(false)}
+          referenceDocuments={referenceDocuments}
+          advancedSettings={advancedSettings}
+          onAdvancedSettingsChange={handleAdvancedSettingsChange}
+          onCopyDocumentContent={copyToClipboard}
+        />
+      )}
     </div>
   );
 };

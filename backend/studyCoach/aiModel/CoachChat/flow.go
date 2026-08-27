@@ -28,7 +28,7 @@ func buildReActAgent(ctx context.Context, conf *common.Config) (lba *compose.Lam
 
 	config := &react.AgentConfig{
 		MaxStep:               100,
-		StreamToolCallChecker: common.DrainStreamChecker,
+		StreamToolCallChecker: common.FastStreamChecker,
 	}
 	chatModelIns11, err := buildReActModel(ctx, conf)
 	if err != nil {
@@ -94,7 +94,8 @@ func buildReActAgent(ctx context.Context, conf *common.Config) (lba *compose.Lam
 	if err != nil {
 		return nil, err
 	}
-	lba, err = compose.AnyLambda(ins.Generate, common.BuildGenToStream(ins), nil, nil)
+	// eino v0.9.15 已修复旧版 Stream 丢失工具调用后内容的 bug，改用真流式
+	lba, err = compose.AnyLambda(ins.Generate, ins.Stream, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func buildReActAgent(ctx context.Context, conf *common.Config) (lba *compose.Lam
 func buildPlanModifyModel(ctx context.Context, conf *common.Config) (lba *compose.Lambda, err error) {
 	config := &react.AgentConfig{
 		MaxStep:               100,
-		StreamToolCallChecker: common.DrainStreamChecker,
+		StreamToolCallChecker: common.FastStreamChecker,
 	}
 	chatModelIns11, err := buildToStudyModel(ctx, conf)
 	if err != nil {
@@ -159,7 +160,8 @@ func buildPlanModifyModel(ctx context.Context, conf *common.Config) (lba *compos
 	if err != nil {
 		return nil, err
 	}
-	lba, err = compose.AnyLambda(ins.Generate, common.BuildGenToStream(ins), nil, nil)
+	// eino v0.9.15 已修复旧版 Stream 丢失工具调用后内容的 bug，改用真流式
+	lba, err = compose.AnyLambda(ins.Generate, ins.Stream, nil, nil)
 	if err != nil {
 		return nil, err
 	}

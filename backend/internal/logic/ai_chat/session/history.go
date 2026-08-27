@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/cloudwego/eino/schema"
@@ -38,11 +39,39 @@ func (h *History) pathFor(convID string) string {
 	return filepath.Join(h.dir, fmt.Sprintf("%s.jsonl", convID))
 }
 
+// sanitizeForLLMHistory 将消息裁剪为「作为 LLM 上下文安全」的形态。
+//
+// 根因修复：ReAct 流式输出经 ConcatMessages 拼接后，assistant 消息可能残留
+// tool_calls（其 id/type 为空字符串，来自工具调用中间产物）。这类消息下一轮作为
+// chat_history 发给 OpenAI 兼容服务时，tool_calls[].type 不满足 "function" 字面量
+// 校验，SiliconFlow 直接 400 "Input should be a valid string"（code 20015）。
+// 历史上下文只需 role + content（+用户多模态输入），其余协议字段一律丢弃。
+func sanitizeForLLMHistory(m *schema.Message) *schema.Message {
+	if m == nil {
+		return nil
+	}
+	role := schema.RoleType(strings.TrimSpace(string(m.Role)))
+	switch role {
+	case schema.User, schema.Assistant, schema.System, schema.Tool:
+	default:
+		// 非法/未知角色统一按 assistant 兜底，避免下游严格校验拒绝
+		role = schema.Assistant
+	}
+	return &schema.Message{
+		Role:                  role,
+		Content:               m.Content,
+		MultiContent:          m.MultiContent,
+		UserInputMultiContent: m.UserInputMultiContent,
+	}
+}
+
 // SaveMessage 将一条消息追加写入 convID 对应的 JSONL 文件。
+// 写入前先清洗（见 sanitizeForLLMHistory），保证落盘数据即为 LLM 安全形态。
 func (h *History) SaveMessage(mess *schema.Message, convID string) error {
 	if mess == nil {
 		return nil
 	}
+	mess = sanitizeForLLMHistory(mess)
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -88,7 +117,9 @@ func (h *History) GetHistory(convID string, limit int) ([]*schema.Message, error
 			g.Log().Warningf(gctx.GetInitCtx(), "skip corrupted chat history line in conv %s: %v", convID, err)
 			continue
 		}
-		msgs = append(msgs, &m)
+		// 读取侧兜底清洗：历史文件里可能已存在带 tool_calls/空 id 的脏数据
+		//（清洗逻辑上线前落盘），避免下一轮请求发给 LLM 时触发 4xx 校验错误。
+		msgs = append(msgs, sanitizeForLLMHistory(&m))
 	}
 
 	if len(msgs) > limit {
@@ -106,6 +137,62 @@ func (h *History) Delete(convID string) error {
 		return err
 	}
 	return nil
+}
+
+// TruncateKeep 将 convID 的历史截断为前 keepCount 条（供编辑重发/重新生成回滚上下文）。
+// 通过临时文件 + rename 原子替换，避免中途崩溃留下半截文件；
+// keepCount 超过现有条数时为幂等 no-op；历史文件不存在时返回 (0, nil)。
+func (h *History) TruncateKeep(convID string, keepCount int) (int, error) {
+	if keepCount < 0 {
+		keepCount = 0
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	path := h.pathFor(convID)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("read chat history: %w", err)
+	}
+
+	// 过滤空行后的有效消息行
+	var lines [][]byte
+	for _, line := range splitLines(data) {
+		if len(line) == 0 {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	if keepCount >= len(lines) {
+		return len(lines), nil
+	}
+
+	var out []byte
+	for _, line := range lines[:keepCount] {
+		out = append(out, line...)
+		out = append(out, '\n')
+	}
+
+	tmp, err := os.CreateTemp(h.dir, convID+".trunc-*")
+	if err != nil {
+		return 0, fmt.Errorf("create temp file for truncate: %w", err)
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName) // rename 成功后此调用无害（文件已不存在）
+	if _, err := tmp.Write(out); err != nil {
+		tmp.Close()
+		return 0, fmt.Errorf("write truncated history: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return 0, fmt.Errorf("close temp file: %w", err)
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		return 0, fmt.Errorf("replace chat history file: %w", err)
+	}
+	return keepCount, nil
 }
 
 func splitLines(b []byte) [][]byte {

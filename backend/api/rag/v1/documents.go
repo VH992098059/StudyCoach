@@ -30,7 +30,7 @@ type DocumentsListRes struct {
 
 type DocumentsDeleteReq struct {
 	g.Meta     `path:"/v1/documentsDelete" method:"delete" tags:"rag" summary:"Delete a document and its chunks"`
-	DocumentId string `p:"document_id" dc:"document_id" v:"required"` // UUID
+	DocumentId string `p:"document_id" dc:"document_id" v:"required|uuid"` // UUID
 }
 
 type DocumentsDeleteRes struct {

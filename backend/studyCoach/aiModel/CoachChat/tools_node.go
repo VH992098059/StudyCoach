@@ -25,7 +25,8 @@ func NewTool(ctx context.Context) (bt tool.InvokableTool, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return bt, nil
+	// 搜索被反爬/限流时降级为文本结果，避免工具报错触发全图重试
+	return common.WrapToolFallback(bt, common.ToolSearchFallbackHint), nil
 }
 func newTool1(ctx context.Context) (bt tool.InvokableTool, err error) {
 	config := &duckduckgoV2.Config{
@@ -38,7 +39,8 @@ func newTool1(ctx context.Context) (bt tool.InvokableTool, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return bt, nil
+	// 搜索被反爬/限流时降级为文本结果，避免工具报错触发全图重试
+	return common.WrapToolFallback(bt, common.ToolSearchFallbackHint), nil
 }
 
 // CreateMarkDownPlan 生成学习计划文件

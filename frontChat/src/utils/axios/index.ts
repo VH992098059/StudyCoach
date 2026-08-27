@@ -51,10 +51,11 @@ export class ApiClient {
     params?: any,
     config?: RequestConfig
   ): Promise<T> {
+    // 响应拦截器已解包返回业务数据，这里做类型断言
     return http.get(url, {
       params,
       ...config,
-    });
+    }) as unknown as Promise<T>;
   }
 
   /**
@@ -65,7 +66,7 @@ export class ApiClient {
     data?: any,
     config?: RequestConfig
   ): Promise<T> {
-    return http.post(url, data, config);
+    return http.post(url, data, config) as unknown as Promise<T>;
   }
 
   /**
@@ -119,7 +120,7 @@ export class ApiClient {
     data?: any,
     config?: RequestConfig
   ): Promise<T> {
-    return http.put(url, data, config);
+    return http.put(url, data, config) as unknown as Promise<T>;
   }
 
   /**
@@ -129,7 +130,7 @@ export class ApiClient {
     url: string,
     config?: RequestConfig
   ): Promise<T> {
-    return http.delete(url, config);
+    return http.delete(url, config) as unknown as Promise<T>;
   }
 
   /**
@@ -140,7 +141,7 @@ export class ApiClient {
     data?: any,
     config?: RequestConfig
   ): Promise<T> {
-    return http.patch(url, data, config);
+    return http.patch(url, data, config) as unknown as Promise<T>;
   }
 
   /**
@@ -168,7 +169,7 @@ export class ApiClient {
         }
       },
       ...config,
-    });
+    }) as unknown as Promise<T>;
   }
 
   /**

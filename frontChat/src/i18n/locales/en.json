@@ -9,6 +9,8 @@
     "language": "Language",
     "chinese": "Chinese",
     "english": "English",
+    "none": "None",
+    "defaultTitle": "Default",
     "back": "Back",
     "backToHome": "Back to Home",
     "backToPrev": "Back to Previous",
@@ -33,10 +35,29 @@
     "batchDelete": "Batch Delete",
     "confirmDelete": "Confirm Delete",
     "deselect": "Deselect",
-    "pagination": "{{current}}-{{end}} of {{total}}"
+    "selectAll": "Select all on page",
+    "select": "Select",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "page": "Page",
+    "pagination": "{{current}}-{{end}} of {{total}}",
+    "close": "Close"
   },
   "profile": {
     "securitySettings": "Security Settings",
+    "accountSettings": "Account",
+    "usernameLabel": "Username",
+    "usernameDesc": "Used for login, not visible to others",
+    "passwordLabel": "Password",
+    "passwordDesc": "Changing your password regularly is safer",
+    "changePassword": "Change Password",
+    "preferences": "Preferences",
+    "darkMode": "Dark Mode",
+    "darkModeDesc": "Follows the app theme",
+    "notifications": "Study Reminders",
+    "notificationsDesc": "Get notified after scheduled tasks run",
+    "language": "Language",
+    "languageDesc": "Switch anytime, takes effect immediately",
     "currentPassword": "Current Password",
     "currentPasswordRequired": "Please enter current password",
     "newPassword": "New Password",
@@ -46,7 +67,8 @@
     "passwordMismatch": "Passwords do not match",
     "updatePassword": "Update Password",
     "updatePasswordSuccess": "Password updated successfully",
-    "updatePasswordFailed": "Failed to update password"
+    "updatePasswordFailed": "Failed to update password",
+    "userInfoMissing": "User info not found. Please log in again."
   },
   "auth": {
     "loginRequired": "Please login first",
@@ -171,6 +193,12 @@
     "uploadFile": "Upload File",
     "copySuccess": "Copied to clipboard",
     "copyFailed": "Copy failed",
+    "copy": "Copy",
+    "editMessage": "Edit",
+    "regenerate": "Regenerate",
+    "saveAndRegenerate": "Save & Regenerate",
+    "actionCancel": "Cancel",
+    "truncateFailed": "Operation failed, please try again later",
     "connectionError": "Connection Error",
     "reconnecting": "Reconnecting...",
     "sessionInfo": "Session Info",
@@ -188,6 +216,19 @@
     "networkDisabled": "Web Search Disabled",
     "studyModeEnabled": "Deep Study Mode Enabled",
     "studyModeDisabled": "Deep Study Mode Disabled",
+    "scrollToBottom": "Scroll to bottom",
+    "empty": {
+      "title": "Start a New Conversation",
+      "desc": "Type a question, or upload files and let the AI help"
+    },
+    "pipeline": {
+      "title": "Progress",
+      "understand": "Understanding",
+      "retrieve": "Retrieving",
+      "retrieved": "Retrieved {{count}} chunks",
+      "generate": "Generating",
+      "failed": "Failed"
+    },
     "sidebar": {
       "title": "Sessions",
       "newSession": "New Session",
@@ -212,7 +253,10 @@
       "deepThinkingTip": "Only in normal mode, enables AI deep reasoning",
       "network": "Net",
       "networkEnabled": "Net On",
-      "networkSearch": "Net Search"
+      "networkSearch": "Net Search",
+      "send": "Send",
+      "stop": "Stop",
+      "shortcutHint": "Enter to send / Shift+Enter for newline"
     },
     "info": {
       "title": "Session Info",
@@ -293,7 +337,10 @@
       "thinking": "Thinking...",
       "complete": "Response complete",
       "viewThinking": "View thinking process",
-      "hideThinking": "Hide thinking process"
+      "hideThinking": "Hide thinking process",
+      "viewProcess": "View processing steps",
+      "processWithThinking": "Processing & thinking",
+      "pipeline": "Processing steps"
     }
   },
   "api": {
@@ -349,6 +396,19 @@
     },
     "empty": "No knowledge base yet, please click Create",
     "drawerTitle": "Knowledge Base Documents",
+    "tabs": {
+      "list": "Knowledge Bases",
+      "indexer": "Upload & Index",
+      "retriever": "Retrieval Test"
+    },
+    "card": {
+      "newCard": "New Knowledge Base",
+      "newCardDesc": "Create a new knowledge base space"
+    },
+    "detail": {
+      "uploadDoc": "Upload Documents",
+      "docsTitle": "Documents"
+    },
     "documents": {
       "fileName": "File Name",
       "status": "Status",
@@ -415,6 +475,19 @@
     "urlPlaceholder": "Enter URL to index, e.g., https://example.com/article",
     "urlTipTitle": "URL Indexing Note",
     "urlTipDesc": "The system will automatically crawl and index web content. Supports most public web pages. Please ensure the URL is accessible.",
+    "sourceLabel": "Content Source",
+    "progress": {
+      "title": "Processing Progress",
+      "upload": "Upload",
+      "parse": "Parse",
+      "split": "Split",
+      "embed": "Embed",
+      "write": "Write",
+      "idle": "Waiting to start indexing",
+      "processing": "Processing on server. This is a synchronous task and may take a while",
+      "success": "All steps completed",
+      "failed": "Processing failed"
+    },
     "processInfo": {
       "processing": "Processing Document",
       "processingDesc": "Processing file: {{fileName}}, please wait...",
@@ -474,6 +547,11 @@
   },
   "cron": {
     "title": "Scheduled Tasks",
+    "pageTitle": "Scheduled Tasks",
+    "pageDesc": "Update knowledge base content via web search on a schedule, with incremental and full update modes",
+    "taskList": "Task List",
+    "newTask": "New Task",
+    "nextPrefix": "Next",
     "create": "Create",
     "task": "Task",
     "kb": "Knowledge Base",
@@ -489,11 +567,14 @@
     },
     "config": {
       "title": "Task Config & Status",
+      "createTitle": "New Task Config",
       "name": "Task Name",
       "kb": "Knowledge Base",
       "updateType": "Update Type",
       "full": "Full Update",
+      "fullDesc": "Clears content written by this task last time, then writes the new search results",
       "incremental": "Incremental Update",
+      "incrementalDesc": "Keeps existing content and appends new search results",
       "mode": "Schedule Mode",
       "modes": {
         "hourly": "Hourly",
@@ -503,11 +584,14 @@
         "custom": "Custom Expression"
       },
       "time": "Time",
+      "execTime": "Run Time",
       "minute": "Minute",
       "second": "Second",
       "weekday": "Weekday",
       "day": "Date",
       "cronExpr": "Cron Expression",
+      "customEditable": "editable in custom mode",
+      "autoGenerated": "auto-generated",
       "help": "Help",
       "lastRun": "Last Run",
       "nextRun": "Next Run",
@@ -517,6 +601,11 @@
     },
     "logs": {
       "title": "Execution Logs",
+      "recordsTitle": "Execution Records",
+      "viewAll": "View All",
+      "empty": "No execution records",
+      "resultSuccess": "Success · Knowledge base updated",
+      "resultFailed": "Failed",
       "details": "Error Details",
       "duration": "Duration",
       "noDetails": "No Details"
@@ -559,7 +648,10 @@
       "opFailed": "Operation failed",
       "fetchFailed": "Failed to fetch tasks",
       "empty": "No tasks, please create one",
+      "noSelection": "No task selected",
+      "noSelectionDesc": "Select a task from the list to configure, or create a new one",
       "confirmDelete": "Are you sure to delete this task?",
+      "confirmDeleteDesc": "This action cannot be undone",
       "saveSuccess": "Configuration saved",
       "saveFailed": "Failed to save configuration",
       "startExec": "Task started execution...",

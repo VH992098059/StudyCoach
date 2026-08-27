@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { message } from 'antd';
+import { toast } from 'sonner';
 import type { UploadedFile, FileUploadConfig, UseFileUploadReturn } from '../types/chat';
 import { formatFileSize, validateFileType, validateFileSize } from '@/utils/file';
 
@@ -47,7 +47,7 @@ export const useFileUpload = (initialConfig?: Partial<FileUploadConfig>): UseFil
 
     // 检查文件数量限制
     if (uploadedFiles.length + newFiles.length > config.maxFileCount) {
-      message.error(`最多只能上传 ${config.maxFileCount} 个文件`);
+      toast.error(`最多只能上传 ${config.maxFileCount} 个文件`);
       return;
     }
 
@@ -89,13 +89,13 @@ export const useFileUpload = (initialConfig?: Partial<FileUploadConfig>): UseFil
 
     // 显示错误信息
     if (errors.length > 0) {
-      errors.forEach(error => message.error(error));
+      errors.forEach(error => toast.error(error));
     }
 
     // 添加有效文件
     if (validFiles.length > 0) {
       setUploadedFiles(prev => [...prev, ...validFiles]);
-      message.success(`已选择 ${validFiles.length} 个文件`);
+      toast.success(`已选择 ${validFiles.length} 个文件`);
     }
 
     // 清空input值，允许重复选择同一文件
@@ -131,7 +131,7 @@ export const useFileUpload = (initialConfig?: Partial<FileUploadConfig>): UseFil
 
     const uploadFn = config.uploadFn;
     if (!uploadFn) {
-      message.error('未配置上传接口');
+      toast.error('未配置上传接口');
       return existingNames;
     }
 
@@ -160,7 +160,7 @@ export const useFileUpload = (initialConfig?: Partial<FileUploadConfig>): UseFil
       );
 
       setUploadProgress(100);
-      message.success('所有文件上传成功');
+      toast.success('所有文件上传成功');
       return [...existingNames, ...fileNames];
     } catch (error) {
       console.error('文件上传失败:', error);
@@ -171,7 +171,7 @@ export const useFileUpload = (initialConfig?: Partial<FileUploadConfig>): UseFil
             : file
         )
       );
-      message.error('文件上传失败');
+      toast.error('文件上传失败');
       return existingNames;
     } finally {
       setIsUploading(false);
